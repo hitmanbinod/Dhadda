@@ -46,3 +46,10 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Release signing secrets (never commit; see docs/RELEASE.md)
+android/key.properties
+*.jks
+*.keystore
+*.p12
+*.pfx

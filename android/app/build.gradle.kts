@@ -4,6 +4,21 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Release signing comes from android/key.properties (never committed; see
+// docs/RELEASE.md). Missing keys fail CLOSED: release builds stop with setup
+// instructions instead of silently shipping debug-signed APKs. Explicitly
+// unsigned dev releases remain possible with DHADDA_ALLOW_UNSIGNED_RELEASE=1
+// (never publish those artifacts). Debug builds and tests are unaffected.
+val keyPropsFile = rootProject.file("key.properties")
+val keyProps = java.util.Properties()
+if (keyPropsFile.exists()) keyProps.load(keyPropsFile.inputStream())
+val hasReleaseKeys = keyProps.containsKey("storeFile") &&
+    keyProps.containsKey("storePassword") &&
+    keyProps.containsKey("keyAlias") &&
+    keyProps.containsKey("keyPassword")
+val allowUnsignedRelease =
+    System.getenv("DHADDA_ALLOW_UNSIGNED_RELEASE") == "1"
+
 android {
     namespace = "com.dhadda.expense"
     compileSdk = flutter.compileSdkVersion
@@ -30,11 +45,37 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Populated only when android/key.properties exists; otherwise this
+        // config stays empty and is never selected (see buildTypes below).
+        create("release") {
+            if (hasReleaseKeys) {
+                // Paths resolve relative to android/app/.
+                storeFile = file(keyProps.getProperty("storeFile"))
+                storePassword = keyProps.getProperty("storePassword")
+                keyAlias = keyProps.getProperty("keyAlias")
+                keyPassword = keyProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseKeys) {
+                signingConfig = signingConfigs.getByName("release")
+            } else if (allowUnsignedRelease) {
+                signingConfig = signingConfigs.getByName("debug")
+                logger.warn(
+                    "DHADDA_ALLOW_UNSIGNED_RELEASE=1: building an explicitly " +
+                        "unsigned dev release. Do NOT publish this artifact.")
+            } else {
+                throw GradleException(
+                    "Release signing keys missing: create android/key.properties " +
+                        "(storeFile/storePassword/keyAlias/keyPassword) per " +
+                        "docs/RELEASE.md, or set DHADDA_ALLOW_UNSIGNED_RELEASE=1 " +
+                        "for a clearly-marked dev build. " +
+                        "Debug builds and tests are unaffected.")
+            }
         }
     }
 }
