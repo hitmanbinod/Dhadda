@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -10,7 +12,7 @@ plugins {
 // unsigned dev releases remain possible with DHADDA_ALLOW_UNSIGNED_RELEASE=1
 // (never publish those artifacts). Debug builds and tests are unaffected.
 val keyPropsFile = rootProject.file("key.properties")
-val keyProps = java.util.Properties()
+val keyProps = Properties()
 if (keyPropsFile.exists()) keyProps.load(keyPropsFile.inputStream())
 val hasReleaseKeys = keyProps.containsKey("storeFile") &&
     keyProps.containsKey("storePassword") &&
@@ -63,18 +65,13 @@ android {
         release {
             if (hasReleaseKeys) {
                 signingConfig = signingConfigs.getByName("release")
-            } else if (allowUnsignedRelease) {
+            } else {
+                // Placeholder so configuration succeeds for non-release tasks
+                // (debug builds, tests). A real release task without keys or
+                // the explicit dev flag fails in the taskGraph guard below.
                 signingConfig = signingConfigs.getByName("debug")
                 logger.warn(
-                    "DHADDA_ALLOW_UNSIGNED_RELEASE=1: building an explicitly " +
-                        "unsigned dev release. Do NOT publish this artifact.")
-            } else {
-                throw GradleException(
-                    "Release signing keys missing: create android/key.properties " +
-                        "(storeFile/storePassword/keyAlias/keyPassword) per " +
-                        "docs/RELEASE.md, or set DHADDA_ALLOW_UNSIGNED_RELEASE=1 " +
-                        "for a clearly-marked dev build. " +
-                        "Debug builds and tests are unaffected.")
+                    "No android/key.properties: release signing not configured.")
             }
         }
     }
@@ -88,6 +85,23 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+// Fail CLOSED at execution time: a real release task without keys and
+// without the explicit dev flag stops with setup instructions instead of
+// silently shipping a debug-signed "release". Debug builds, tests, and
+// DHADDA_ALLOW_UNSIGNED_RELEASE=1 dev builds are unaffected.
+gradle.taskGraph.whenReady {
+    val wantsRelease = allTasks.any {
+        it.name.contains("Release", ignoreCase = true)
+    }
+    if (wantsRelease && !hasReleaseKeys && !allowUnsignedRelease) {
+        throw GradleException(
+            "Release signing keys missing: create android/key.properties " +
+                "(storeFile/storePassword/keyAlias/keyPassword) per " +
+                "docs/RELEASE.md, or set DHADDA_ALLOW_UNSIGNED_RELEASE=1 " +
+                "for a clearly-marked dev build that must never be published.")
+    }
 }
 
 dependencies {
