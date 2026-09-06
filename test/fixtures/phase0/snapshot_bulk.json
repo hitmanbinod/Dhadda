@@ -1,0 +1,3068 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-06T12:00:00.000Z",
+  "deviceId": "phase0-device-bulk",
+  "deviceName": "Phase0Bulk",
+  "categories": [
+    {
+      "id": "food",
+      "name": "food",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "travel",
+      "name": "travel",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "fuel",
+      "name": "fuel",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "rent",
+      "name": "rent",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "shopping",
+      "name": "shopping",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "bills",
+      "name": "bills",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "health",
+      "name": "health",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    },
+    {
+      "id": "other",
+      "name": "other",
+      "icon": 0,
+      "color": 4284513675,
+      "budget": 0
+    }
+  ],
+  "transactions": [
+    {
+      "id": "bulk-txn-0000",
+      "type": "income",
+      "amount": 764.63,
+      "categoryId": "food",
+      "date": 1785542400000,
+      "note": "bulk note 0",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0001",
+      "type": "expense",
+      "amount": 3030.74,
+      "categoryId": "travel",
+      "date": 1785628800000,
+      "note": "bulk note 1",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0002",
+      "type": "expense",
+      "amount": 3318.41,
+      "categoryId": "fuel",
+      "date": 1785715200000,
+      "note": "bulk note 2",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0003",
+      "type": "expense",
+      "amount": 1114.96,
+      "categoryId": "rent",
+      "date": 1785801600000,
+      "note": "bulk note 3",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0004",
+      "type": "expense",
+      "amount": 3962.2,
+      "categoryId": "shopping",
+      "date": 1785888000000,
+      "note": "bulk note 4",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0005",
+      "type": "expense",
+      "amount": 812.86,
+      "categoryId": "bills",
+      "date": 1785974400000,
+      "note": "bulk note 5",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0006",
+      "type": "expense",
+      "amount": 2067.79,
+      "categoryId": "health",
+      "date": 1786060800000,
+      "note": "bulk note 6",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0007",
+      "type": "expense",
+      "amount": 873.06,
+      "categoryId": "other",
+      "date": 1786147200000,
+      "note": "bulk note 7",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0008",
+      "type": "expense",
+      "amount": 1039.29,
+      "categoryId": "food",
+      "date": 1786233600000,
+      "note": "bulk note 8",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0009",
+      "type": "expense",
+      "amount": 2880.6,
+      "categoryId": "travel",
+      "date": 1786320000000,
+      "note": "bulk note 9",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0010",
+      "type": "income",
+      "amount": 4135.61,
+      "categoryId": "fuel",
+      "date": 1786406400000,
+      "note": "bulk note 10",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0011",
+      "type": "expense",
+      "amount": 1735.95,
+      "categoryId": "rent",
+      "date": 1786492800000,
+      "note": "bulk note 11",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0012",
+      "type": "expense",
+      "amount": 4454.83,
+      "categoryId": "shopping",
+      "date": 1786579200000,
+      "note": "bulk note 12",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0013",
+      "type": "expense",
+      "amount": 606.65,
+      "categoryId": "bills",
+      "date": 1786665600000,
+      "note": "bulk note 13",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0014",
+      "type": "expense",
+      "amount": 2743.8,
+      "categoryId": "health",
+      "date": 1786752000000,
+      "note": "bulk note 14",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0015",
+      "type": "expense",
+      "amount": 4476.07,
+      "categoryId": "other",
+      "date": 1786838400000,
+      "note": "bulk note 15",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0016",
+      "type": "expense",
+      "amount": 2795.22,
+      "categoryId": "food",
+      "date": 1786924800000,
+      "note": "bulk note 16",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0017",
+      "type": "expense",
+      "amount": 2152.84,
+      "categoryId": "travel",
+      "date": 1787011200000,
+      "note": "bulk note 17",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0018",
+      "type": "expense",
+      "amount": 3402.51,
+      "categoryId": "fuel",
+      "date": 1787097600000,
+      "note": "bulk note 18",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0019",
+      "type": "expense",
+      "amount": 3914.64,
+      "categoryId": "rent",
+      "date": 1787184000000,
+      "note": "bulk note 19",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0020",
+      "type": "income",
+      "amount": 3885.47,
+      "categoryId": "shopping",
+      "date": 1787270400000,
+      "note": "bulk note 20",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0021",
+      "type": "expense",
+      "amount": 986.89,
+      "categoryId": "bills",
+      "date": 1787356800000,
+      "note": "bulk note 21",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0022",
+      "type": "expense",
+      "amount": 3515.7,
+      "categoryId": "health",
+      "date": 1787443200000,
+      "note": "bulk note 22",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0023",
+      "type": "expense",
+      "amount": 1800.46,
+      "categoryId": "other",
+      "date": 1787529600000,
+      "note": "bulk note 23",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0024",
+      "type": "expense",
+      "amount": 2434.99,
+      "categoryId": "food",
+      "date": 1787616000000,
+      "note": "bulk note 24",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0025",
+      "type": "expense",
+      "amount": 2531.39,
+      "categoryId": "travel",
+      "date": 1787702400000,
+      "note": "bulk note 25",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0026",
+      "type": "expense",
+      "amount": 1861.72,
+      "categoryId": "fuel",
+      "date": 1787788800000,
+      "note": "bulk note 26",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0027",
+      "type": "expense",
+      "amount": 598.35,
+      "categoryId": "rent",
+      "date": 1787875200000,
+      "note": "bulk note 27",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0028",
+      "type": "expense",
+      "amount": 598.16,
+      "categoryId": "shopping",
+      "date": 1787961600000,
+      "note": "bulk note 28",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0029",
+      "type": "expense",
+      "amount": 3091.7,
+      "categoryId": "bills",
+      "date": 1788048000000,
+      "note": "bulk note 29",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0030",
+      "type": "income",
+      "amount": 3079.42,
+      "categoryId": "health",
+      "date": 1788134400000,
+      "note": "bulk note 30",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0031",
+      "type": "expense",
+      "amount": 1426.71,
+      "categoryId": "other",
+      "date": 1788220800000,
+      "note": "bulk note 31",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0032",
+      "type": "expense",
+      "amount": 1948.49,
+      "categoryId": "food",
+      "date": 1788307200000,
+      "note": "bulk note 32",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0033",
+      "type": "expense",
+      "amount": 4559.04,
+      "categoryId": "travel",
+      "date": 1788393600000,
+      "note": "bulk note 33",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0034",
+      "type": "expense",
+      "amount": 849.65,
+      "categoryId": "fuel",
+      "date": 1788480000000,
+      "note": "bulk note 34",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0035",
+      "type": "expense",
+      "amount": 2321.47,
+      "categoryId": "rent",
+      "date": 1788566400000,
+      "note": "bulk note 35",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0036",
+      "type": "expense",
+      "amount": 850.68,
+      "categoryId": "shopping",
+      "date": 1788652800000,
+      "note": "bulk note 36",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0037",
+      "type": "expense",
+      "amount": 3383.02,
+      "categoryId": "bills",
+      "date": 1788739200000,
+      "note": "bulk note 37",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0038",
+      "type": "expense",
+      "amount": 3278.12,
+      "categoryId": "health",
+      "date": 1788825600000,
+      "note": "bulk note 38",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0039",
+      "type": "expense",
+      "amount": 1406.54,
+      "categoryId": "other",
+      "date": 1788912000000,
+      "note": "bulk note 39",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0040",
+      "type": "income",
+      "amount": 1236.89,
+      "categoryId": "food",
+      "date": 1788998400000,
+      "note": "bulk note 40",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0041",
+      "type": "expense",
+      "amount": 2199.16,
+      "categoryId": "travel",
+      "date": 1789084800000,
+      "note": "bulk note 41",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0042",
+      "type": "expense",
+      "amount": 743.38,
+      "categoryId": "fuel",
+      "date": 1789171200000,
+      "note": "bulk note 42",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0043",
+      "type": "expense",
+      "amount": 882.39,
+      "categoryId": "rent",
+      "date": 1789257600000,
+      "note": "bulk note 43",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0044",
+      "type": "expense",
+      "amount": 2352.61,
+      "categoryId": "shopping",
+      "date": 1789344000000,
+      "note": "bulk note 44",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0045",
+      "type": "expense",
+      "amount": 2509.22,
+      "categoryId": "bills",
+      "date": 1789430400000,
+      "note": "bulk note 45",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0046",
+      "type": "expense",
+      "amount": 1072.26,
+      "categoryId": "health",
+      "date": 1789516800000,
+      "note": "bulk note 46",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0047",
+      "type": "expense",
+      "amount": 3386.24,
+      "categoryId": "other",
+      "date": 1789603200000,
+      "note": "bulk note 47",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0048",
+      "type": "expense",
+      "amount": 3955.58,
+      "categoryId": "food",
+      "date": 1789689600000,
+      "note": "bulk note 48",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0049",
+      "type": "expense",
+      "amount": 836.82,
+      "categoryId": "travel",
+      "date": 1789776000000,
+      "note": "bulk note 49",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0050",
+      "type": "income",
+      "amount": 3562.67,
+      "categoryId": "fuel",
+      "date": 1789862400000,
+      "note": "bulk note 50",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0051",
+      "type": "expense",
+      "amount": 108.4,
+      "categoryId": "rent",
+      "date": 1789948800000,
+      "note": "bulk note 51",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0052",
+      "type": "expense",
+      "amount": 3314.35,
+      "categoryId": "shopping",
+      "date": 1790035200000,
+      "note": "bulk note 52",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0053",
+      "type": "expense",
+      "amount": 4426.09,
+      "categoryId": "bills",
+      "date": 1790121600000,
+      "note": "bulk note 53",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0054",
+      "type": "expense",
+      "amount": 3084.5,
+      "categoryId": "health",
+      "date": 1790208000000,
+      "note": "bulk note 54",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0055",
+      "type": "expense",
+      "amount": 3326.55,
+      "categoryId": "other",
+      "date": 1790294400000,
+      "note": "bulk note 55",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0056",
+      "type": "expense",
+      "amount": 287.65,
+      "categoryId": "food",
+      "date": 1790380800000,
+      "note": "bulk note 56",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0057",
+      "type": "expense",
+      "amount": 2191.25,
+      "categoryId": "travel",
+      "date": 1790467200000,
+      "note": "bulk note 57",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0058",
+      "type": "expense",
+      "amount": 1396.09,
+      "categoryId": "fuel",
+      "date": 1790553600000,
+      "note": "bulk note 58",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0059",
+      "type": "expense",
+      "amount": 1294.44,
+      "categoryId": "rent",
+      "date": 1790640000000,
+      "note": "bulk note 59",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0060",
+      "type": "income",
+      "amount": 195.55,
+      "categoryId": "shopping",
+      "date": 1790726400000,
+      "note": "bulk note 60",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0061",
+      "type": "expense",
+      "amount": 1827.57,
+      "categoryId": "bills",
+      "date": 1790812800000,
+      "note": "bulk note 61",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0062",
+      "type": "expense",
+      "amount": 2794.13,
+      "categoryId": "health",
+      "date": 1790899200000,
+      "note": "bulk note 62",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0063",
+      "type": "expense",
+      "amount": 2002.78,
+      "categoryId": "other",
+      "date": 1790985600000,
+      "note": "bulk note 63",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0064",
+      "type": "expense",
+      "amount": 2943.42,
+      "categoryId": "food",
+      "date": 1791072000000,
+      "note": "bulk note 64",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0065",
+      "type": "expense",
+      "amount": 2987.06,
+      "categoryId": "travel",
+      "date": 1791158400000,
+      "note": "bulk note 65",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0066",
+      "type": "expense",
+      "amount": 3100.84,
+      "categoryId": "fuel",
+      "date": 1791244800000,
+      "note": "bulk note 66",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0067",
+      "type": "expense",
+      "amount": 1944.34,
+      "categoryId": "rent",
+      "date": 1791331200000,
+      "note": "bulk note 67",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0068",
+      "type": "expense",
+      "amount": 2244.22,
+      "categoryId": "shopping",
+      "date": 1791417600000,
+      "note": "bulk note 68",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0069",
+      "type": "expense",
+      "amount": 1959.82,
+      "categoryId": "bills",
+      "date": 1791504000000,
+      "note": "bulk note 69",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0070",
+      "type": "income",
+      "amount": 1829.77,
+      "categoryId": "health",
+      "date": 1791590400000,
+      "note": "bulk note 70",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0071",
+      "type": "expense",
+      "amount": 77.09,
+      "categoryId": "other",
+      "date": 1791676800000,
+      "note": "bulk note 71",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0072",
+      "type": "expense",
+      "amount": 3706.27,
+      "categoryId": "food",
+      "date": 1791763200000,
+      "note": "bulk note 72",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0073",
+      "type": "expense",
+      "amount": 1791.11,
+      "categoryId": "travel",
+      "date": 1791849600000,
+      "note": "bulk note 73",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0074",
+      "type": "expense",
+      "amount": 3760.78,
+      "categoryId": "fuel",
+      "date": 1791936000000,
+      "note": "bulk note 74",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0075",
+      "type": "expense",
+      "amount": 2063.22,
+      "categoryId": "rent",
+      "date": 1792022400000,
+      "note": "bulk note 75",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0076",
+      "type": "expense",
+      "amount": 4415.41,
+      "categoryId": "shopping",
+      "date": 1792108800000,
+      "note": "bulk note 76",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0077",
+      "type": "expense",
+      "amount": 2979.36,
+      "categoryId": "bills",
+      "date": 1792195200000,
+      "note": "bulk note 77",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0078",
+      "type": "expense",
+      "amount": 2421.44,
+      "categoryId": "health",
+      "date": 1792281600000,
+      "note": "bulk note 78",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0079",
+      "type": "expense",
+      "amount": 2233.19,
+      "categoryId": "other",
+      "date": 1792368000000,
+      "note": "bulk note 79",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0080",
+      "type": "income",
+      "amount": 3826.21,
+      "categoryId": "food",
+      "date": 1792454400000,
+      "note": "bulk note 80",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0081",
+      "type": "expense",
+      "amount": 4574.66,
+      "categoryId": "travel",
+      "date": 1792540800000,
+      "note": "bulk note 81",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0082",
+      "type": "expense",
+      "amount": 3934.91,
+      "categoryId": "fuel",
+      "date": 1792627200000,
+      "note": "bulk note 82",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0083",
+      "type": "expense",
+      "amount": 3969.9,
+      "categoryId": "rent",
+      "date": 1792713600000,
+      "note": "bulk note 83",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0084",
+      "type": "expense",
+      "amount": 1046.71,
+      "categoryId": "shopping",
+      "date": 1792800000000,
+      "note": "bulk note 84",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0085",
+      "type": "expense",
+      "amount": 3144.58,
+      "categoryId": "bills",
+      "date": 1792886400000,
+      "note": "bulk note 85",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0086",
+      "type": "expense",
+      "amount": 4536.41,
+      "categoryId": "health",
+      "date": 1792972800000,
+      "note": "bulk note 86",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0087",
+      "type": "expense",
+      "amount": 889.71,
+      "categoryId": "other",
+      "date": 1793059200000,
+      "note": "bulk note 87",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0088",
+      "type": "expense",
+      "amount": 4390.84,
+      "categoryId": "food",
+      "date": 1793145600000,
+      "note": "bulk note 88",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0089",
+      "type": "expense",
+      "amount": 2182.44,
+      "categoryId": "travel",
+      "date": 1793232000000,
+      "note": "bulk note 89",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0090",
+      "type": "income",
+      "amount": 2509.63,
+      "categoryId": "fuel",
+      "date": 1793318400000,
+      "note": "bulk note 90",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0091",
+      "type": "expense",
+      "amount": 1613.43,
+      "categoryId": "rent",
+      "date": 1793404800000,
+      "note": "bulk note 91",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0092",
+      "type": "expense",
+      "amount": 2137.77,
+      "categoryId": "shopping",
+      "date": 1793491200000,
+      "note": "bulk note 92",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0093",
+      "type": "expense",
+      "amount": 878.01,
+      "categoryId": "bills",
+      "date": 1793577600000,
+      "note": "bulk note 93",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0094",
+      "type": "expense",
+      "amount": 2633.06,
+      "categoryId": "health",
+      "date": 1793664000000,
+      "note": "bulk note 94",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0095",
+      "type": "expense",
+      "amount": 2274.67,
+      "categoryId": "other",
+      "date": 1793750400000,
+      "note": "bulk note 95",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0096",
+      "type": "expense",
+      "amount": 4172.84,
+      "categoryId": "food",
+      "date": 1793836800000,
+      "note": "bulk note 96",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0097",
+      "type": "expense",
+      "amount": 2397.71,
+      "categoryId": "travel",
+      "date": 1793923200000,
+      "note": "bulk note 97",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0098",
+      "type": "expense",
+      "amount": 454.39,
+      "categoryId": "fuel",
+      "date": 1794009600000,
+      "note": "bulk note 98",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0099",
+      "type": "expense",
+      "amount": 2788.13,
+      "categoryId": "rent",
+      "date": 1794096000000,
+      "note": "bulk note 99",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0100",
+      "type": "income",
+      "amount": 1262.81,
+      "categoryId": "shopping",
+      "date": 1794182400000,
+      "note": "bulk note 100",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0101",
+      "type": "expense",
+      "amount": 1880.9,
+      "categoryId": "bills",
+      "date": 1794268800000,
+      "note": "bulk note 101",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0102",
+      "type": "expense",
+      "amount": 4286.44,
+      "categoryId": "health",
+      "date": 1794355200000,
+      "note": "bulk note 102",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0103",
+      "type": "expense",
+      "amount": 238.61,
+      "categoryId": "other",
+      "date": 1794441600000,
+      "note": "bulk note 103",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0104",
+      "type": "expense",
+      "amount": 4828.0,
+      "categoryId": "food",
+      "date": 1794528000000,
+      "note": "bulk note 104",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0105",
+      "type": "expense",
+      "amount": 3903.96,
+      "categoryId": "travel",
+      "date": 1794614400000,
+      "note": "bulk note 105",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0106",
+      "type": "expense",
+      "amount": 4623.31,
+      "categoryId": "fuel",
+      "date": 1794700800000,
+      "note": "bulk note 106",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0107",
+      "type": "expense",
+      "amount": 1082.46,
+      "categoryId": "rent",
+      "date": 1794787200000,
+      "note": "bulk note 107",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0108",
+      "type": "expense",
+      "amount": 2823.25,
+      "categoryId": "shopping",
+      "date": 1794873600000,
+      "note": "bulk note 108",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0109",
+      "type": "expense",
+      "amount": 1394.58,
+      "categoryId": "bills",
+      "date": 1794960000000,
+      "note": "bulk note 109",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0110",
+      "type": "income",
+      "amount": 1946.71,
+      "categoryId": "health",
+      "date": 1795046400000,
+      "note": "bulk note 110",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0111",
+      "type": "expense",
+      "amount": 3818.7,
+      "categoryId": "other",
+      "date": 1795132800000,
+      "note": "bulk note 111",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0112",
+      "type": "expense",
+      "amount": 491.98,
+      "categoryId": "food",
+      "date": 1795219200000,
+      "note": "bulk note 112",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0113",
+      "type": "expense",
+      "amount": 3187.52,
+      "categoryId": "travel",
+      "date": 1795305600000,
+      "note": "bulk note 113",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0114",
+      "type": "expense",
+      "amount": 3248.99,
+      "categoryId": "fuel",
+      "date": 1795392000000,
+      "note": "bulk note 114",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0115",
+      "type": "expense",
+      "amount": 4224.92,
+      "categoryId": "rent",
+      "date": 1795478400000,
+      "note": "bulk note 115",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0116",
+      "type": "expense",
+      "amount": 810.11,
+      "categoryId": "shopping",
+      "date": 1795564800000,
+      "note": "bulk note 116",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0117",
+      "type": "expense",
+      "amount": 3655.85,
+      "categoryId": "bills",
+      "date": 1795651200000,
+      "note": "bulk note 117",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0118",
+      "type": "expense",
+      "amount": 731.7,
+      "categoryId": "health",
+      "date": 1795737600000,
+      "note": "bulk note 118",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0119",
+      "type": "expense",
+      "amount": 3420.4,
+      "categoryId": "other",
+      "date": 1795824000000,
+      "note": "bulk note 119",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0120",
+      "type": "income",
+      "amount": 2073.29,
+      "categoryId": "food",
+      "date": 1795910400000,
+      "note": "bulk note 120",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0121",
+      "type": "expense",
+      "amount": 1813.86,
+      "categoryId": "travel",
+      "date": 1795996800000,
+      "note": "bulk note 121",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0122",
+      "type": "expense",
+      "amount": 700.69,
+      "categoryId": "fuel",
+      "date": 1796083200000,
+      "note": "bulk note 122",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0123",
+      "type": "expense",
+      "amount": 2191.23,
+      "categoryId": "rent",
+      "date": 1796169600000,
+      "note": "bulk note 123",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0124",
+      "type": "expense",
+      "amount": 3397.93,
+      "categoryId": "shopping",
+      "date": 1796256000000,
+      "note": "bulk note 124",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0125",
+      "type": "expense",
+      "amount": 1952.24,
+      "categoryId": "bills",
+      "date": 1796342400000,
+      "note": "bulk note 125",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0126",
+      "type": "expense",
+      "amount": 4443.38,
+      "categoryId": "health",
+      "date": 1796428800000,
+      "note": "bulk note 126",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0127",
+      "type": "expense",
+      "amount": 3614.31,
+      "categoryId": "other",
+      "date": 1796515200000,
+      "note": "bulk note 127",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0128",
+      "type": "expense",
+      "amount": 2362.35,
+      "categoryId": "food",
+      "date": 1796601600000,
+      "note": "bulk note 128",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0129",
+      "type": "expense",
+      "amount": 1588.08,
+      "categoryId": "travel",
+      "date": 1796688000000,
+      "note": "bulk note 129",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0130",
+      "type": "income",
+      "amount": 3989.95,
+      "categoryId": "fuel",
+      "date": 1796774400000,
+      "note": "bulk note 130",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0131",
+      "type": "expense",
+      "amount": 2200.94,
+      "categoryId": "rent",
+      "date": 1796860800000,
+      "note": "bulk note 131",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0132",
+      "type": "expense",
+      "amount": 4847.99,
+      "categoryId": "shopping",
+      "date": 1796947200000,
+      "note": "bulk note 132",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0133",
+      "type": "expense",
+      "amount": 4791.92,
+      "categoryId": "bills",
+      "date": 1797033600000,
+      "note": "bulk note 133",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0134",
+      "type": "expense",
+      "amount": 710.55,
+      "categoryId": "health",
+      "date": 1797120000000,
+      "note": "bulk note 134",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0135",
+      "type": "expense",
+      "amount": 2879.4,
+      "categoryId": "other",
+      "date": 1797206400000,
+      "note": "bulk note 135",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0136",
+      "type": "expense",
+      "amount": 3730.46,
+      "categoryId": "food",
+      "date": 1797292800000,
+      "note": "bulk note 136",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0137",
+      "type": "expense",
+      "amount": 1879.44,
+      "categoryId": "travel",
+      "date": 1797379200000,
+      "note": "bulk note 137",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0138",
+      "type": "expense",
+      "amount": 3444.28,
+      "categoryId": "fuel",
+      "date": 1797465600000,
+      "note": "bulk note 138",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0139",
+      "type": "expense",
+      "amount": 2984.56,
+      "categoryId": "rent",
+      "date": 1797552000000,
+      "note": "bulk note 139",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0140",
+      "type": "income",
+      "amount": 3690.78,
+      "categoryId": "shopping",
+      "date": 1797638400000,
+      "note": "bulk note 140",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0141",
+      "type": "expense",
+      "amount": 4457.22,
+      "categoryId": "bills",
+      "date": 1797724800000,
+      "note": "bulk note 141",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0142",
+      "type": "expense",
+      "amount": 2562.09,
+      "categoryId": "health",
+      "date": 1797811200000,
+      "note": "bulk note 142",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0143",
+      "type": "expense",
+      "amount": 3646.53,
+      "categoryId": "other",
+      "date": 1797897600000,
+      "note": "bulk note 143",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0144",
+      "type": "expense",
+      "amount": 2567.96,
+      "categoryId": "food",
+      "date": 1797984000000,
+      "note": "bulk note 144",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0145",
+      "type": "expense",
+      "amount": 2985.99,
+      "categoryId": "travel",
+      "date": 1798070400000,
+      "note": "bulk note 145",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0146",
+      "type": "expense",
+      "amount": 4020.28,
+      "categoryId": "fuel",
+      "date": 1798156800000,
+      "note": "bulk note 146",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0147",
+      "type": "expense",
+      "amount": 868.07,
+      "categoryId": "rent",
+      "date": 1798243200000,
+      "note": "bulk note 147",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0148",
+      "type": "expense",
+      "amount": 1453.17,
+      "categoryId": "shopping",
+      "date": 1798329600000,
+      "note": "bulk note 148",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0149",
+      "type": "expense",
+      "amount": 3250.08,
+      "categoryId": "bills",
+      "date": 1798416000000,
+      "note": "bulk note 149",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0150",
+      "type": "income",
+      "amount": 4629.97,
+      "categoryId": "health",
+      "date": 1798502400000,
+      "note": "bulk note 150",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0151",
+      "type": "expense",
+      "amount": 3151.04,
+      "categoryId": "other",
+      "date": 1798588800000,
+      "note": "bulk note 151",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0152",
+      "type": "expense",
+      "amount": 578.78,
+      "categoryId": "food",
+      "date": 1798675200000,
+      "note": "bulk note 152",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0153",
+      "type": "expense",
+      "amount": 3184.82,
+      "categoryId": "travel",
+      "date": 1798761600000,
+      "note": "bulk note 153",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0154",
+      "type": "expense",
+      "amount": 1132.03,
+      "categoryId": "fuel",
+      "date": 1798848000000,
+      "note": "bulk note 154",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0155",
+      "type": "expense",
+      "amount": 2780.66,
+      "categoryId": "rent",
+      "date": 1798934400000,
+      "note": "bulk note 155",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0156",
+      "type": "expense",
+      "amount": 1675.64,
+      "categoryId": "shopping",
+      "date": 1799020800000,
+      "note": "bulk note 156",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0157",
+      "type": "expense",
+      "amount": 1584.17,
+      "categoryId": "bills",
+      "date": 1799107200000,
+      "note": "bulk note 157",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0158",
+      "type": "expense",
+      "amount": 834.02,
+      "categoryId": "health",
+      "date": 1799193600000,
+      "note": "bulk note 158",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0159",
+      "type": "expense",
+      "amount": 1764.32,
+      "categoryId": "other",
+      "date": 1799280000000,
+      "note": "bulk note 159",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0160",
+      "type": "income",
+      "amount": 2713.24,
+      "categoryId": "food",
+      "date": 1799366400000,
+      "note": "bulk note 160",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0161",
+      "type": "expense",
+      "amount": 898.43,
+      "categoryId": "travel",
+      "date": 1799452800000,
+      "note": "bulk note 161",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0162",
+      "type": "expense",
+      "amount": 4489.63,
+      "categoryId": "fuel",
+      "date": 1799539200000,
+      "note": "bulk note 162",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0163",
+      "type": "expense",
+      "amount": 1149.48,
+      "categoryId": "rent",
+      "date": 1799625600000,
+      "note": "bulk note 163",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0164",
+      "type": "expense",
+      "amount": 3096.38,
+      "categoryId": "shopping",
+      "date": 1799712000000,
+      "note": "bulk note 164",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0165",
+      "type": "expense",
+      "amount": 2172.72,
+      "categoryId": "bills",
+      "date": 1799798400000,
+      "note": "bulk note 165",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0166",
+      "type": "expense",
+      "amount": 4076.79,
+      "categoryId": "health",
+      "date": 1799884800000,
+      "note": "bulk note 166",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0167",
+      "type": "expense",
+      "amount": 4956.91,
+      "categoryId": "other",
+      "date": 1799971200000,
+      "note": "bulk note 167",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0168",
+      "type": "expense",
+      "amount": 587.84,
+      "categoryId": "food",
+      "date": 1800057600000,
+      "note": "bulk note 168",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0169",
+      "type": "expense",
+      "amount": 477.88,
+      "categoryId": "travel",
+      "date": 1800144000000,
+      "note": "bulk note 169",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0170",
+      "type": "income",
+      "amount": 3629.98,
+      "categoryId": "fuel",
+      "date": 1800230400000,
+      "note": "bulk note 170",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0171",
+      "type": "expense",
+      "amount": 3213.37,
+      "categoryId": "rent",
+      "date": 1800316800000,
+      "note": "bulk note 171",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0172",
+      "type": "expense",
+      "amount": 4882.64,
+      "categoryId": "shopping",
+      "date": 1800403200000,
+      "note": "bulk note 172",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0173",
+      "type": "expense",
+      "amount": 4266.75,
+      "categoryId": "bills",
+      "date": 1800489600000,
+      "note": "bulk note 173",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0174",
+      "type": "expense",
+      "amount": 4371.18,
+      "categoryId": "health",
+      "date": 1800576000000,
+      "note": "bulk note 174",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0175",
+      "type": "expense",
+      "amount": 876.68,
+      "categoryId": "other",
+      "date": 1800662400000,
+      "note": "bulk note 175",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0176",
+      "type": "expense",
+      "amount": 3829.51,
+      "categoryId": "food",
+      "date": 1800748800000,
+      "note": "bulk note 176",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0177",
+      "type": "expense",
+      "amount": 4224.24,
+      "categoryId": "travel",
+      "date": 1800835200000,
+      "note": "bulk note 177",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0178",
+      "type": "expense",
+      "amount": 492.02,
+      "categoryId": "fuel",
+      "date": 1800921600000,
+      "note": "bulk note 178",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0179",
+      "type": "expense",
+      "amount": 3479.65,
+      "categoryId": "rent",
+      "date": 1801008000000,
+      "note": "bulk note 179",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0180",
+      "type": "income",
+      "amount": 2285.28,
+      "categoryId": "shopping",
+      "date": 1801094400000,
+      "note": "bulk note 180",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0181",
+      "type": "expense",
+      "amount": 4032.76,
+      "categoryId": "bills",
+      "date": 1801180800000,
+      "note": "bulk note 181",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0182",
+      "type": "expense",
+      "amount": 2103.13,
+      "categoryId": "health",
+      "date": 1801267200000,
+      "note": "bulk note 182",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0183",
+      "type": "expense",
+      "amount": 2339.02,
+      "categoryId": "other",
+      "date": 1801353600000,
+      "note": "bulk note 183",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0184",
+      "type": "expense",
+      "amount": 4217.05,
+      "categoryId": "food",
+      "date": 1801440000000,
+      "note": "bulk note 184",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0185",
+      "type": "expense",
+      "amount": 1961.43,
+      "categoryId": "travel",
+      "date": 1801526400000,
+      "note": "bulk note 185",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0186",
+      "type": "expense",
+      "amount": 3690.5,
+      "categoryId": "fuel",
+      "date": 1801612800000,
+      "note": "bulk note 186",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0187",
+      "type": "expense",
+      "amount": 1890.13,
+      "categoryId": "rent",
+      "date": 1801699200000,
+      "note": "bulk note 187",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0188",
+      "type": "expense",
+      "amount": 2541.36,
+      "categoryId": "shopping",
+      "date": 1801785600000,
+      "note": "bulk note 188",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0189",
+      "type": "expense",
+      "amount": 2556.14,
+      "categoryId": "bills",
+      "date": 1801872000000,
+      "note": "bulk note 189",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0190",
+      "type": "income",
+      "amount": 3701.83,
+      "categoryId": "health",
+      "date": 1801958400000,
+      "note": "bulk note 190",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0191",
+      "type": "expense",
+      "amount": 2865.51,
+      "categoryId": "other",
+      "date": 1802044800000,
+      "note": "bulk note 191",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0192",
+      "type": "expense",
+      "amount": 3690.02,
+      "categoryId": "food",
+      "date": 1802131200000,
+      "note": "bulk note 192",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0193",
+      "type": "expense",
+      "amount": 942.49,
+      "categoryId": "travel",
+      "date": 1802217600000,
+      "note": "bulk note 193",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0194",
+      "type": "expense",
+      "amount": 3283.41,
+      "categoryId": "fuel",
+      "date": 1802304000000,
+      "note": "bulk note 194",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0195",
+      "type": "expense",
+      "amount": 1969.0,
+      "categoryId": "rent",
+      "date": 1802390400000,
+      "note": "bulk note 195",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0196",
+      "type": "expense",
+      "amount": 567.04,
+      "categoryId": "shopping",
+      "date": 1802476800000,
+      "note": "bulk note 196",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0197",
+      "type": "expense",
+      "amount": 3861.03,
+      "categoryId": "bills",
+      "date": 1802563200000,
+      "note": "bulk note 197",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0198",
+      "type": "expense",
+      "amount": 2036.66,
+      "categoryId": "health",
+      "date": 1802649600000,
+      "note": "bulk note 198",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0199",
+      "type": "expense",
+      "amount": 4312.97,
+      "categoryId": "other",
+      "date": 1802736000000,
+      "note": "bulk note 199",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0200",
+      "type": "income",
+      "amount": 1490.02,
+      "categoryId": "food",
+      "date": 1802822400000,
+      "note": "bulk note 200",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0201",
+      "type": "expense",
+      "amount": 1138.75,
+      "categoryId": "travel",
+      "date": 1802908800000,
+      "note": "bulk note 201",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0202",
+      "type": "expense",
+      "amount": 669.99,
+      "categoryId": "fuel",
+      "date": 1802995200000,
+      "note": "bulk note 202",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0203",
+      "type": "expense",
+      "amount": 4585.71,
+      "categoryId": "rent",
+      "date": 1803081600000,
+      "note": "bulk note 203",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0204",
+      "type": "expense",
+      "amount": 3387.94,
+      "categoryId": "shopping",
+      "date": 1803168000000,
+      "note": "bulk note 204",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0205",
+      "type": "expense",
+      "amount": 1247.33,
+      "categoryId": "bills",
+      "date": 1803254400000,
+      "note": "bulk note 205",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0206",
+      "type": "expense",
+      "amount": 1618.23,
+      "categoryId": "health",
+      "date": 1803340800000,
+      "note": "bulk note 206",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0207",
+      "type": "expense",
+      "amount": 4612.73,
+      "categoryId": "other",
+      "date": 1803427200000,
+      "note": "bulk note 207",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0208",
+      "type": "expense",
+      "amount": 876.65,
+      "categoryId": "food",
+      "date": 1803513600000,
+      "note": "bulk note 208",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0209",
+      "type": "expense",
+      "amount": 3012.72,
+      "categoryId": "travel",
+      "date": 1803600000000,
+      "note": "bulk note 209",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0210",
+      "type": "income",
+      "amount": 1429.01,
+      "categoryId": "fuel",
+      "date": 1803686400000,
+      "note": "bulk note 210",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0211",
+      "type": "expense",
+      "amount": 457.81,
+      "categoryId": "rent",
+      "date": 1803772800000,
+      "note": "bulk note 211",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0212",
+      "type": "expense",
+      "amount": 258.23,
+      "categoryId": "shopping",
+      "date": 1803859200000,
+      "note": "bulk note 212",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0213",
+      "type": "expense",
+      "amount": 4390.68,
+      "categoryId": "bills",
+      "date": 1803945600000,
+      "note": "bulk note 213",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0214",
+      "type": "expense",
+      "amount": 143.93,
+      "categoryId": "health",
+      "date": 1804032000000,
+      "note": "bulk note 214",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0215",
+      "type": "expense",
+      "amount": 677.26,
+      "categoryId": "other",
+      "date": 1804118400000,
+      "note": "bulk note 215",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0216",
+      "type": "expense",
+      "amount": 4530.09,
+      "categoryId": "food",
+      "date": 1804204800000,
+      "note": "bulk note 216",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0217",
+      "type": "expense",
+      "amount": 1662.18,
+      "categoryId": "travel",
+      "date": 1804291200000,
+      "note": "bulk note 217",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0218",
+      "type": "expense",
+      "amount": 810.37,
+      "categoryId": "fuel",
+      "date": 1804377600000,
+      "note": "bulk note 218",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0219",
+      "type": "expense",
+      "amount": 753.8,
+      "categoryId": "rent",
+      "date": 1804464000000,
+      "note": "bulk note 219",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0220",
+      "type": "income",
+      "amount": 3917.66,
+      "categoryId": "shopping",
+      "date": 1804550400000,
+      "note": "bulk note 220",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0221",
+      "type": "expense",
+      "amount": 4648.25,
+      "categoryId": "bills",
+      "date": 1804636800000,
+      "note": "bulk note 221",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0222",
+      "type": "expense",
+      "amount": 4156.1,
+      "categoryId": "health",
+      "date": 1804723200000,
+      "note": "bulk note 222",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0223",
+      "type": "expense",
+      "amount": 1561.09,
+      "categoryId": "other",
+      "date": 1804809600000,
+      "note": "bulk note 223",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0224",
+      "type": "expense",
+      "amount": 1428.13,
+      "categoryId": "food",
+      "date": 1804896000000,
+      "note": "bulk note 224",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0225",
+      "type": "expense",
+      "amount": 2381.22,
+      "categoryId": "travel",
+      "date": 1804982400000,
+      "note": "bulk note 225",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0226",
+      "type": "expense",
+      "amount": 3892.3,
+      "categoryId": "fuel",
+      "date": 1805068800000,
+      "note": "bulk note 226",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0227",
+      "type": "expense",
+      "amount": 476.36,
+      "categoryId": "rent",
+      "date": 1805155200000,
+      "note": "bulk note 227",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0228",
+      "type": "expense",
+      "amount": 3840.55,
+      "categoryId": "shopping",
+      "date": 1805241600000,
+      "note": "bulk note 228",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0229",
+      "type": "expense",
+      "amount": 2684.21,
+      "categoryId": "bills",
+      "date": 1805328000000,
+      "note": "bulk note 229",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0230",
+      "type": "income",
+      "amount": 4685.66,
+      "categoryId": "health",
+      "date": 1805414400000,
+      "note": "bulk note 230",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0231",
+      "type": "expense",
+      "amount": 343.31,
+      "categoryId": "other",
+      "date": 1805500800000,
+      "note": "bulk note 231",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0232",
+      "type": "expense",
+      "amount": 441.91,
+      "categoryId": "food",
+      "date": 1805587200000,
+      "note": "bulk note 232",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0233",
+      "type": "expense",
+      "amount": 3680.66,
+      "categoryId": "travel",
+      "date": 1805673600000,
+      "note": "bulk note 233",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0234",
+      "type": "expense",
+      "amount": 4168.14,
+      "categoryId": "fuel",
+      "date": 1805760000000,
+      "note": "bulk note 234",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0235",
+      "type": "expense",
+      "amount": 4067.28,
+      "categoryId": "rent",
+      "date": 1805846400000,
+      "note": "bulk note 235",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0236",
+      "type": "expense",
+      "amount": 3693.32,
+      "categoryId": "shopping",
+      "date": 1805932800000,
+      "note": "bulk note 236",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0237",
+      "type": "expense",
+      "amount": 2171.02,
+      "categoryId": "bills",
+      "date": 1806019200000,
+      "note": "bulk note 237",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0238",
+      "type": "expense",
+      "amount": 3000.89,
+      "categoryId": "health",
+      "date": 1806105600000,
+      "note": "bulk note 238",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0239",
+      "type": "expense",
+      "amount": 215.54,
+      "categoryId": "other",
+      "date": 1806192000000,
+      "note": "bulk note 239",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0240",
+      "type": "income",
+      "amount": 437.19,
+      "categoryId": "food",
+      "date": 1806278400000,
+      "note": "bulk note 240",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0241",
+      "type": "expense",
+      "amount": 4549.68,
+      "categoryId": "travel",
+      "date": 1806364800000,
+      "note": "bulk note 241",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0242",
+      "type": "expense",
+      "amount": 3112.79,
+      "categoryId": "fuel",
+      "date": 1806451200000,
+      "note": "bulk note 242",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0243",
+      "type": "expense",
+      "amount": 1398.87,
+      "categoryId": "rent",
+      "date": 1806537600000,
+      "note": "bulk note 243",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0244",
+      "type": "expense",
+      "amount": 2580.88,
+      "categoryId": "shopping",
+      "date": 1806624000000,
+      "note": "bulk note 244",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0245",
+      "type": "expense",
+      "amount": 1381.92,
+      "categoryId": "bills",
+      "date": 1806710400000,
+      "note": "bulk note 245",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0246",
+      "type": "expense",
+      "amount": 602.23,
+      "categoryId": "health",
+      "date": 1806796800000,
+      "note": "bulk note 246",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0247",
+      "type": "expense",
+      "amount": 4260.56,
+      "categoryId": "other",
+      "date": 1806883200000,
+      "note": "bulk note 247",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0248",
+      "type": "expense",
+      "amount": 2645.16,
+      "categoryId": "food",
+      "date": 1806969600000,
+      "note": "bulk note 248",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0249",
+      "type": "expense",
+      "amount": 2781.86,
+      "categoryId": "travel",
+      "date": 1807056000000,
+      "note": "bulk note 249",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0250",
+      "type": "income",
+      "amount": 3715.08,
+      "categoryId": "fuel",
+      "date": 1807142400000,
+      "note": "bulk note 250",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0251",
+      "type": "expense",
+      "amount": 4687.73,
+      "categoryId": "rent",
+      "date": 1807228800000,
+      "note": "bulk note 251",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0252",
+      "type": "expense",
+      "amount": 242.48,
+      "categoryId": "shopping",
+      "date": 1807315200000,
+      "note": "bulk note 252",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0253",
+      "type": "expense",
+      "amount": 2916.25,
+      "categoryId": "bills",
+      "date": 1807401600000,
+      "note": "bulk note 253",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0254",
+      "type": "expense",
+      "amount": 4891.29,
+      "categoryId": "health",
+      "date": 1807488000000,
+      "note": "bulk note 254",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0255",
+      "type": "expense",
+      "amount": 3590.08,
+      "categoryId": "other",
+      "date": 1807574400000,
+      "note": "bulk note 255",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0256",
+      "type": "expense",
+      "amount": 1775.72,
+      "categoryId": "food",
+      "date": 1807660800000,
+      "note": "bulk note 256",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0257",
+      "type": "expense",
+      "amount": 1349.8,
+      "categoryId": "travel",
+      "date": 1807747200000,
+      "note": "bulk note 257",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0258",
+      "type": "expense",
+      "amount": 2455.84,
+      "categoryId": "fuel",
+      "date": 1807833600000,
+      "note": "bulk note 258",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0259",
+      "type": "expense",
+      "amount": 1769.57,
+      "categoryId": "rent",
+      "date": 1807920000000,
+      "note": "bulk note 259",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0260",
+      "type": "income",
+      "amount": 4688.91,
+      "categoryId": "shopping",
+      "date": 1808006400000,
+      "note": "bulk note 260",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0261",
+      "type": "expense",
+      "amount": 4023.73,
+      "categoryId": "bills",
+      "date": 1808092800000,
+      "note": "bulk note 261",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0262",
+      "type": "expense",
+      "amount": 519.92,
+      "categoryId": "health",
+      "date": 1808179200000,
+      "note": "bulk note 262",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0263",
+      "type": "expense",
+      "amount": 1983.74,
+      "categoryId": "other",
+      "date": 1808265600000,
+      "note": "bulk note 263",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0264",
+      "type": "expense",
+      "amount": 1931.62,
+      "categoryId": "food",
+      "date": 1808352000000,
+      "note": "bulk note 264",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0265",
+      "type": "expense",
+      "amount": 25.2,
+      "categoryId": "travel",
+      "date": 1808438400000,
+      "note": "bulk note 265",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0266",
+      "type": "expense",
+      "amount": 1268.04,
+      "categoryId": "fuel",
+      "date": 1808524800000,
+      "note": "bulk note 266",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0267",
+      "type": "expense",
+      "amount": 4606.04,
+      "categoryId": "rent",
+      "date": 1808611200000,
+      "note": "bulk note 267",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0268",
+      "type": "expense",
+      "amount": 4543.05,
+      "categoryId": "shopping",
+      "date": 1808697600000,
+      "note": "bulk note 268",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0269",
+      "type": "expense",
+      "amount": 1047.54,
+      "categoryId": "bills",
+      "date": 1808784000000,
+      "note": "bulk note 269",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0270",
+      "type": "income",
+      "amount": 284.74,
+      "categoryId": "health",
+      "date": 1808870400000,
+      "note": "bulk note 270",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0271",
+      "type": "expense",
+      "amount": 2613.16,
+      "categoryId": "other",
+      "date": 1808956800000,
+      "note": "bulk note 271",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0272",
+      "type": "expense",
+      "amount": 476.28,
+      "categoryId": "food",
+      "date": 1809043200000,
+      "note": "bulk note 272",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0273",
+      "type": "expense",
+      "amount": 3647.7,
+      "categoryId": "travel",
+      "date": 1809129600000,
+      "note": "bulk note 273",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0274",
+      "type": "expense",
+      "amount": 1151.03,
+      "categoryId": "fuel",
+      "date": 1809216000000,
+      "note": "bulk note 274",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0275",
+      "type": "expense",
+      "amount": 2482.45,
+      "categoryId": "rent",
+      "date": 1809302400000,
+      "note": "bulk note 275",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0276",
+      "type": "expense",
+      "amount": 2047.85,
+      "categoryId": "shopping",
+      "date": 1809388800000,
+      "note": "bulk note 276",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0277",
+      "type": "expense",
+      "amount": 665.61,
+      "categoryId": "bills",
+      "date": 1809475200000,
+      "note": "bulk note 277",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0278",
+      "type": "expense",
+      "amount": 1435.05,
+      "categoryId": "health",
+      "date": 1809561600000,
+      "note": "bulk note 278",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0279",
+      "type": "expense",
+      "amount": 3528.75,
+      "categoryId": "other",
+      "date": 1809648000000,
+      "note": "bulk note 279",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0280",
+      "type": "income",
+      "amount": 1055.69,
+      "categoryId": "food",
+      "date": 1809734400000,
+      "note": "bulk note 280",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0281",
+      "type": "expense",
+      "amount": 1283.81,
+      "categoryId": "travel",
+      "date": 1809820800000,
+      "note": "bulk note 281",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0282",
+      "type": "expense",
+      "amount": 1002.69,
+      "categoryId": "fuel",
+      "date": 1809907200000,
+      "note": "bulk note 282",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0283",
+      "type": "expense",
+      "amount": 1147.12,
+      "categoryId": "rent",
+      "date": 1809993600000,
+      "note": "bulk note 283",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0284",
+      "type": "expense",
+      "amount": 218.85,
+      "categoryId": "shopping",
+      "date": 1810080000000,
+      "note": "bulk note 284",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0285",
+      "type": "expense",
+      "amount": 2430.71,
+      "categoryId": "bills",
+      "date": 1810166400000,
+      "note": "bulk note 285",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0286",
+      "type": "expense",
+      "amount": 4194.29,
+      "categoryId": "health",
+      "date": 1810252800000,
+      "note": "bulk note 286",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0287",
+      "type": "expense",
+      "amount": 1141.67,
+      "categoryId": "other",
+      "date": 1810339200000,
+      "note": "bulk note 287",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0288",
+      "type": "expense",
+      "amount": 311.91,
+      "categoryId": "food",
+      "date": 1810425600000,
+      "note": "bulk note 288",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0289",
+      "type": "expense",
+      "amount": 1584.1,
+      "categoryId": "travel",
+      "date": 1810512000000,
+      "note": "bulk note 289",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0290",
+      "type": "income",
+      "amount": 249.59,
+      "categoryId": "fuel",
+      "date": 1810598400000,
+      "note": "bulk note 290",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0291",
+      "type": "expense",
+      "amount": 2397.05,
+      "categoryId": "rent",
+      "date": 1810684800000,
+      "note": "bulk note 291",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0292",
+      "type": "expense",
+      "amount": 875.18,
+      "categoryId": "shopping",
+      "date": 1810771200000,
+      "note": "bulk note 292",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0293",
+      "type": "expense",
+      "amount": 3015.29,
+      "categoryId": "bills",
+      "date": 1810857600000,
+      "note": "bulk note 293",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0294",
+      "type": "expense",
+      "amount": 1130.55,
+      "categoryId": "health",
+      "date": 1810944000000,
+      "note": "bulk note 294",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0295",
+      "type": "expense",
+      "amount": 2696.75,
+      "categoryId": "other",
+      "date": 1811030400000,
+      "note": "bulk note 295",
+      "mode": "ewallet",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0296",
+      "type": "expense",
+      "amount": 1511.99,
+      "categoryId": "food",
+      "date": 1811116800000,
+      "note": "bulk note 296",
+      "mode": "cash",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0297",
+      "type": "expense",
+      "amount": 315.94,
+      "categoryId": "travel",
+      "date": 1811203200000,
+      "note": "bulk note 297",
+      "mode": "bank",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0298",
+      "type": "expense",
+      "amount": 4395.09,
+      "categoryId": "fuel",
+      "date": 1811289600000,
+      "note": "bulk note 298",
+      "mode": "card",
+      "projectId": ""
+    },
+    {
+      "id": "bulk-txn-0299",
+      "type": "expense",
+      "amount": 4162.88,
+      "categoryId": "rent",
+      "date": 1811376000000,
+      "note": "bulk note 299",
+      "mode": "ewallet",
+      "projectId": ""
+    }
+  ],
+  "loans": [],
+  "projects": []
+}

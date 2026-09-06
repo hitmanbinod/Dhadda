@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-05T18:00:00.000Z",
+  "deviceId": "phase0-device-uni",
+  "deviceName": "Phase0Unicode",
+  "categories": [
+    {"id": "food", "name": "खाना", "icon": 0, "color": 4293848816, "budget": 0},
+    {"id": "other", "name": "Other", "icon": 0, "color": 4284513675, "budget": 0}
+  ],
+  "transactions": [
+    {"id": "uni-txn-1", "type": "expense", "amount": 185.5, "categoryId": "food", "date": 1788220800000, "note": "दाल भात 🍛 + चिया", "mode": "cash", "projectId": ""},
+    {"id": "uni-txn-2", "type": "expense", "amount": 0.01, "categoryId": "food", "date": 1788566400000, "note": "smallest paisa: रू 0.01", "mode": "ewallet", "projectId": ""},
+    {"id": "uni-txn-3", "type": "expense", "amount": 99999999.99, "categoryId": "other", "date": 1788566400000, "note": "जग्गा — largest plausible NPR value", "mode": "bank", "projectId": ""}
+  ],
+  "loans": [],
+  "projects": []
+}

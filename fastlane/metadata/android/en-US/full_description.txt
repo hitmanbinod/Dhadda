@@ -1,0 +1,3 @@
+Dhadda is a minimal, offline-first expense tracker for one person. Track daily spending across categories and event budgets (treks, outings), manage lent and borrowed money with reminders, and sync between phone and desktop over your own WiFi - no account, no cloud, no fees. Your data never leaves your devices.
+
+Free and open source forever.

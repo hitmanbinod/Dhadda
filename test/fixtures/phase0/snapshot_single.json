@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "updatedAt": "2026-09-01T09:30:00.000Z",
+  "deviceId": "phase0-device-single",
+  "deviceName": "Phase0Single",
+  "categories": [
+    {"id": "food", "name": "Food", "icon": 0, "color": 4293848816, "budget": 0},
+    {"id": "other", "name": "Other", "icon": 0, "color": 4284513675, "budget": 0}
+  ],
+  "transactions": [
+    {
+      "id": "single-txn-1",
+      "type": "expense",
+      "amount": 500,
+      "categoryId": "food",
+      "date": 1788220800000,
+      "note": "lunch",
+      "mode": "cash",
+      "projectId": ""
+    }
+  ],
+  "loans": [],
+  "projects": []
+}

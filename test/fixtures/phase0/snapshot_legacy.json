@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-15T10:00:00.000Z",
+  "deviceId": "phase0-device-legacy",
+  "deviceName": "Phase0Legacy",
+  "categories": [
+    {"id": "food", "name": "Food", "icon": 0, "color": 4293848816, "budget": 5000},
+    {"id": "travel", "name": "Travel", "icon": 0, "color": 4278198072},
+    {"id": "rent", "name": "Rent"},
+    {"id": "shopping", "name": "Shopping", "icon": 0, "color": 4291076843, "budget": 0},
+    {"id": "bills", "name": "Bills", "icon": 0, "color": 4278228615, "budget": 0},
+    {"id": "health"},
+    {"id": "other", "name": "Other", "icon": 0, "color": 4284513675, "budget": 0}
+  ],
+  "transactions": [
+    {"id": "leg-txn-1", "type": "expense", "amount": 300, "categoryId": "food", "date": 1785542400000},
+    {"id": "leg-txn-2", "amount": 1500, "date": 1786752000000}
+  ],
+  "loans": [
+    {
+      "id": "leg-loan-1",
+      "person": "Asha",
+      "kind": "lent",
+      "lent": 2000,
+      "dateLent": 1785542400000,
+      "remindFreq": "weekly",
+      "repayments": [],
+      "topups": []
+    }
+  ],
+  "projects": []
+}

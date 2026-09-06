@@ -1,0 +1,10 @@
+{
+  "deviceName": "Phase0Lenient",
+  "categories": [{"id": "food"}],
+  "transactions": [
+    {"id": "dup-1", "type": "transfer", "amount": "100", "date": "yesterday", "categoryId": "nope", "mode": "crypto"},
+    {"id": "dup-1", "type": "income", "amount": 50, "date": 1788220800000}
+  ],
+  "loans": [{"id": "loan-x"}],
+  "projects": "not-a-list"
+}
