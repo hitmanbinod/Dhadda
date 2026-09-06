@@ -43,9 +43,26 @@
 | SMS auto | Same parse path, silent import + snackbar on launch/resume | `lib/main.dart` (`_autoSms`) |
 | Erase | Double-confirm; wipes domain + reseeds defaults | `lib/store.dart` (`eraseAll`) |
 
-## Manual verification still required (cannot run here)
+## Manual verification status (maintainer on-device results)
 
-On-device export of a real dataset; debug APK build (old log shows a possible
-pre-existing `SmsBridge` override failure); Show-on-PC phone-local then PC browser
-path (`/api/ping` then app); mDNS on Windows; SMS/manual+auto on real inbox;
-reminder fires; biometric unlock.
+- Real-device backup/export: **VERIFIED** on the current Dhadda installation.
+- Real-device restore/import: **STILL REQUIRES VERIFICATION.**
+- Observed pre-existing baseline behavior (do NOT change in Phase 0): importing a
+  freshly exported backup back into the same device reports "already up to date /
+  this device is newer" and does not restore — consistent with the newer-`updatedAt`
+  rule in `lib/store.dart:862-888`. Recorded here as expected current behavior, not
+  a bug to fix in this phase.
+- Suggested safe future verification: emulator or a separate test installation —
+  never the maintainer's real phone data.
+
+Still unverified: debug APK build (old log shows a possible pre-existing `SmsBridge`
+override failure); Show-on-PC phone-local then PC browser path (`/api/ping` then
+app); mDNS on Windows; SMS/manual+auto on real inbox; reminder fires; biometric
+unlock.
+
+## Deferred user requirements (recorded, NOT implemented in Phase 0)
+
+- **Backup placement (deferred to a later phase):** Backup / Export / Import must be
+  directly accessible from the app's main menu/navigation instead of being buried
+  inside the Sync menu. Sync stays a separate function. No UI/application change is
+  made for this in Phase 0.
