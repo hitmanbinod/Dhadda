@@ -12,7 +12,13 @@
     <application
         android:label="Dhadda"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        <!-- Privacy: Dhadda financial data is plaintext JSON. Do NOT let
+             Android Auto Backup upload it (or the PIN hash) to Drive.
+             The intentional backup mechanism is the in-app Export/Import
+             (see docs/BACKUP_POLICY.md). Local on-device storage is
+             unaffected by this flag. -->
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
