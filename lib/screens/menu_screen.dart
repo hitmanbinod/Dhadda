@@ -11,6 +11,7 @@ import '../version.dart';
 import '../format.dart';
 import '../widgets/page.dart';
 import '../sync/link_sync.dart';
+import '../sync/file_sync.dart';
 import 'sync_screen.dart';
 
 /// Menu tab: sync entry, appearance, security, currency, data, about.
@@ -61,6 +62,23 @@ class _MenuScreenState extends State<MenuScreen> {
         .showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  /// Top-level backup actions (same calls as the Sync screen copy).
+  Future<void> _exportBackup(
+      BuildContext context, ExpenseStore store) async {
+    await FileSync.exportJson(context, store.exportJson(),
+        FileSync.fileNameFor(DateTime.now()));
+  }
+
+  Future<void> _importBackup(
+      BuildContext context, ExpenseStore store) async {
+    final raw = await FileSync.importJson();
+    if (raw == null) return; // cancelled
+    if (!context.mounted) return;
+    final msg = store.importSnapshotString(raw);
+    store.noteSynced();
+    _say(msg);
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
@@ -104,6 +122,42 @@ class _MenuScreenState extends State<MenuScreen> {
                       builder: (_) =>
                           SyncScreen(engine: widget.engine))),
               child: const Text('Open sync'),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // ---------- backup (top-level copy; Sync keeps its own) ----------
+        Text('Backup',
+            style: Theme.of(context).textTheme.titleMedium),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Your data, your file. Export to share or archive it, import it back on any device.'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                          onPressed: () =>
+                              _exportBackup(context, store),
+                          icon: const Icon(Icons.upload),
+                          label: const Text('Export')),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                          onPressed: () =>
+                              _importBackup(context, store),
+                          icon: const Icon(Icons.download),
+                          label: const Text('Import')),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
