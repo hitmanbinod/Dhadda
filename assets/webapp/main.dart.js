@@ -51971,7 +51971,7 @@ q=t.Y
 return A.Wk(p,new A.a8(s.gYN(),new A.ao(-0.012,0.012,q),q.h("a8<ab.T>")))},
 C(a){var s,r,q,p,o,n,m,l,k,j,i,h,g=this,f=null,e=A.dZ(a,!0,t.F)
 if(g.r==null){s=e.a
-g.r=s.length!==0?B.b.gab(s).a:f}s=A.aaj(f,B.apA)
+g.r=s.length!==0?B.b.gab(s).a:f}s=A.aaj(f,B.apB)
 r=A.w(a)
 q=A.aQL(a)
 p=t.y
@@ -52224,7 +52224,7 @@ return A.bI(A.c([new A.ai(B.mu,o,p),new A.ai(B.U9,new A.cL(B.cL,p,p,A.a2("Hold t
 aun(a1){var s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,d,c,b=this,a=null,a0=b.c
 a0.toString
 s=t.p
-a0=A.c([A.cc(A.c([A.c2(A.a2("Events",a,a,a,A.w(a0).ok.w,a,a,a),1),A.le(B.er,B.aqt,new A.aE8(b,a1),a)],s),B.r,B.m,B.A,0,a),B.d0,B.apz,B.an],s)
+a0=A.c([A.cc(A.c([A.c2(A.a2("Events",a,a,a,A.w(a0).ok.w,a,a,a),1),A.le(B.er,B.aqt,new A.aE8(b,a1),a)],s),B.r,B.m,B.A,0,a),B.d0,B.apA,B.an],s)
 if(a1.d.length===0)a0.push(B.NI)
 for(r=a1.d,q=r.length,p=0;p<r.length;r.length===q||(0,A.H)(r),++p){o=r[p]
 n=o.f
@@ -52254,7 +52254,7 @@ d=l.b==="expense"
 c=d?"-":"+"
 l=A.dR(l.c)
 d=d?B.cz:B.dl
-j.push(A.hx(!1,a,!0,a,!0,a,a,a,!0,a,a,f,a,a,a,a,a,a,!1,a,a,a,a,a,e,a,i,A.a2(c+l,a,a,a,new A.D(!0,d,a,a,a,a,a,B.bO,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a),a,a,a),a))}j.push(new A.Fe(0,a,0,B.i6,B.z,A.c([A.HV(B.no,B.apE,new A.aE9(b,a1,o)),A.HV(B.tB,B.apG,new A.aEa(b,a1,o))],s),a))
+j.push(A.hx(!1,a,!0,a,!0,a,a,a,!0,a,a,f,a,a,a,a,a,a,!1,a,a,a,a,a,e,a,i,A.a2(c+l,a,a,a,new A.D(!0,d,a,a,a,a,a,B.bO,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a,a),a,a,a),a))}j.push(new A.Fe(0,a,0,B.i6,B.z,A.c([A.HV(B.no,B.apF,new A.aE9(b,a1,o)),A.HV(B.tB,B.apG,new A.aEa(b,a1,o))],s),a))
 j.push(B.an)
 a0.push(A.hp(A.S_(j,n,k,a,m,a),a,B.TZ))}return A.Ew(a0,B.dQ,a,!1)},
 wG(a,b){return this.agc(a,b)},
@@ -52390,7 +52390,7 @@ for(s=k.b,r=s.a,q=r.length,p=t.b7,o=0;o<r.length;r.length===q||(0,A.H)(r),++o){n
 e.push(new A.ek(n.a,A.a2(n.b,j,j,j,j,j,j,j),B.aW,j,p))}m=new A.DG(A.rB(B.Ww,f,!0,e,new A.aEl(i),h),j)
 h=k.c
 i=h.length===0?j:new A.aEm(i,k.d,s,h)
-l=new A.wJ(B.ate,!0,i,j,j,j,j,B.x,j,!1,j,!0,j,new A.Kd(B.apD,B.tE,j,j,j),j)
+l=new A.wJ(B.ate,!0,i,j,j,j,j,B.x,j,!1,j,!0,j,new A.Kd(B.apE,B.tE,j,j,j),j)
 if(b.b<520)return A.bI(A.c([g,B.an,m,B.an,l],t.p),B.c6,B.m,B.A,0,B.z)
 return A.cc(A.c([A.c2(g,1),B.ir,A.c2(m,1),B.is,new A.aW(j,56,A.e3(l,j,j),j)],t.p),B.r,B.m,B.A,0,j)},
 $S:158}
@@ -53331,10 +53331,10 @@ j=c.w
 i=A.c([],t.FG)
 for(h=B.ka.gbY(),h=h.gah(h),g=t.b7;h.v();){f=h.gN()
 i.push(new A.ek(f,A.a2(f+" - "+A.l(B.ahb.i(0,f)),d,d,d,d,d,d,d),B.aW,d,g))}a0=A.c([a0,B.b8,q,B.b8,s,p,B.b8,n,m,B.b8,k,A.hp(new A.ai(B.c8,A.rB(B.Wq,j,!0,i,new A.aHF(e,c),t.N),d),d,d),B.b8,A.a2("Data",d,d,d,A.w(a1).ok.w,d,d,d)],r)
-a0.push(A.hp(A.hx(!1,d,d,d,!0,d,d,d,!0,d,d,B.VV,d,d,d,d,d,d,!1,d,d,d,d,d,B.apw,d,B.aq7,A.cG(B.apJ,d,d,new A.aHG(e,a1,c),d,d),d),d,d))
+a0.push(A.hp(A.hx(!1,d,d,d,!0,d,d,d,!0,d,d,B.VV,d,d,d,d,d,d,!1,d,d,d,d,d,B.apx,d,B.aq7,A.cG(B.apJ,d,d,new A.aHG(e,a1,c),d,d),d),d,d))
 a0.push(B.b8)
 a0.push(A.a2("About",d,d,d,A.w(a1).ok.w,d,d,d))
-a0.push(B.NL)
+a0.push(B.NK)
 a0.push(B.an)
 a0.push(B.api)
 return A.Ew(a0,a,d,!1)},
@@ -53520,7 +53520,7 @@ $0(){return A.bA(this.a,!1).c8(!0)},
 $S:0}
 A.aHe.prototype={
 $1(a){var s=null,r=A.a2(this.a,s,s,s,s,s,s,s),q=A.dC(s,B.ak,!0,s,!0,B.n,s,A.dS(),this.b,s,s,s,s,s,2,B.Wm,B.H,!0,s,!0,s,!1,s,B.aa,s,s,s,s,B.oQ,s,4,s,1,s,s,!0,"\u2022",s,s,s,s,s,!1,s,s,!1,s,!0,s,B.at,s,s,s,s,s,s,s,s,s,s,s,s,!0,B.R,s,B.aP,s,s,s,s)
-return A.fo(A.c([A.cG(B.c2,s,s,new A.aHc(a),s,s),A.f8(B.apt,new A.aHd(a))],t.p),q,r)},
+return A.fo(A.c([A.cG(B.c2,s,s,new A.aHc(a),s,s),A.f8(B.apu,new A.aHd(a))],t.p),q,r)},
 $S:32}
 A.aHc.prototype={
 $0(){return A.bA(this.a,!1).c8(!1)},
@@ -53557,7 +53557,7 @@ $0(){return A.bA(this.a,!1).c8(!0)},
 $S:0}
 A.aHm.prototype={
 $1(a){var s=null
-return A.fo(A.c([A.cG(B.kX,s,s,new A.aHk(a),s,s),A.f8(B.apC,new A.aHl(a))],t.p),B.apQ,B.aqk)},
+return A.fo(A.c([A.cG(B.kX,s,s,new A.aHk(a),s,s),A.f8(B.apD,new A.aHl(a))],t.p),B.apQ,B.aqk)},
 $S:32}
 A.aHk.prototype={
 $0(){return A.bA(this.a,!1).c8(!1)},
@@ -53567,7 +53567,7 @@ $0(){return A.bA(this.a,!1).c8(!0)},
 $S:0}
 A.aHn.prototype={
 $1(a){var s=null
-return A.fo(A.c([A.cG(B.c2,s,s,new A.aHi(a),s,s),A.f8(B.apy,new A.aHj(a))],t.p),B.apm,B.apv)},
+return A.fo(A.c([A.cG(B.c2,s,s,new A.aHi(a),s,s),A.f8(B.apz,new A.aHj(a))],t.p),B.apm,B.apw)},
 $S:32}
 A.aHi.prototype={
 $0(){return A.bA(this.a,!1).c8(!1)},
@@ -53981,17 +53981,17 @@ s.push(A.le(r?B.F8:B.jN,B.Jr,q,m))
 B.b.a6(e,s)}else{r=n.as
 q=n.Q
 q.toString
-B.b.a6(e,A.c([B.apB,B.an,A.e3(A.fM(m,A.bcy(B.k,"EXPENSESYNC2::"+r+"::"+s+"::"+q,0,B.X,240,-1),B.x,B.k,m,m,m,m,m,B.c8,m,m,m),m,m),B.an,A.aTp("Code "+s+"   PIN: "+q,B.d2),A.aTp("Server "+n.as,A.w(a).ok.Q),B.d0,B.apH,B.an,A.p3(B.VU,B.aqx,n.gaky())],f))}}g=A.c([g,A.hp(new A.ai(B.c8,A.bI(e,B.aC,B.m,B.A,0,B.z),m),m,m),B.b8],f)
+B.b.a6(e,A.c([B.apC,B.an,A.e3(A.fM(m,A.bcy(B.k,"EXPENSESYNC2::"+r+"::"+s+"::"+q,0,B.X,240,-1),B.x,B.k,m,m,m,m,m,B.c8,m,m,m),m,m),B.an,A.aTp("Code "+s+"   PIN: "+q,B.d2),A.aTp("Server "+n.as,A.w(a).ok.Q),B.d0,B.apH,B.an,A.p3(B.VU,B.aqx,n.gaky())],f))}}g=A.c([g,A.hp(new A.ai(B.c8,A.bI(e,B.aC,B.m,B.A,0,B.z),m),m,m),B.b8],f)
 g.push(A.a2("This device",m,m,m,A.w(a).ok.w,m,m,m))
 e=A.e4(B.Vu,m,m,m)
 s=A.a2(l.f,m,m,m,m,m,m,m)
 g.push(A.hp(A.hx(!1,m,m,m,!0,m,m,m,!0,m,m,e,m,m,m,m,m,m,!1,m,m,m,m,m,A.a2("Updated "+l.cy+"\nLast synced: "+l.db+"\nTheme "+A.w(a).ax.a.b+" \xb7 #"+B.f.mH(l.y,16),m,m,m,m,m,m,m),m,s,m,m),m,m))
 g.push(B.b8)
 g.push(A.a2("File backup (Option 1)",m,m,m,A.w(a).ok.w,m,m,m))
-g.push(A.hp(new A.ai(B.c8,A.cc(A.c([A.c2(A.le(B.W9,B.apu,n.gaki(),m),1),B.ir,A.c2(A.p3(B.tE,B.aqc,n.gaqm()),1)],f),B.r,B.m,B.A,0,m),m),m,m))
+g.push(A.hp(new A.ai(B.c8,A.cc(A.c([A.c2(A.le(B.W9,B.apv,n.gaki(),m),1),B.ir,A.c2(A.p3(B.tE,B.aqc,n.gaqm()),1)],f),B.r,B.m,B.A,0,m),m),m,m))
 g.push(B.aqp)
 g.push(B.b8)
-s=A.c([B.apr,B.an],f)
+s=A.c([B.aps,B.an],f)
 s.push(A.le(B.Wc,B.aqi,n.gax1(),m))
 s.push(B.jm)
 s.push(B.aq1)
@@ -54010,7 +54010,7 @@ g.push(B.b8)
 g.push(B.b8)
 s=A.a2("Local backups ("+k.length+"/5)",m,m,m,m,m,m,m)
 f=A.c([],f)
-if(k.length===0)f.push(B.NK)
+if(k.length===0)f.push(B.NL)
 for(p=0;p<k.length;p=o){o=p+1
 e=A.a2("Backup "+o,m,m,m,m,m,m,m)
 f.push(A.hx(!1,m,!0,m,!0,m,m,m,!0,m,m,B.We,m,m,m,m,m,m,!1,m,m,m,m,m,A.a2(n.agH(k[p]),m,m,m,m,m,m,m),m,e,A.cG(B.aq6,m,m,new A.aN4(n,l,p),m,m),m))}g.push(A.S_(f,m,B.apo,m,s,m))
@@ -118831,30 +118831,30 @@ B.auv=new A.aba(0,"pixel")
 B.NG=new A.vR(null,null,null,null,null,null,null)
 B.NH=new A.Qb(null,null,null,null,null,null,null)
 B.dQ=new A.aj(16,16,16,16)
-B.apq=new A.aB("No events yet. Group shared spending here - trips, outings, flatmates.",null,null,null,null,null,null,null,null,null)
-B.aje=new A.ai(B.dQ,B.apq,null)
+B.apr=new A.aB("No events yet. Group shared spending here - trips, outings, flatmates.",null,null,null,null,null,null,null,null,null)
+B.aje=new A.ai(B.dQ,B.apr,null)
 B.auO=new A.azm(0,"elevated")
 B.NI=new A.l2(null,null,B.aje,null)
 B.aqu=new A.aB("No expenses this month yet.",null,null,null,null,null,null,null,null,null)
 B.ajg=new A.ai(B.dQ,B.aqu,null)
 B.NJ=new A.l2(null,null,B.ajg,null)
+B.V6=new A.aM(58173,"MaterialIcons",!1)
+B.VT=new A.bP(B.V6,null,null,null,null)
+B.app=new A.aB("Expense 1.3.1 (2026-09-06 (hostfix))",null,null,null,null,null,null,null,null,null)
+B.apR=new A.aB("Local-first \u2022 offline \u2022 free forever",null,null,null,null,null,null,null,null,null)
+B.Xd=new A.mH(B.VT,B.app,B.apR,null,null,null,null,null,null,null,!0,null,null,null,!1,null,null,null,!1,null,null,null,null,null,null,null,!0,null,null)
+B.NK=new A.l2(null,null,B.Xd,null)
 B.c8=new A.aj(12,12,12,12)
 B.aqh=new A.aB("Backups appear automatically before a sync overwrites this device.",null,null,null,null,null,null,null,null,null)
 B.ajd=new A.ai(B.c8,B.aqh,null)
-B.NK=new A.l2(null,null,B.ajd,null)
-B.V6=new A.aM(58173,"MaterialIcons",!1)
-B.VT=new A.bP(B.V6,null,null,null,null)
-B.apF=new A.aB("Expense 1.3.0 (2026-09-06)",null,null,null,null,null,null,null,null,null)
-B.apR=new A.aB("Local-first \u2022 offline \u2022 free forever",null,null,null,null,null,null,null,null,null)
-B.Xd=new A.mH(B.VT,B.apF,B.apR,null,null,null,null,null,null,null,!0,null,null,null,!1,null,null,null,!1,null,null,null,null,null,null,null,!0,null,null)
-B.NL=new A.l2(null,null,B.Xd,null)
+B.NL=new A.l2(null,null,B.ajd,null)
 B.NM=new A.C3(null,null,null,null,null,null)
 B.NN=new A.Qc(null,null,null,null,null,null)
 B.auN=new A.axr(0,"material")
 B.NV=new A.l3(null,null,null,null,null,null,null,null,null,null)
 B.qn=new A.k4(B.N,null,null,B.NV,null)
-B.apx=new A.aB("Nothing found.",null,null,null,null,null,null,null,null,null)
-B.NO=new A.k4(B.N,null,null,B.apx,null)
+B.apy=new A.aB("Nothing found.",null,null,null,null,null,null,null,null,null)
+B.NO=new A.k4(B.N,null,null,B.apy,null)
 B.apl=new A.aB("Nothing here.",null,null,null,null,null,null,null,null,null)
 B.NP=new A.k4(B.N,null,null,B.apl,null)
 B.NQ=new A.C7(null,null,null,null,null,null,null,null,null)
@@ -119152,8 +119152,8 @@ B.Tc=new A.CZ(null,null,null,null,null,null,null,null,null)
 B.Td=new A.RJ(null,null,null,null,null,null,null,null,null)
 B.aqf=new A.aB("No event",null,null,null,null,null,null,null,null,null)
 B.rv=new A.ek("",B.aqf,B.aW,null,t.b7)
-B.aps=new A.aB("+ Add new event",null,null,null,null,null,null,null,null,null)
-B.Tj=new A.ek("__add_new_event__",B.aps,B.aW,null,t.b7)
+B.apt=new A.aB("+ Add new event",null,null,null,null,null,null,null,null,null)
+B.Tj=new A.ek("__add_new_event__",B.apt,B.aW,null,t.b7)
 B.Jv=new A.aB("All",null,null,null,null,null,null,null,null,null)
 B.rw=new A.ek("all",B.Jv,B.aW,null,t.b7)
 B.Tl=new A.D0(null,null,null,null)
@@ -122805,8 +122805,8 @@ B.aqa=new A.aB("All data erased.",null,null,null,null,null,null,null,null,null)
 B.anx=new A.jB(B.aqa,null,null,null,null,null,null,null,null,null,null,null,null,B.bX,!1,null,null,null,B.n,null)
 B.aqs=new A.aB("Enter a valid amount (numbers only)",null,null,null,null,null,null,null,null,null)
 B.Fd=new A.jB(B.aqs,null,null,null,null,null,null,null,null,null,null,null,null,B.bX,!1,null,null,null,B.n,null)
-B.app=new A.aB("Need a name and a valid amount",null,null,null,null,null,null,null,null,null)
-B.any=new A.jB(B.app,null,null,null,null,null,null,null,null,null,null,null,null,B.bX,!1,null,null,null,B.n,null)
+B.apq=new A.aB("Need a name and a valid amount",null,null,null,null,null,null,null,null,null)
+B.any=new A.jB(B.apq,null,null,null,null,null,null,null,null,null,null,null,null,B.bX,!1,null,null,null,B.n,null)
 B.apZ=new A.aB("Enter an amount > 0",null,null,null,null,null,null,null,null,null)
 B.anz=new A.jB(B.apZ,null,null,null,null,null,null,null,null,null,null,null,null,B.bX,!1,null,null,null,B.n,null)
 B.apS=new A.aB("Pick a category",null,null,null,null,null,null,null,null,null)
@@ -123219,23 +123219,23 @@ B.apk=new A.aB("On this browser, paste the code text:",null,null,null,null,null,
 B.apm=new A.aB("There is no undo. Really erase?",null,null,null,null,null,null,null,null,null)
 B.apn=new A.aB("Private by design: data lives on your devices + files you move yourself. No account, no server, no fees.",null,null,null,null,null,null,null,null,null)
 B.apo=new A.aB("Auto-saved before every sync",null,null,null,null,null,null,null,null,null)
-B.apr=new A.aB("STEP 1 - on the SENDING device tap Send, then on the other device tap Receive. Same WiFi, no internet needed. Server stops after 5 min.",null,null,null,null,null,null,null,null,null)
-B.apt=new A.aB("OK",null,null,null,null,null,null,null,null,null)
-B.apu=new A.aB("Export",null,null,null,null,null,null,null,null,null)
+B.aps=new A.aB("STEP 1 - on the SENDING device tap Send, then on the other device tap Receive. Same WiFi, no internet needed. Server stops after 5 min.",null,null,null,null,null,null,null,null,null)
+B.apu=new A.aB("OK",null,null,null,null,null,null,null,null,null)
+B.apv=new A.aB("Export",null,null,null,null,null,null,null,null,null)
 B.oT=new A.aB("Add",null,null,null,null,null,null,null,null,null)
-B.apv=new A.aB("Last chance",null,null,null,null,null,null,null,null,null)
-B.apw=new A.aB("Wipes everything on THIS device only",null,null,null,null,null,null,null,null,null)
+B.apw=new A.aB("Last chance",null,null,null,null,null,null,null,null,null)
+B.apx=new A.aB("Wipes everything on THIS device only",null,null,null,null,null,null,null,null,null)
 B.oS=new A.D(!0,B.cz,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null)
 B.oU=new A.aB("Delete",null,B.oS,null,null,null,null,null,null,null)
-B.apy=new A.aB("Erase everything",null,null,null,null,null,null,null,null,null)
+B.apz=new A.aB("Erase everything",null,null,null,null,null,null,null,null,null)
 B.c2=new A.aB("Cancel",null,null,null,null,null,null,null,null,null)
-B.apz=new A.aB("Group shared spending here - trips, outings, flatmates.",null,null,null,null,null,null,null,null,null)
-B.apA=new A.aB("Add expense",null,null,null,null,null,null,null,null,null)
-B.apB=new A.aB("Let the other device scan this:",null,null,null,null,null,null,null,null,null)
-B.apC=new A.aB("Erase",null,null,null,null,null,null,null,null,null)
-B.apD=new A.aB("CSV",null,null,null,null,null,null,null,null,null)
+B.apA=new A.aB("Group shared spending here - trips, outings, flatmates.",null,null,null,null,null,null,null,null,null)
+B.apB=new A.aB("Add expense",null,null,null,null,null,null,null,null,null)
+B.apC=new A.aB("Let the other device scan this:",null,null,null,null,null,null,null,null,null)
+B.apD=new A.aB("Erase",null,null,null,null,null,null,null,null,null)
+B.apE=new A.aB("CSV",null,null,null,null,null,null,null,null,null)
 B.oV=new A.aB("Delete",null,null,null,null,null,null,null,null,null)
-B.apE=new A.aB("Edit",null,null,null,null,null,null,null,null,null)
+B.apF=new A.aB("Edit",null,null,null,null,null,null,null,null,null)
 B.apG=new A.aB("Delete event",null,B.oS,null,null,null,null,null,null,null)
 B.apH=new A.aB("Waiting for the other device... (auto-closes)",null,null,null,null,null,null,null,null,null)
 B.apI=new A.aB("Close",null,null,null,null,null,null,null,null,null)
