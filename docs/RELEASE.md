@@ -49,3 +49,32 @@ Previous state: `release` builds silently used debug keys. That is gone.
 - F-Droid model: F-Droid signs its own builds from source. The maintainer key
   above is for GitHub releases only — users cannot switch between GitHub-signed
   and F-Droid-signed installs for the same package ID without reinstalling.
+
+## 3. Embedded web bundle vs GitHub Pages (two different artifacts)
+
+- **Embedded (phone-hosted):** built by `dart tool/build_embedded_web.dart` —
+  root-relative (no `--base-href`), `--pwa-strategy none`, version-checked
+  (`pubspec.yaml` vs `lib/version.dart` vs `version.json`), stale files wiped,
+  required files verified, non-zero exit on mismatch. `--check` verifies without
+  building. The tool also prunes `build/web/assets/assets/webapp/` — the web
+  compiler embeds the old committed bundle (it is a declared APK asset), and
+  copying that back would nest bundles forever.
+- **GitHub Pages:** built only by CI with `--base-href /<repo>/`. Never copy a
+  Pages build into `assets/webapp/` (the tool rejects non-root `<base href>`).
+- LAN protocol and Show-on-PC behavior are untouched by all of this; only how the
+  bundle gets built and checked changed.
+
+## 4. CI behavior (`.github/workflows/build.yml`)
+
+- Toolchain pinned (`flutter-version: 3.47.2`), `pub get --enforce-lockfile`,
+  analyze + tests in the `web` and `apk` jobs; `embedded-web` job gates the
+  committed bundle via `--check`; the `apk` job rebuilds the bundle from source
+  before building so APKs cannot embed stale web UI.
+- Permissions are least-privilege per job (`contents: read` default; Pages job
+  adds `pages/id-token: write`; only the `release` job gets `contents: write`).
+- Releases happen only on `v*` tags: signed APK (maintainer secrets, fail-closed
+  without them) + `SHA256SUMS`, attached via the `release` job. Non-tag APKs are
+  unsigned dev artifacts for testing, never published.
+- No cloud services, no analytics, no secrets in the repo. Pushes/tags cannot be
+  exercised from a local-only clone (no git remote configured) — workflow changes
+  are validated by inspection plus the equivalent local commands.

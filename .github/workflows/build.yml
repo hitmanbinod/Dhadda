@@ -1,6 +1,10 @@
-# Free CI: builds Web (deploys to GitHub Pages) and Android APK on every
-# push. Push a tag like v1.0.0 to also cut a GitHub Release with the APK.
+# Free CI: Web to GitHub Pages, Android APK artifact on every push.
+# Push a tag like v1.3.1 to also cut a GitHub Release with a SIGNED APK +
+# SHA256SUMS. Unsigned (dev) APKs are never attached to releases.
 # One-time repo setup: Settings > Pages > Source = "GitHub Actions".
+# Tag-release setup: add protected Actions secrets DHADDA_KEYSTORE_BASE64,
+# DHADDA_KEYSTORE_PASSWORD, DHADDA_KEY_ALIAS, DHADDA_KEY_PASSWORD (see
+# docs/RELEASE.md). No secrets are needed for non-tag builds.
 name: build
 
 on:
@@ -9,14 +13,25 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# Least privilege by default; jobs escalate only what they need.
 permissions:
-  contents: write # releases + version bumps
-  pages: write # Pages deploy
-  id-token: write # Pages deploy
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # Public web demo on GitHub Pages. NOTE: this build uses
+  # --base-href /<repo>/ and must NEVER be copied into assets/webapp/
+  # (the embedded phone-host bundle is root-relative; see tool/ +
+  # the embedded-web job below).
   web:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -31,8 +46,8 @@ jobs:
           channel: stable
           flutter-version: "3.47.2"
           cache: true
-      - run: flutter pub get
-      - run: flutter analyze
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-fatal-infos
       - run: flutter test
         # Project pages live under /<repo>/ - keep this in sync with the repo name.
       - run: flutter build web --release --no-tree-shake-icons --pwa-strategy none --base-href /${{ github.event.repository.name }}/
@@ -42,8 +57,25 @@ jobs:
       - id: deploy
         uses: actions/deploy-pages@v4
 
+  # Fails if the committed assets/webapp/ bundle does not match pubspec
+  # (stale embedded bundles may never ship silently again).
+  embedded-web:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.2"
+          cache: true
+      - run: dart tool/build_embedded_web.dart --check
+
   apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -55,14 +87,56 @@ jobs:
           channel: stable
           flutter-version: "3.47.2"
           cache: true
-      - run: flutter pub get
-      - run: flutter build apk --release
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-fatal-infos
+      - run: flutter test
+      # Rebuild the embedded bundle from source so the APK can never
+      # contain a stale copy (workspace-only; the tool also verifies it).
+      - run: dart tool/build_embedded_web.dart
+      # Tag builds expect maintainer signing secrets and produce a real
+      # release APK. A tag WITHOUT secrets fails here via the fail-closed
+      # Gradle check (never silently debug-signed) - see docs/RELEASE.md.
+      - name: Install Android signing keys (tag releases only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          DHADDA_KEYSTORE_BASE64: ${{ secrets.DHADDA_KEYSTORE_BASE64 }}
+          DHADDA_KEYSTORE_PASSWORD: ${{ secrets.DHADDA_KEYSTORE_PASSWORD }}
+          DHADDA_KEY_ALIAS: ${{ secrets.DHADDA_KEY_ALIAS }}
+          DHADDA_KEY_PASSWORD: ${{ secrets.DHADDA_KEY_PASSWORD }}
+        run: |
+          test -n "$DHADDA_KEYSTORE_BASE64" || { echo "::error::Tag build without signing secrets. Add DHADDA_KEYSTORE_* secrets per docs/RELEASE.md."; exit 1; }
+          echo "$DHADDA_KEYSTORE_BASE64" | base64 -d > android/dhadda-release.jks
+          printf 'storeFile=dhadda-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$DHADDA_KEYSTORE_PASSWORD" "$DHADDA_KEY_ALIAS" "$DHADDA_KEY_PASSWORD" \
+            > android/key.properties
+      # Non-tag builds are explicitly-marked dev artifacts for testing only.
+      - name: Build release APK (signed on tags, dev-marked otherwise)
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            flutter build apk --release
+          else
+            DHADDA_ALLOW_UNSIGNED_RELEASE=1 flutter build apk --release
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: expense-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-      - name: Release APK
-        if: startsWith(github.ref, 'refs/tags/v')
+
+  release:
+    needs: apk
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: expense-apk
+          path: dist
+      - run: cd dist && sha256sum app-release.apk > SHA256SUMS && cat SHA256SUMS
+      - name: GitHub Release (signed APK + checksums only)
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: |
+            dist/app-release.apk
+            dist/SHA256SUMS
