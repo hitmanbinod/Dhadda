@@ -3,8 +3,7 @@ import 'dart:async';
 import '../store.dart';
 import 'relay_client.dart';
 
-DateTime _epoch() =>
-    DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+DateTime _epoch() => DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
 
 /// Keeps linked devices converged for as long as the app is open:
 /// pushes on every local change (debounced) and polls the relay
@@ -29,13 +28,11 @@ class LinkEngine {
     _onStore = () {
       if (!store.linked) return;
       _debounce?.cancel();
-      _debounce = Timer(
-          const Duration(seconds: 3), () => syncNow());
+      _debounce = Timer(const Duration(seconds: 3), () => syncNow());
     };
     store.addListener(_onStore!);
     _poll?.cancel();
-    _poll = Timer.periodic(
-        const Duration(seconds: 15), (_) => syncNow());
+    _poll = Timer.periodic(const Duration(seconds: 15), (_) => syncNow());
     syncNow(); // immediate catch-up on boot
   }
 
@@ -73,19 +70,18 @@ class LinkEngine {
     try {
       final client = LinkClient(origin);
       final peers = await client.pull(
-          link: store.linkId,
-          pin: store.linkPin,
-          deviceId: store.deviceId);
+        link: store.linkId,
+        pin: store.linkPin,
+        deviceId: store.deviceId,
+      );
       LinkPeer? best;
       for (final p in peers) {
         if (p.snapshot.isEmpty) continue;
-        if (best == null ||
-            p.timeValue.isAfter(best.timeValue)) {
+        if (best == null || p.timeValue.isAfter(best.timeValue)) {
           best = p;
         }
       }
-      final localTime =
-          DateTime.tryParse(store.updatedAt) ?? _epoch();
+      final localTime = DateTime.tryParse(store.updatedAt) ?? _epoch();
       if (best != null && best.timeValue.isAfter(localTime)) {
         final msg = await store.importSnapshotString(best.snapshot);
         store.noteSynced();
@@ -119,12 +115,13 @@ class LinkEngine {
 
   Future<void> _announce(LinkClient client) async {
     await client.push(
-        link: store.linkId,
-        pin: store.linkPin,
-        deviceId: store.deviceId,
-        snapshot: store.exportJson(),
-        name: store.deviceName,
-        time: store.updatedAt);
+      link: store.linkId,
+      pin: store.linkPin,
+      deviceId: store.deviceId,
+      snapshot: store.exportJson(),
+      name: store.deviceName,
+      time: store.updatedAt,
+    );
     _lastPushedAt = store.updatedAt;
   }
 }

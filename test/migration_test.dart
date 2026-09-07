@@ -26,11 +26,11 @@ String _fixture(String name) =>
     File('test/fixtures/phase0/$name').readAsStringSync();
 
 DomainData _domainOf(ExpenseStore s) => DomainData(
-      categories: List.of(s.categories),
-      transactions: List.of(s.transactions),
-      loans: List.of(s.loans),
-      projects: List.of(s.projects),
-    );
+  categories: List.of(s.categories),
+  transactions: List.of(s.transactions),
+  loans: List.of(s.loans),
+  projects: List.of(s.projects),
+);
 
 /// Expected domain state for a fixture snapshot, mirroring the store's
 /// date-descending transaction order (load() always sorts).
@@ -50,8 +50,7 @@ DomainData _expectedFrom(Snapshot snap) {
 Snapshot _withFuelUpgrade(Snapshot snap) {
   final cats = List.of(snap.categories);
   if (cats.isNotEmpty && cats.every((c) => c.id != 'fuel')) {
-    const fuel =
-        Category(id: 'fuel', name: 'Fuel', icon: 0, color: 0xFF795548);
+    const fuel = Category(id: 'fuel', name: 'Fuel', icon: 0, color: 0xFF795548);
     final at = cats.indexWhere((c) => c.id == 'other');
     if (at < 0) {
       cats.add(fuel);
@@ -81,8 +80,7 @@ class _TempDb {
   _TempDb._(this.backend, this.file);
 
   static Future<_TempDb> open(String name) async {
-    final file =
-        File('${Directory.systemTemp.path}/dhadda_p2_$name.sqlite');
+    final file = File('${Directory.systemTemp.path}/dhadda_p2_$name.sqlite');
     for (final suffix in ['', '-journal', '-wal', '-shm']) {
       final f = suffix.isEmpty ? file : File('${file.path}$suffix');
       if (await f.exists()) {
@@ -91,8 +89,7 @@ class _TempDb {
         } catch (_) {}
       }
     }
-    return _TempDb._(
-        DriftDomainStore(AppDb(NativeDatabase(file))), file);
+    return _TempDb._(DriftDomainStore(AppDb(NativeDatabase(file))), file);
   }
 
   Future<DriftDomainStore> relaunch() async {
@@ -156,52 +153,54 @@ class _ThrowingBackend implements DomainStore {
 }
 
 DomainData _synthetic(int n) => DomainData(
-      categories: const [
-        Category(id: 'c0', name: 'C0', icon: 0, color: 0xFF000000),
-        Category(id: 'other', name: 'Other', icon: 0, color: 0xFF000000),
-      ],
-      transactions: [
-        for (var i = 0; i < n; i++)
-          Txn(
-            id: 's-$i',
-            type: i % 10 == 0 ? 'income' : 'expense',
-            amount: i * 1.25 + 0.5,
-            categoryId: 'c0',
-            date: 1788220800000 + i * 60000,
-            note: 'note $i',
-            mode: 'cash',
-          ),
-      ],
-      loans: const [],
-      projects: const [],
-    );
+  categories: const [
+    Category(id: 'c0', name: 'C0', icon: 0, color: 0xFF000000),
+    Category(id: 'other', name: 'Other', icon: 0, color: 0xFF000000),
+  ],
+  transactions: [
+    for (var i = 0; i < n; i++)
+      Txn(
+        id: 's-$i',
+        type: i % 10 == 0 ? 'income' : 'expense',
+        amount: i * 1.25 + 0.5,
+        categoryId: 'c0',
+        date: 1788220800000 + i * 60000,
+        note: 'note $i',
+        mode: 'cash',
+      ),
+  ],
+  loans: const [],
+  projects: const [],
+);
 
 void main() {
-  test('fresh install seeds, migrates, reloads from DB on 2nd launch',
-      () async {
-    SharedPreferences.setMockInitialValues({});
-    final tempDb = await _TempDb.open('fresh');
-    try {
-      final a = ExpenseStore(domainOverride: tempDb.backend);
-      await a.load();
-      expect(a.categories.map((c) => c.id),
-          containsAll(['food', 'fuel', 'other']));
-      expect(a.categories.last.id, 'other');
-      final prefs = await SharedPreferences.getInstance();
-      expect(prefs.getInt(_marker), 1);
-      final first = _domainOf(a).summarize();
+  test(
+    'fresh install seeds, migrates, reloads from DB on 2nd launch',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final tempDb = await _TempDb.open('fresh');
+      try {
+        final a = ExpenseStore(domainOverride: tempDb.backend);
+        await a.load();
+        expect(
+          a.categories.map((c) => c.id),
+          containsAll(['food', 'fuel', 'other']),
+        );
+        expect(a.categories.last.id, 'other');
+        final prefs = await SharedPreferences.getInstance();
+        expect(prefs.getInt(_marker), 1);
+        final first = _domainOf(a).summarize();
 
-      final b = ExpenseStore(
-          domainOverride: await tempDb.relaunch());
-      await b.load();
-      expect(_domainOf(b).summarize().matches(first), isTrue);
-    } finally {
-      await tempDb.dispose();
-    }
-  });
+        final b = ExpenseStore(domainOverride: await tempDb.relaunch());
+        await b.load();
+        expect(_domainOf(b).summarize().matches(first), isTrue);
+      } finally {
+        await tempDb.dispose();
+      }
+    },
+  );
 
-  test('populated legacy migrates with identical meaning, keys kept',
-      () async {
+  test('populated legacy migrates with identical meaning, keys kept', () async {
     final raw = jsonDecode(_fixture('snapshot_populated.json'));
     final catsRaw = jsonEncode(raw['categories']);
     final txnsRaw = jsonEncode(raw['transactions']);
@@ -219,8 +218,7 @@ void main() {
       await a.load();
       final snap = Snapshot.decode(_fixture('snapshot_populated.json'));
       final expected = _expectedFrom(snap);
-      expect(_domainOf(a).summarize().matches(expected.summarize()),
-          isTrue);
+      expect(_domainOf(a).summarize().matches(expected.summarize()), isTrue);
       expect(a.pendingLoansTotal, 4000);
       expect(a.pendingBorrowedTotal, 6000);
       // Marker set, legacy source keys preserved byte-identical.
@@ -232,8 +230,7 @@ void main() {
       expect(prefs.getString(_kProjects), projectsRaw);
       // Reloading the same instance is stable (no duplication).
       await a.load();
-      expect(_domainOf(a).summarize().matches(expected.summarize()),
-          isTrue);
+      expect(_domainOf(a).summarize().matches(expected.summarize()), isTrue);
       expect((await tempDb.backend.counts())['transactions'], 8);
     } finally {
       await tempDb.dispose();
@@ -263,8 +260,10 @@ void main() {
       final b = ExpenseStore(domainOverride: throwing);
       await b.load();
       expect(prefs.getInt(_marker), 1);
-      expect(_domainOf(b).summarize().matches(_domainOf(a).summarize()),
-          isTrue);
+      expect(
+        _domainOf(b).summarize().matches(_domainOf(a).summarize()),
+        isTrue,
+      );
     } finally {
       await tempDb.dispose();
     }
@@ -303,8 +302,7 @@ void main() {
         _kLoans: jsonEncode([for (final l in snap.loans) l.toJson()]),
         _kProjects: jsonEncode([for (final p in snap.projects) p.toJson()]),
       });
-      final tempDb = await _TempDb.open(
-          name.replaceAll('.json', ''));
+      final tempDb = await _TempDb.open(name.replaceAll('.json', ''));
       try {
         final a = ExpenseStore(domainOverride: tempDb.backend);
         final stopwatch = Stopwatch()..start();
@@ -316,8 +314,7 @@ void main() {
         final got = _domainOf(a).summarize();
         if (name == 'snapshot_legacy.json') {
           expect(a.loans.single.remindAt, greaterThan(0), reason: name);
-          expect(got.transactionCount, expected.transactionCount,
-              reason: name);
+          expect(got.transactionCount, expected.transactionCount, reason: name);
         } else {
           expect(got.matches(expected), isTrue, reason: name);
         }

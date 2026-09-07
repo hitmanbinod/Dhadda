@@ -20,34 +20,46 @@ class PrefsDomainStore implements DomainStore {
 
   @override
   Future<DomainData> loadDomain() async => decodeLegacyDomain(
-        cats: prefs.getString(kCats),
-        txns: prefs.getString(kTxns),
-        loans: prefs.getString(kLoans),
-        projects: prefs.getString(kProjects),
-      );
+    cats: prefs.getString(kCats),
+    txns: prefs.getString(kTxns),
+    loans: prefs.getString(kLoans),
+    projects: prefs.getString(kProjects),
+  );
 
   @override
   Future<void> replaceAll(DomainData data) async {
-    await prefs.setString(kCats,
-        jsonEncode([for (final c in data.categories) c.toJson()]));
-    await prefs.setString(kTxns,
-        jsonEncode([for (final t in data.transactions) t.toJson()]));
-    await prefs.setString(kLoans,
-        jsonEncode([for (final l in data.loans) l.toJson()]));
-    await prefs.setString(kProjects,
-        jsonEncode([for (final p in data.projects) p.toJson()]));
+    await prefs.setString(
+      kCats,
+      jsonEncode([for (final c in data.categories) c.toJson()]),
+    );
+    await prefs.setString(
+      kTxns,
+      jsonEncode([for (final t in data.transactions) t.toJson()]),
+    );
+    await prefs.setString(
+      kLoans,
+      jsonEncode([for (final l in data.loans) l.toJson()]),
+    );
+    await prefs.setString(
+      kProjects,
+      jsonEncode([for (final p in data.projects) p.toJson()]),
+    );
   }
 
   @override
   Future<void> saveCategories(List<Category> categories) async {
-    await prefs.setString(kCats,
-        jsonEncode([for (final c in categories) c.toJson()]));
+    await prefs.setString(
+      kCats,
+      jsonEncode([for (final c in categories) c.toJson()]),
+    );
   }
 
   @override
   Future<void> saveTransactions(List<Txn> transactions) async {
-    await prefs.setString(kTxns,
-        jsonEncode([for (final t in transactions) t.toJson()]));
+    await prefs.setString(
+      kTxns,
+      jsonEncode([for (final t in transactions) t.toJson()]),
+    );
   }
 
   @override
@@ -79,7 +91,9 @@ class PrefsDomainStore implements DomainStore {
       current[i] = loan;
     }
     await prefs.setString(
-        kLoans, jsonEncode([for (final l in current) l.toJson()]));
+      kLoans,
+      jsonEncode([for (final l in current) l.toJson()]),
+    );
   }
 
   @override
@@ -87,7 +101,9 @@ class PrefsDomainStore implements DomainStore {
     final current = (await loadDomain()).loans;
     current.removeWhere((l) => l.id == id);
     await prefs.setString(
-        kLoans, jsonEncode([for (final l in current) l.toJson()]));
+      kLoans,
+      jsonEncode([for (final l in current) l.toJson()]),
+    );
   }
 
   @override
@@ -100,7 +116,9 @@ class PrefsDomainStore implements DomainStore {
       current[i] = project;
     }
     await prefs.setString(
-        kProjects, jsonEncode([for (final p in current) p.toJson()]));
+      kProjects,
+      jsonEncode([for (final p in current) p.toJson()]),
+    );
   }
 
   @override
@@ -108,7 +126,9 @@ class PrefsDomainStore implements DomainStore {
     final current = (await loadDomain()).projects;
     current.removeWhere((p) => p.id == id);
     await prefs.setString(
-        kProjects, jsonEncode([for (final p in current) p.toJson()]));
+      kProjects,
+      jsonEncode([for (final p in current) p.toJson()]),
+    );
   }
 
   @override

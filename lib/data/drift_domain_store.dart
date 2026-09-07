@@ -17,8 +17,7 @@ class DriftDomainStore implements DomainStore {
   static Future<DriftDomainStore> open() async =>
       DriftDomainStore(AppDb(openDbConnection()));
 
-  Future<T> _tx<T>(Future<T> Function() work) =>
-      db.transaction(work);
+  Future<T> _tx<T>(Future<T> Function() work) => db.transaction(work);
 
   // ---------- mapping (model <-> row, field for field) ----------
 
@@ -33,88 +32,94 @@ class DriftDomainStore implements DomainStore {
       );
 
   Category _toCategory(CategoryRow r) => Category(
-        id: r.id,
-        name: r.name,
-        icon: r.icon,
-        color: r.color,
-        budget: r.budget,
-      );
+    id: r.id,
+    name: r.name,
+    icon: r.icon,
+    color: r.color,
+    budget: r.budget,
+  );
 
   TransactionsCompanion _txnCompanion(Txn t) => TransactionsCompanion(
-        id: Value(t.id),
-        type: Value(t.type),
-        amount: Value(t.amount),
-        categoryId: Value(t.categoryId),
-        date: Value(t.date),
-        note: Value(t.note),
-        mode: Value(t.mode),
-        projectId: Value(t.projectId),
-      );
+    id: Value(t.id),
+    type: Value(t.type),
+    amount: Value(t.amount),
+    categoryId: Value(t.categoryId),
+    date: Value(t.date),
+    note: Value(t.note),
+    mode: Value(t.mode),
+    projectId: Value(t.projectId),
+  );
 
   Txn _toTxn(TxnRow r) => Txn(
-        id: r.id,
-        type: r.type,
-        amount: r.amount,
-        categoryId: r.categoryId,
-        date: r.date,
-        note: r.note,
-        mode: r.mode,
-        projectId: r.projectId,
-      );
+    id: r.id,
+    type: r.type,
+    amount: r.amount,
+    categoryId: r.categoryId,
+    date: r.date,
+    note: r.note,
+    mode: r.mode,
+    projectId: r.projectId,
+  );
 
   ProjectsCompanion _projectCompanion(Project p) => ProjectsCompanion(
-        id: Value(p.id),
-        name: Value(p.name),
-        note: Value(p.note),
-        created: Value(p.created),
-        icon: Value(p.icon),
-        color: Value(p.color),
-      );
+    id: Value(p.id),
+    name: Value(p.name),
+    note: Value(p.note),
+    created: Value(p.created),
+    icon: Value(p.icon),
+    color: Value(p.color),
+  );
 
   Project _toProject(ProjectRow r) => Project(
-        id: r.id,
-        name: r.name,
-        note: r.note,
-        created: r.created,
-        icon: r.icon,
-        color: r.color,
-      );
+    id: r.id,
+    name: r.name,
+    note: r.note,
+    created: r.created,
+    icon: r.icon,
+    color: r.color,
+  );
 
   LoansCompanion _loanCompanion(Loan l) => LoansCompanion(
-        id: Value(l.id),
-        person: Value(l.person),
-        kind: Value(l.kind),
-        principal: Value(l.lent),
-        dateLent: Value(l.dateLent),
-        dueDate: Value(l.dueDate),
-        note: Value(l.note),
-        remindAt: Value(l.remindAt),
-      );
+    id: Value(l.id),
+    person: Value(l.person),
+    kind: Value(l.kind),
+    principal: Value(l.lent),
+    dateLent: Value(l.dateLent),
+    dueDate: Value(l.dueDate),
+    note: Value(l.note),
+    remindAt: Value(l.remindAt),
+  );
 
   Future<void> _writeLoanChildren(Loan l) async {
-    await (db.delete(db.loanTopups)
-          ..where((t) => t.loanId.equals(l.id)))
-        .go();
-    await (db.delete(db.loanRepayments)
-          ..where((t) => t.loanId.equals(l.id)))
-        .go();
+    await (db.delete(db.loanTopups)..where((t) => t.loanId.equals(l.id))).go();
+    await (db.delete(
+      db.loanRepayments,
+    )..where((t) => t.loanId.equals(l.id))).go();
     for (final t in l.topups) {
-      await db.into(db.loanTopups).insert(LoanTopupsCompanion(
-            id: Value(t.id),
-            loanId: Value(l.id),
-            amount: Value(t.amount),
-            date: Value(t.date),
-            note: Value(t.note),
-          ));
+      await db
+          .into(db.loanTopups)
+          .insert(
+            LoanTopupsCompanion(
+              id: Value(t.id),
+              loanId: Value(l.id),
+              amount: Value(t.amount),
+              date: Value(t.date),
+              note: Value(t.note),
+            ),
+          );
     }
     for (final r in l.repayments) {
-      await db.into(db.loanRepayments).insert(LoanRepaymentsCompanion(
-            id: Value(r.id),
-            loanId: Value(l.id),
-            amount: Value(r.amount),
-            date: Value(r.date),
-            note: Value(r.note),
-          ));
+      await db
+          .into(db.loanRepayments)
+          .insert(
+            LoanRepaymentsCompanion(
+              id: Value(r.id),
+              loanId: Value(l.id),
+              amount: Value(r.amount),
+              date: Value(r.date),
+              note: Value(r.note),
+            ),
+          );
     }
   }
 
@@ -122,19 +127,18 @@ class DriftDomainStore implements DomainStore {
     LoanRow l,
     List<Topup> topups,
     List<Repayment> repayments,
-  ) async =>
-      Loan(
-        id: l.id,
-        person: l.person,
-        kind: l.kind,
-        lent: l.principal,
-        dateLent: l.dateLent,
-        dueDate: l.dueDate,
-        note: l.note,
-        remindAt: l.remindAt,
-        topups: topups,
-        repayments: repayments,
-      );
+  ) async => Loan(
+    id: l.id,
+    person: l.person,
+    kind: l.kind,
+    lent: l.principal,
+    dateLent: l.dateLent,
+    dueDate: l.dueDate,
+    note: l.note,
+    remindAt: l.remindAt,
+    topups: topups,
+    repayments: repayments,
+  );
 
   Future<List<Loan>> _readLoans() async {
     final rows = await db.select(db.loans).get();
@@ -142,18 +146,19 @@ class DriftDomainStore implements DomainStore {
     final repayments = await db.select(db.loanRepayments).get();
     final out = <Loan>[];
     for (final l in rows) {
-      out.add(await _toLoan(
-        l,
-        [
-          for (final t in topups.where((t) => t.loanId == l.id))
-            Topup(id: t.id, amount: t.amount, date: t.date, note: t.note),
-        ],
-        [
-          for (final r in repayments.where((r) => r.loanId == l.id))
-            Repayment(
-                id: r.id, amount: r.amount, date: r.date, note: r.note),
-        ],
-      ));
+      out.add(
+        await _toLoan(
+          l,
+          [
+            for (final t in topups.where((t) => t.loanId == l.id))
+              Topup(id: t.id, amount: t.amount, date: t.date, note: t.note),
+          ],
+          [
+            for (final r in repayments.where((r) => r.loanId == l.id))
+              Repayment(id: r.id, amount: r.amount, date: r.date, note: r.note),
+          ],
+        ),
+      );
     }
     return out;
   }
@@ -162,9 +167,9 @@ class DriftDomainStore implements DomainStore {
 
   @override
   Future<DomainData> loadDomain() async {
-    final cats = await (db.select(db.categories)
-          ..orderBy([(c) => OrderingTerm.asc(c.sortOrder)]))
-        .get();
+    final cats = await (db.select(
+      db.categories,
+    )..orderBy([(c) => OrderingTerm.asc(c.sortOrder)])).get();
     final txns = await db.select(db.transactions).get();
     final projects = await db.select(db.projects).get();
     final loans = await _readLoans();
@@ -178,86 +183,81 @@ class DriftDomainStore implements DomainStore {
 
   @override
   Future<void> replaceAll(DomainData data) => _tx(() async {
-        // Child-first deletes, parent-first inserts: safe under FK checks.
-        await db.delete(db.loanRepayments).go();
-        await db.delete(db.loanTopups).go();
-        await db.delete(db.transactions).go();
-        await db.delete(db.loans).go();
-        await db.delete(db.projects).go();
-        await db.delete(db.categories).go();
-        for (var i = 0; i < data.categories.length; i++) {
-          await db
-              .into(db.categories)
-              .insert(_catCompanion(data.categories[i], i));
-        }
-        for (final p in data.projects) {
-          await db.into(db.projects).insert(_projectCompanion(p));
-        }
-        for (final l in data.loans) {
-          await db.into(db.loans).insert(_loanCompanion(l));
-          await _writeLoanChildren(l);
-        }
-        for (final t in data.transactions) {
-          await db.into(db.transactions).insert(_txnCompanion(t));
-        }
-      });
+    // Child-first deletes, parent-first inserts: safe under FK checks.
+    await db.delete(db.loanRepayments).go();
+    await db.delete(db.loanTopups).go();
+    await db.delete(db.transactions).go();
+    await db.delete(db.loans).go();
+    await db.delete(db.projects).go();
+    await db.delete(db.categories).go();
+    for (var i = 0; i < data.categories.length; i++) {
+      await db.into(db.categories).insert(_catCompanion(data.categories[i], i));
+    }
+    for (final p in data.projects) {
+      await db.into(db.projects).insert(_projectCompanion(p));
+    }
+    for (final l in data.loans) {
+      await db.into(db.loans).insert(_loanCompanion(l));
+      await _writeLoanChildren(l);
+    }
+    for (final t in data.transactions) {
+      await db.into(db.transactions).insert(_txnCompanion(t));
+    }
+  });
 
   @override
   Future<void> saveCategories(List<Category> categories) => _tx(() async {
-        await db.delete(db.categories).go();
-        for (var i = 0; i < categories.length; i++) {
-          await db
-              .into(db.categories)
-              .insert(_catCompanion(categories[i], i));
-        }
-      });
+    await db.delete(db.categories).go();
+    for (var i = 0; i < categories.length; i++) {
+      await db.into(db.categories).insert(_catCompanion(categories[i], i));
+    }
+  });
 
   @override
   Future<void> saveTransactions(List<Txn> transactions) => _tx(() async {
-        await db.delete(db.transactions).go();
-        for (final t in transactions) {
-          await db.into(db.transactions).insert(_txnCompanion(t));
-        }
-      });
+    await db.delete(db.transactions).go();
+    for (final t in transactions) {
+      await db.into(db.transactions).insert(_txnCompanion(t));
+    }
+  });
 
   @override
   Future<void> upsertTransaction(Txn txn) => _tx(() async {
-        await db.into(db.transactions).insertOnConflictUpdate(_txnCompanion(txn));
-      });
+    await db.into(db.transactions).insertOnConflictUpdate(_txnCompanion(txn));
+  });
 
   @override
   Future<void> deleteTransaction(String id) => _tx(() async {
-        await (db.delete(db.transactions)..where((t) => t.id.equals(id))).go();
-      });
+    await (db.delete(db.transactions)..where((t) => t.id.equals(id))).go();
+  });
 
   @override
   Future<void> upsertLoan(Loan loan) => _tx(() async {
-        await db.into(db.loans).insertOnConflictUpdate(_loanCompanion(loan));
-        await _writeLoanChildren(loan);
-      });
+    await db.into(db.loans).insertOnConflictUpdate(_loanCompanion(loan));
+    await _writeLoanChildren(loan);
+  });
 
   @override
   Future<void> deleteLoan(String id) => _tx(() async {
-        // Children cascade, but delete explicitly first for clarity.
-        await (db.delete(db.loanTopups)..where((t) => t.loanId.equals(id)))
-            .go();
-        await (db.delete(db.loanRepayments)
-              ..where((t) => t.loanId.equals(id)))
-            .go();
-        await (db.delete(db.loans)..where((t) => t.id.equals(id))).go();
-      });
+    // Children cascade, but delete explicitly first for clarity.
+    await (db.delete(db.loanTopups)..where((t) => t.loanId.equals(id))).go();
+    await (db.delete(
+      db.loanRepayments,
+    )..where((t) => t.loanId.equals(id))).go();
+    await (db.delete(db.loans)..where((t) => t.id.equals(id))).go();
+  });
 
   @override
   Future<void> upsertProject(Project project) => _tx(() async {
-        await db
-            .into(db.projects)
-            .insertOnConflictUpdate(_projectCompanion(project));
-      });
+    await db
+        .into(db.projects)
+        .insertOnConflictUpdate(_projectCompanion(project));
+  });
 
   @override
   Future<void> deleteProject(String id) => _tx(() async {
-        await (db.delete(db.projects)..where((t) => t.id.equals(id))).go();
-      });
+    await (db.delete(db.projects)..where((t) => t.id.equals(id))).go();
+  });
 
   @override
   Future<Map<String, int>> counts() async {

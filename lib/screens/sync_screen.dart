@@ -70,8 +70,7 @@ class _SyncScreenState extends State<SyncScreen> {
 
   void _say(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   // ---------- Quick sync (LAN relay, scan & done) ----------
@@ -90,25 +89,25 @@ class _SyncScreenState extends State<SyncScreen> {
     final origin = _relayOrigin;
     if (origin.isEmpty) {
       _say(
-          'Tip: tap Show my code on your DESKTOP first (same WiFi), then scan it here. One scan pairs both for good.');
+        'Tip: tap Show my code on your DESKTOP first (same WiFi), then scan it here. One scan pairs both for good.',
+      );
       return;
     }
     final pin = _makePin();
     try {
       final created = await LinkClient(origin).create(
-          pin: pin,
-          deviceId: store.deviceId,
-          snapshot: store.exportJson(),
-          name: store.deviceName,
-          time: store.updatedAt);
+        pin: pin,
+        deviceId: store.deviceId,
+        snapshot: store.exportJson(),
+        name: store.deviceName,
+        time: store.updatedAt,
+      );
       if (!mounted) return;
       // Prefer the server's own LAN address for the QR: if this page
       // was opened via localhost, its origin would strand the phone.
       var showOrigin = origin;
       final host = Uri.tryParse(created.origin)?.host ?? '';
-      if (host.isNotEmpty &&
-          host != 'localhost' &&
-          !host.startsWith('127.')) {
+      if (host.isNotEmpty && host != 'localhost' && !host.startsWith('127.')) {
         showOrigin = created.origin;
       }
       setState(() {
@@ -117,8 +116,7 @@ class _SyncScreenState extends State<SyncScreen> {
         _offerOrigin = showOrigin;
       });
       _poll?.cancel();
-      _poll =
-          Timer.periodic(const Duration(seconds: 2), (_) => _pollLink());
+      _poll = Timer.periodic(const Duration(seconds: 2), (_) => _pollLink());
     } catch (e) {
       _say('Could not start quick sync: ${friendlySyncError(e)}');
     }
@@ -134,13 +132,12 @@ class _SyncScreenState extends State<SyncScreen> {
     final origin = _relayOrigin;
     if (origin.isEmpty) return;
     try {
-      final peers = await LinkClient(origin).pull(
-          link: link, pin: pin, deviceId: store.deviceId);
+      final peers = await LinkClient(origin)
+          .pull(link: link, pin: pin, deviceId: store.deviceId);
       if (peers.isEmpty) return; // nobody joined yet
       _poll?.cancel();
       _poll = null;
-      final msg = await _adoptPeers(
-          LinkClient(origin), link, pin, peers);
+      final msg = await _adoptPeers(LinkClient(origin), link, pin, peers);
       if (!mounted) return;
       setState(() {
         _offerSession = null;
@@ -164,8 +161,12 @@ class _SyncScreenState extends State<SyncScreen> {
   /// Merges the other side's newest slot (if newer), announces our own
   /// slot, and saves the pairing. Identical logic on both sides, so a
   /// single scan converges the pair no matter who was newer.
-  Future<String> _adoptPeers(LinkClient client, String link,
-      String pin, List<LinkPeer> peers) async {
+  Future<String> _adoptPeers(
+    LinkClient client,
+    String link,
+    String pin,
+    List<LinkPeer> peers,
+  ) async {
     final store = context.read<ExpenseStore>();
     LinkPeer? best;
     for (final p in peers) {
@@ -176,22 +177,23 @@ class _SyncScreenState extends State<SyncScreen> {
     }
     String msg = 'Paired - both will stay in sync now.';
     if (best != null) {
-      final localTime = DateTime.tryParse(store.updatedAt) ??
+      final localTime =
+          DateTime.tryParse(store.updatedAt) ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
       if (best.timeValue.isAfter(localTime)) {
         msg = await store.importSnapshotString(best.snapshot);
       }
     }
     await client.push(
-        link: link,
-        pin: pin,
-        deviceId: store.deviceId,
-        snapshot: store.exportJson(),
-        name: store.deviceName,
-        time: store.updatedAt);
+      link: link,
+      pin: pin,
+      deviceId: store.deviceId,
+      snapshot: store.exportJson(),
+      name: store.deviceName,
+      time: store.updatedAt,
+    );
     await store.setRelayOrigin(client.origin);
-    await store.setLink(
-        id: link, pin: pin, peer: best?.name ?? 'other device');
+    await store.setLink(id: link, pin: pin, peer: best?.name ?? 'other device');
     store.noteSynced();
     _engine?.markAnnounced(store.updatedAt);
     return msg;
@@ -237,8 +239,7 @@ class _SyncScreenState extends State<SyncScreen> {
     final store = context.read<ExpenseStore>();
     final origin = _relayOrigin;
     if (store.linkId.isNotEmpty && origin.isNotEmpty) {
-      await LinkClient(origin)
-          .unlink(link: store.linkId, pin: store.linkPin);
+      await LinkClient(origin).unlink(link: store.linkId, pin: store.linkPin);
     }
     _engine?.reset();
     await store.clearLink('Unlinked.');
@@ -275,10 +276,10 @@ class _SyncScreenState extends State<SyncScreen> {
       }
     }
     final host = Uri.tryParse(server)?.host ?? '';
-    if (!kIsWeb &&
-        (host == 'localhost' || host.startsWith('127.'))) {
+    if (!kIsWeb && (host == 'localhost' || host.startsWith('127.'))) {
       _say(
-          'This code points to this phone itself. Show the code on the DESKTOP instead - it carries the right address.');
+        'This code points to this phone itself. Show the code on the DESKTOP instead - it carries the right address.',
+      );
       return;
     }
     setState(() => _busy = true);
@@ -286,7 +287,10 @@ class _SyncScreenState extends State<SyncScreen> {
       final store = context.read<ExpenseStore>();
       final client = LinkClient(server);
       final peers = await client.pull(
-          link: code, pin: pin, deviceId: store.deviceId);
+        link: code,
+        pin: pin,
+        deviceId: store.deviceId,
+      );
       final msg = await _adoptPeers(client, code, pin, peers);
       _quickCode.clear();
       _srvCtrl.clear();
@@ -304,7 +308,8 @@ class _SyncScreenState extends State<SyncScreen> {
     final navigator = Navigator.of(context);
     if (!await _ensureCamera()) return;
     final raw = await navigator.push<String>(
-        MaterialPageRoute(builder: (_) => const ScanScreen()));
+      MaterialPageRoute(builder: (_) => const ScanScreen()),
+    );
     if (raw != null) await _quickAnswer(presetRaw: raw);
   }
 
@@ -314,10 +319,13 @@ class _SyncScreenState extends State<SyncScreen> {
       if (await Permissions.ensureCamera()) return true;
     } catch (_) {}
     if (!mounted) return false;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text(
-          'Camera blocked - allow it in system Settings, Apps, Dhadda, Permissions.'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Camera blocked - allow it in system Settings, Apps, Dhadda, Permissions.',
+        ),
+      ),
+    );
     return false;
   }
 
@@ -388,8 +396,11 @@ class _SyncScreenState extends State<SyncScreen> {
 
   Future<void> _exportFile() async {
     final store = context.read<ExpenseStore>();
-    await FileSync.exportJson(context, store.exportJson(),
-        FileSync.fileNameFor(DateTime.now()));
+    await FileSync.exportJson(
+      context,
+      store.exportJson(),
+      FileSync.fileNameFor(DateTime.now()),
+    );
   }
 
   Future<void> _importFile() async {
@@ -461,18 +472,16 @@ class _SyncScreenState extends State<SyncScreen> {
     setState(() => _busy = true);
     try {
       final store = context.read<ExpenseStore>();
-      final remoteMeta =
-          await WifiClient.fetchRemoteMeta(url, pin);
-      final localTime = DateTime.tryParse(store.updatedAt) ??
+      final remoteMeta = await WifiClient.fetchRemoteMeta(url, pin);
+      final localTime =
+          DateTime.tryParse(store.updatedAt) ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
       String msg;
       if (remoteMeta != null && remoteMeta.isAfter(localTime)) {
-        final body =
-            await WifiClient.fetchRemoteSnapshot(url, pin);
+        final body = await WifiClient.fetchRemoteSnapshot(url, pin);
         msg = await store.importSnapshotString(body);
       } else {
-        await WifiClient.pushLocalSnapshot(
-            url, pin, store.exportJson());
+        await WifiClient.pushLocalSnapshot(url, pin, store.exportJson());
         msg = 'This device was newer - sent it to the other device.';
       }
       store.noteSynced();
@@ -488,7 +497,8 @@ class _SyncScreenState extends State<SyncScreen> {
     final navigator = Navigator.of(context);
     if (!await _ensureCamera()) return;
     final raw = await navigator.push<String>(
-        MaterialPageRoute(builder: (_) => const ScanScreen()));
+      MaterialPageRoute(builder: (_) => const ScanScreen()),
+    );
     if (raw != null) await _receive(presetRaw: raw);
   }
 
@@ -505,420 +515,448 @@ class _SyncScreenState extends State<SyncScreen> {
       appBar: AppBar(title: const Text('Sync')),
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: ListView(
-      padding: pageInsets(context),
-      children: [
-        Text('Scan to sync',
-            style: Theme.of(context).textTheme.titleMedium),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (store.linked) ...[
-                  Row(
-                    children: [
-                      const Icon(Icons.link, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                                'Linked with ${store.linkPeer}',
-                                style: const TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold)),
-                            if (store.linkStatus.isNotEmpty)
-                              Text(store.linkStatus,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                      'Both devices sync by themselves on the same WiFi.'),
-                  const SizedBox(height: 8),
-                  OverflowBar(
-                    children: [
-                      FilledButton.icon(
-                          onPressed:
-                              _busy ? null : _linkedSyncNow,
-                          icon: const Icon(Icons.sync),
-                          label: const Text('Sync now')),
-                      TextButton(
-                          onPressed:
-                              _busy ? null : _unlink,
-                          child: const Text('Unlink')),
-                    ],
-                  ),
-                ] else if (_offerSession == null) ...[
-                  const Text(
-                      '1) Tap Show my code on ONE device. 2) Scan it with the other. One scan pairs them - then they stay synced by themselves.'),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                      onPressed: _busy ? null : _startQuickOffer,
-                      icon: const Icon(Icons.qr_code),
-                      label: const Text('Show my code')),
-                  const Divider(),
-                  if (!kIsWeb)
-                    FilledButton.icon(
-                        onPressed: _busy ? null : _scanQuick,
-                        icon:
-                            const Icon(Icons.qr_code_scanner),
-                        label: const Text(
-                            'Scan other device code'))
-                  else
-                    const Text(
-                        'On this browser, paste the code text:'),
-                  const SizedBox(height: 8),
-                  if (kIsWeb)
-                    TextField(
-                      controller: _quickCode,
-                      decoration: const InputDecoration(
-                          labelText: 'Paste code text here',
-                          border: OutlineInputBorder()),
-                    )
-                  else ...[
-                    TextField(
-                      controller: _srvCtrl,
-                      keyboardType: TextInputType.url,
-                      decoration: const InputDecoration(
-                          labelText: 'Server',
-                          hintText:
-                              'shown under the desktop QR',
-                          border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _codeCtrl,
-                            textCapitalization:
-                                TextCapitalization.characters,
-                            decoration: const InputDecoration(
-                                labelText: 'Code',
-                                border: OutlineInputBorder()),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: TextField(
-                            controller: _pinCtrl,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                                labelText: 'PIN',
-                                border: OutlineInputBorder()),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                      onPressed:
-                          _busy ? null : () => _quickAnswer(),
-                      icon: _busy
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2))
-                          : const Icon(Icons.sync),
-                      label: const Text('Sync now')),
-                ] else ...[
-                  const Text(
-                      'Let the other device scan this:'),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.all(12),
-                      child: QrImageView(
-                          data: QrV2.build(_offerOrigin,
-                              _offerSession!, _offerPin!),
-                          version: QrVersions.auto,
-                          size: 240,
-                          padding: EdgeInsets.zero,
-                          backgroundColor: Colors.white,
-                          errorCorrectionLevel:
-                              QrErrorCorrectLevel.M),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SelectableText(
-                      'Code ${_offerSession!}   PIN: ${_offerPin!}',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold)),
-                  SelectableText('Server $_offerOrigin',
-                      style:
-                          Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 4),
-                  const Text(
-                      'Waiting for the other device... (auto-closes)'),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                      onPressed: _finishOffer,
-                      icon: const Icon(Icons.stop),
-                      label: const Text('Stop')),
-                ],
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (!kIsWeb) ...[
-          Text('Show on PC',
-              style: Theme.of(context).textTheme.titleMedium),
+        padding: pageInsets(context),
+        children: [
+          Text('Scan to sync', style: Theme.of(context).textTheme.titleMedium),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_serve == null) ...[
+                  if (store.linked) ...[
+                    Row(
+                      children: [
+                        const Icon(Icons.link, color: Colors.green),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Linked with ${store.linkPeer}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              if (store.linkStatus.isNotEmpty)
+                                Text(
+                                  store.linkStatus,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
                     const Text(
-                        'Serve this app on your WiFi - open it in any PC browser. Works while this app stays open.'),
+                      'Both devices sync by themselves on the same WiFi.',
+                    ),
+                    const SizedBox(height: 8),
+                    OverflowBar(
+                      children: [
+                        FilledButton.icon(
+                          onPressed: _busy ? null : _linkedSyncNow,
+                          icon: const Icon(Icons.sync),
+                          label: const Text('Sync now'),
+                        ),
+                        TextButton(
+                          onPressed: _busy ? null : _unlink,
+                          child: const Text('Unlink'),
+                        ),
+                      ],
+                    ),
+                  ] else if (_offerSession == null) ...[
+                    const Text(
+                      '1) Tap Show my code on ONE device. 2) Scan it with the other. One scan pairs them - then they stay synced by themselves.',
+                    ),
                     const SizedBox(height: 8),
                     FilledButton.icon(
-                        onPressed: _startServe,
-                        icon: const Icon(Icons.dns),
-                        label: const Text('Show on PC')),
+                      onPressed: _busy ? null : _startQuickOffer,
+                      icon: const Icon(Icons.qr_code),
+                      label: const Text('Show my code'),
+                    ),
+                    const Divider(),
+                    if (!kIsWeb)
+                      FilledButton.icon(
+                        onPressed: _busy ? null : _scanQuick,
+                        icon: const Icon(Icons.qr_code_scanner),
+                        label: const Text('Scan other device code'),
+                      )
+                    else
+                      const Text('On this browser, paste the code text:'),
+                    const SizedBox(height: 8),
+                    if (kIsWeb)
+                      TextField(
+                        controller: _quickCode,
+                        decoration: const InputDecoration(
+                          labelText: 'Paste code text here',
+                          border: OutlineInputBorder(),
+                        ),
+                      )
+                    else ...[
+                      TextField(
+                        controller: _srvCtrl,
+                        keyboardType: TextInputType.url,
+                        decoration: const InputDecoration(
+                          labelText: 'Server',
+                          hintText: 'shown under the desktop QR',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _codeCtrl,
+                              textCapitalization: TextCapitalization.characters,
+                              decoration: const InputDecoration(
+                                labelText: 'Code',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _pinCtrl,
+                              keyboardType: TextInputType.number,
+                              decoration: const InputDecoration(
+                                labelText: 'PIN',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      onPressed: _busy ? null : () => _quickAnswer(),
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.sync),
+                      label: const Text('Sync now'),
+                    ),
                   ] else ...[
-                    const Text(
-                        'Open this address in any same-WiFi browser:'),
+                    const Text('Let the other device scan this:'),
                     const SizedBox(height: 8),
                     Center(
                       child: Container(
                         color: Colors.white,
                         padding: const EdgeInsets.all(12),
                         child: QrImageView(
-                            data: _serve!.url,
-                            version: QrVersions.auto,
-                            size: 200,
-                            padding: EdgeInsets.zero,
-                            backgroundColor: Colors.white,
-                            errorCorrectionLevel:
-                                QrErrorCorrectLevel.M),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Center(
-                      child: SelectableText(_serve!.url,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold)),
-                    ),
-                    if (_mdnsUrl != null) ...[
-                      const SizedBox(height: 8),
-                      Center(
-                        child: SelectableText(_mdnsUrl!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
-                      ),
-                      const Text(
-                        'Stable address - no need to check the IP.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ] else if (_mdnsDone) ...[
-                      const SizedBox(height: 8),
-                      const Text(
-                        'mDNS blocked on this network - the IP address above still works.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                    const SizedBox(height: 4),
-                    ValueListenableBuilder<int>(
-                      valueListenable: _serve!.hits,
-                      builder: (_, h, _) => Center(
-                        child: Text(
-                          h == 0
-                              ? 'Waiting for a PC browser… (keep this app open)'
-                              : 'Served $h request(s) — a PC is connected!',
-                          style: const TextStyle(fontSize: 12),
+                          data: QrV2.build(
+                            _offerOrigin,
+                            _offerSession!,
+                            _offerPin!,
+                          ),
+                          version: QrVersions.auto,
+                          size: 240,
+                          padding: EdgeInsets.zero,
+                          backgroundColor: Colors.white,
+                          errorCorrectionLevel: QrErrorCorrectLevel.M,
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
+                    SelectableText(
+                      'Code ${_offerSession!}   PIN: ${_offerPin!}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    SelectableText(
+                      'Server $_offerOrigin',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 4),
+                    const Text('Waiting for the other device... (auto-closes)'),
+                    const SizedBox(height: 8),
                     OutlinedButton.icon(
-                        onPressed: _stopServe,
-                        icon: const Icon(Icons.stop),
-                        label: const Text('Stop')),
+                      onPressed: _finishOffer,
+                      icon: const Icon(Icons.stop),
+                      label: const Text('Stop'),
+                    ),
                   ],
                 ],
               ),
             ),
           ),
           const SizedBox(height: 16),
-        ],
-        Text('This device',
-            style: Theme.of(context).textTheme.titleMedium),
-        Card(
-          child: ListTile(
-            leading: Icon(kIsWeb ? Icons.web : Icons.smartphone),
-            title: Text(store.deviceName),
-            subtitle: Text(
-                'Updated ${store.updatedAt}\nLast synced: ${store.lastSynced}\nTheme ${Theme.of(context).brightness.name} · #${store.accent.toRadixString(16)}'),
+          if (!kIsWeb) ...[
+            Text('Show on PC', style: Theme.of(context).textTheme.titleMedium),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_serve == null) ...[
+                      const Text(
+                        'Serve this app on your WiFi - open it in any PC browser. Works while this app stays open.',
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: _startServe,
+                        icon: const Icon(Icons.dns),
+                        label: const Text('Show on PC'),
+                      ),
+                    ] else ...[
+                      const Text('Open this address in any same-WiFi browser:'),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Container(
+                          color: Colors.white,
+                          padding: const EdgeInsets.all(12),
+                          child: QrImageView(
+                            data: _serve!.url,
+                            version: QrVersions.auto,
+                            size: 200,
+                            padding: EdgeInsets.zero,
+                            backgroundColor: Colors.white,
+                            errorCorrectionLevel: QrErrorCorrectLevel.M,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: SelectableText(
+                          _serve!.url,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      if (_mdnsUrl != null) ...[
+                        const SizedBox(height: 8),
+                        Center(
+                          child: SelectableText(
+                            _mdnsUrl!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const Text(
+                          'Stable address - no need to check the IP.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ] else if (_mdnsDone) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'mDNS blocked on this network - the IP address above still works.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      ValueListenableBuilder<int>(
+                        valueListenable: _serve!.hits,
+                        builder: (_, h, _) => Center(
+                          child: Text(
+                            h == 0
+                                ? 'Waiting for a PC browser… (keep this app open)'
+                                : 'Served $h request(s) — a PC is connected!',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _stopServe,
+                        icon: const Icon(Icons.stop),
+                        label: const Text('Stop'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          Text('This device', style: Theme.of(context).textTheme.titleMedium),
+          Card(
+            child: ListTile(
+              leading: Icon(kIsWeb ? Icons.web : Icons.smartphone),
+              title: Text(store.deviceName),
+              subtitle: Text(
+                'Updated ${store.updatedAt}\nLast synced: ${store.lastSynced}\nTheme ${Theme.of(context).brightness.name} · #${store.accent.toRadixString(16)}',
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        Text('File backup (Option 1)',
-            style: Theme.of(context).textTheme.titleMedium),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
+          const SizedBox(height: 16),
+          Text(
+            'File backup (Option 1)',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
                       onPressed: _exportFile,
                       icon: const Icon(Icons.upload),
-                      label: const Text('Export')),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                      onPressed: _importFile,
-                      icon: const Icon(Icons.download),
-                      label: const Text('Import')),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const Text(
-            'Send the exported file to your other device (chat, mail, USB, Drive) and Import it there.'),
-        const SizedBox(height: 16),
-        ExpansionTile(
-          title: const Text('Direct WiFi (no PC needed)'),
-          subtitle:
-              const Text('Advanced - phone sends straight to PC'),
-          children: [
-            Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                    'STEP 1 - on the SENDING device tap Send, then on the other device tap Receive. Same WiFi, no internet needed. Server stops after 5 min.'),
-                const SizedBox(height: 8),
-                if (_session == null)
-                  FilledButton.icon(
-                      onPressed: _startSend,
-                      icon: const Icon(Icons.wifi),
-                      label: const Text('Send via WiFi'))
-                else ...[
-                  Center(
-                    child: Container(
-                      color: Colors.white,
-                      padding: const EdgeInsets.all(12),
-                      child: QrImageView(
-                          data: WifiClient.buildQrPayload(
-                              _sendUrl, _sendPin),
-                          version: QrVersions.auto,
-                          size: 200,
-                          padding: EdgeInsets.zero,
-                          backgroundColor: Colors.white,
-                          errorCorrectionLevel:
-                              QrErrorCorrectLevel.M),
+                      label: const Text('Export'),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  SelectableText('$_sendUrl   PIN: $_sendPin',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                      onPressed: _stopSend,
-                      icon: const Icon(Icons.stop),
-                      label: const Text('Stop sending')),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _importFile,
+                      icon: const Icon(Icons.download),
+                      label: const Text('Import'),
+                    ),
+                  ),
                 ],
-                const Divider(),
-                const Text('STEP 2 - on the RECEIVING device:'),
-                const SizedBox(height: 8),
-                if (!kIsWeb)
-                  FilledButton.icon(
-                      onPressed:
-                          _busy ? null : _scanAndReceive,
-                      icon: const Icon(Icons.qr_code_scanner),
-                      label: const Text('Scan sender QR'))
-                else
-                  const Text(
-                      'Web cannot scan - type the address + PIN shown on the sender.'),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _recvUrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Sender address (http://192.168.1.x:port)',
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _recvPin,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                      labelText: 'PIN',
-                      border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                    onPressed: _busy ? null : () => _receive(),
-                    icon: _busy
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2))
-                        : const Icon(Icons.sync),
-                    label: const Text('Receive / sync now')),
-              ],
+              ),
             ),
           ),
-        ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        const SizedBox(height: 16),
-        ExpansionTile(
-          title: Text('Local backups (${backups.length}/5)'),
-          subtitle:
-              const Text('Auto-saved before every sync'),
-          children: [
-        if (backups.isEmpty)
-          const Card(
-              child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text(
-                      'Backups appear automatically before a sync overwrites this device.'))),
-        for (var i = 0; i < backups.length; i++)
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.history),
-            title: Text('Backup ${i + 1}'),
-            subtitle: Text(_backupLabel(backups[i])),
-            trailing: TextButton(
-                onPressed: () async {
-                  final msg = await store.restoreBackup(i);
-                  store.noteSynced();
-                  _say(msg);
-                },
-                child: const Text('Restore')),
+          const Text(
+            'Send the exported file to your other device (chat, mail, USB, Drive) and Import it there.',
           ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        const Text(
-            'Private by design: data lives on your devices + files you move yourself. No account, no server, no fees.'),
-      ],
+          const SizedBox(height: 16),
+          ExpansionTile(
+            title: const Text('Direct WiFi (no PC needed)'),
+            subtitle: const Text('Advanced - phone sends straight to PC'),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'STEP 1 - on the SENDING device tap Send, then on the other device tap Receive. Same WiFi, no internet needed. Server stops after 5 min.',
+                      ),
+                      const SizedBox(height: 8),
+                      if (_session == null)
+                        FilledButton.icon(
+                          onPressed: _startSend,
+                          icon: const Icon(Icons.wifi),
+                          label: const Text('Send via WiFi'),
+                        )
+                      else ...[
+                        Center(
+                          child: Container(
+                            color: Colors.white,
+                            padding: const EdgeInsets.all(12),
+                            child: QrImageView(
+                              data: WifiClient.buildQrPayload(
+                                _sendUrl,
+                                _sendPin,
+                              ),
+                              version: QrVersions.auto,
+                              size: 200,
+                              padding: EdgeInsets.zero,
+                              backgroundColor: Colors.white,
+                              errorCorrectionLevel: QrErrorCorrectLevel.M,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          '$_sendUrl   PIN: $_sendPin',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: _stopSend,
+                          icon: const Icon(Icons.stop),
+                          label: const Text('Stop sending'),
+                        ),
+                      ],
+                      const Divider(),
+                      const Text('STEP 2 - on the RECEIVING device:'),
+                      const SizedBox(height: 8),
+                      if (!kIsWeb)
+                        FilledButton.icon(
+                          onPressed: _busy ? null : _scanAndReceive,
+                          icon: const Icon(Icons.qr_code_scanner),
+                          label: const Text('Scan sender QR'),
+                        )
+                      else
+                        const Text(
+                          'Web cannot scan - type the address + PIN shown on the sender.',
+                        ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _recvUrl,
+                        decoration: const InputDecoration(
+                          labelText: 'Sender address (http://192.168.1.x:port)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _recvPin,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'PIN',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: _busy ? null : () => _receive(),
+                        icon: _busy
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.sync),
+                        label: const Text('Receive / sync now'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          ExpansionTile(
+            title: Text('Local backups (${backups.length}/5)'),
+            subtitle: const Text('Auto-saved before every sync'),
+            children: [
+              if (backups.isEmpty)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text(
+                      'Backups appear automatically before a sync overwrites this device.',
+                    ),
+                  ),
+                ),
+              for (var i = 0; i < backups.length; i++)
+                ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.history),
+                  title: Text('Backup ${i + 1}'),
+                  subtitle: Text(_backupLabel(backups[i])),
+                  trailing: TextButton(
+                    onPressed: () async {
+                      final msg = await store.restoreBackup(i);
+                      store.noteSynced();
+                      _say(msg);
+                    },
+                    child: const Text('Restore'),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Private by design: data lives on your devices + files you move yourself. No account, no server, no fees.',
+          ),
+        ],
       ),
     );
   }

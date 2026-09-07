@@ -47,12 +47,10 @@ void main() {
     expect(s.categories.first.id, 'travel'); // reordered fixture
     expect(s.categories.last.id, 'other'); // other stays last
     expect(
-        s.categories
-            .firstWhere((c) => c.id == 'health')
-            .name,
-        'Health & Fitness'); // rename
-    expect(
-        s.categories.firstWhere((c) => c.id == 'pets').budget, 2000);
+      s.categories.firstWhere((c) => c.id == 'health').name,
+      'Health & Fitness',
+    ); // rename
+    expect(s.categories.firstWhere((c) => c.id == 'pets').budget, 2000);
     expect(s.transactions, hasLength(8));
     expect(_expenseTotal(s), 2506699.5);
     expect(_incomeTotal(s), 97000);
@@ -69,13 +67,13 @@ void main() {
     final trek = s.projects.firstWhere((p) => p.id == 'proj-trek');
     expect(trek.name, 'Annapurna Trek');
     expect(
-        s.transactions
-            .firstWhere((t) => t.id == 'txn-0005')
-            .projectId,
-        trek.id); // project-linked transaction
+      s.transactions.firstWhere((t) => t.id == 'txn-0005').projectId,
+      trek.id,
+    ); // project-linked transaction
     expect(
-        s.transactions.where((t) => t.projectId == 'proj-empty'),
-        isEmpty); // project with no transactions
+      s.transactions.where((t) => t.projectId == 'proj-empty'),
+      isEmpty,
+    ); // project with no transactions
   });
 
   test('bulk fixture decodes 300 transactions', () {
@@ -116,10 +114,14 @@ void main() {
   });
 
   test('malformed and wrong-type fixtures throw on decode', () {
-    expect(() => Snapshot.decode(_read('corrupt_malformed.json')),
-        throwsA(anything));
-    expect(() => Snapshot.decode(_read('corrupt_wrongtype.json')),
-        throwsA(anything));
+    expect(
+      () => Snapshot.decode(_read('corrupt_malformed.json')),
+      throwsA(anything),
+    );
+    expect(
+      () => Snapshot.decode(_read('corrupt_wrongtype.json')),
+      throwsA(anything),
+    );
   });
 
   test('lenient fixture documents defaulting behavior', () {
@@ -139,15 +141,20 @@ void main() {
   test('decode -> encode -> decode round-trip preserves meaning', () {
     final a = Snapshot.decode(_read('snapshot_populated.json'));
     final b = Snapshot.decode(a.encode());
-    expect(b.transactions.map((t) => t.id),
-        orderedEquals(a.transactions.map((t) => t.id)));
+    expect(
+      b.transactions.map((t) => t.id),
+      orderedEquals(a.transactions.map((t) => t.id)),
+    );
     expect(_expenseTotal(b), _expenseTotal(a));
     expect(_incomeTotal(b), _incomeTotal(a));
-    expect(b.categories.map((c) => c.id),
-        orderedEquals(a.categories.map((c) => c.id)));
     expect(
-        b.loans.map((l) => l.pending),
-        orderedEquals(a.loans.map((l) => l.pending)));
+      b.categories.map((c) => c.id),
+      orderedEquals(a.categories.map((c) => c.id)),
+    );
+    expect(
+      b.loans.map((l) => l.pending),
+      orderedEquals(a.loans.map((l) => l.pending)),
+    );
   });
 
   test('store export -> import restores equivalent state (Step 10)', () async {
@@ -155,24 +162,31 @@ void main() {
     final a = ExpenseStore();
     await a.load();
     final raw = _read('snapshot_populated.json');
-    expect(await a.importSnapshotString(raw, force: true),
-        contains('Synced'));
+    expect(await a.importSnapshotString(raw, force: true), contains('Synced'));
     final exported = a.exportJson();
 
     SharedPreferences.setMockInitialValues({});
     final b = ExpenseStore();
     await b.load();
-    expect(await b.importSnapshotString(exported, force: true),
-        contains('Synced'));
+    expect(
+      await b.importSnapshotString(exported, force: true),
+      contains('Synced'),
+    );
 
-    expect(b.transactions.map((t) => t.id),
-        orderedEquals(a.transactions.map((t) => t.id)));
+    expect(
+      b.transactions.map((t) => t.id),
+      orderedEquals(a.transactions.map((t) => t.id)),
+    );
     final sep2026 = DateTime.utc(2026, 9);
     expect(b.monthSpend(sep2026), a.monthSpend(sep2026));
-    expect(b.monthSpend(DateTime.utc(2026, 8)),
-        a.monthSpend(DateTime.utc(2026, 8)));
-    expect(b.categories.map((c) => c.id),
-        orderedEquals(a.categories.map((c) => c.id)));
+    expect(
+      b.monthSpend(DateTime.utc(2026, 8)),
+      a.monthSpend(DateTime.utc(2026, 8)),
+    );
+    expect(
+      b.categories.map((c) => c.id),
+      orderedEquals(a.categories.map((c) => c.id)),
+    );
     expect(b.pendingLoansTotal, a.pendingLoansTotal);
     expect(b.pendingBorrowedTotal, a.pendingBorrowedTotal);
     final bTrek = b.projects.firstWhere((p) => p.id == 'proj-trek');

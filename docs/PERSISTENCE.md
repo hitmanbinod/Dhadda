@@ -1,0 +1,106 @@
+# Dhadda Persistence Architecture (Phase 2)
+
+SQLite via Drift is the domain store on Android/desktop; SharedPreferences JSON
+remains for small settings everywhere and for all domain data on Web. Snapshot
+v1, sync semantics, and UI behavior are unchanged. Baseline record stays in
+`docs/BASELINE.md`.
+
+## 1. Layout: what lives where
+
+| Data | Storage | Keys / location |
+|---|---|---|
+| transactions, categories (+order, budgets), loans (+top-ups, repayments, reminders), projects | SQLite (`dhadda.sqlite`, app documents dir) on native; prefs JSON on Web | tables below / `expense_{cats,txns,loans,projects}_v1` |
+| device/link/settings/sync stamps (`expense_meta_v1`), 5 backups, SMS ids | SharedPreferences (all platforms) | unchanged keys |
+| PIN hash, biometric flag | SharedPreferences (untouched) | `expense_pin_hash_v1`, `expense_biometric_v1` |
+| migration state | SharedPreferences int | `expense_db_migrated_v1` = 1 when complete |
+| legacy domain keys after migration | SharedPreferences (retained, stale) | original 4 keys, never deleted in Phase 2 |
+
+## 2. Code map
+
+- `lib/data/app_db.dart` — schema (source of truth) + `app_db.g.dart`
+  (committed generated code; regenerate with
+  `dart run build_runner build --delete-conflicting-outputs`).
+- `lib/data/domain_store.dart` — `DomainData`, `DomainSummary` (verification
+  fingerprint), the `DomainStore` interface, lenient legacy decoder.
+- `lib/data/drift_domain_store.dart` — SQLite backend (transactional
+  multi-writes, FK-safe ordering).
+- `lib/data/prefs_domain_store.dart` — JSON backend (Web + degraded fallback).
+- `lib/data/db_connection*.dart` — conditional native/stub connection: sqlite3
+  bindings can never compile into the web bundle.
+- `lib/data/test_env*.dart` — `isFlutterTest` gate (conditional, no dart:io on
+  web): unit/widget tests always use prefs (drift's async machinery hangs in
+  testWidgets' fake-async zone — verified empirically).
+- `lib/store.dart` — selects backend in `load()`, runs migration, write-through
+  in mutators. Still the single `ChangeNotifier`; no decomposition (later phase).
+
+## 3. Schema (version 1) and field mapping
+
+| Table | Columns (PK / FK / index) | Maps from |
+|---|---|---|
+| `categories` | `id` PK, `name`, `icon`, `color`, `budget` REAL, `sortOrder` (+) | Category + list position |
+| `transactions` | `id` PK, `type`, `amount` REAL, `categoryId` → categories, `date`, `note`, `mode`, `projectId`; indexes `idx_transactions_date/category/project` | Txn 1:1 |
+| `projects` | `id` PK, `name`, `note`, `created`, `icon`, `color` | Project 1:1 |
+| `loans` | `id` PK, `person`, `kind`, `principal` ← `lent`, `dateLent`, `dueDate`?, `note`, `remindAt` | Loan 1:1 |
+| `loan_topups` | `id` PK, `loanId` → loans CASCADE, `amount`, `date`, `note` | Topup + parent id |
+| `loan_repayments` | same shape as topups | Repayment + parent id |
+
+Money stays `double` (SQLite REAL round-trips bit-exact — proven by test;
+integer minor units deferred: zero migration risk, Snapshot v1 untouched).
+No tombstones/revisions (Phase 4). No encryption (Phase 3).
+
+## 4. Migration algorithm (`ExpenseStore.load` + `_migrateLegacyToDb`)
+
+States: **fresh** (no legacy keys, no marker) → seed in memory, migrate seeds;
+**legacy** (keys, no marker) → legacy-load, migrate; **failed** (marker unset
+after an attempt) → prefs fallback this launch, retry next; **done**
+(marker = 1) → load from DB. Detection uses only the marker + backend type,
+never "file exists" or row counts.
+
+1. Read meta/settings (unchanged).
+2. Pick backend: injected override (tests) ?? native SQLite (fails → prefs
+   fallback, retry later) ?? prefs (always on Web).
+3. Non-prefs backend + marker ≠ 1: legacy-load (seeds + fuel upgrade, today's
+   exact behavior), then `replaceAll` in ONE drift transaction.
+4. Verify by `DomainSummary` (counts + exact double sums + pendings + ID
+   orders); mismatch throws → fallback, no marker.
+5. Marker = 1 only after verification. Legacy keys never deleted.
+
+`eraseAll` self-heals: `prefs.clear()` wipes the marker, so the next `load()`
+re-seeds and re-migrates fresh state over the old rows.
+
+## 5. Snapshot v1 compatibility
+
+Export builds from in-memory lists (unchanged code); import assigns lists then
+`replaceAll` into the backend (now `async` — 7 call sites updated with `await`).
+Same bytes in/out, same newer-wins rule, same backups. No v2, no merge.
+
+## 6. Web strategy
+
+One interface, two backends: Web resolves the stub connection and always gets
+`PrefsDomainStore` (identical JSON behavior to Phase 0/1, including legacy
+keys). Drift-Web/WASM was evaluated and rejected for Phase 2: it needs
+`sqlite3.wasm` + worker + MIME/hosting care for zero user gain while the domain
+fits prefs semantics on browser. Revisit only with measured need. No cloud.
+
+## 7. Recovery procedure
+
+- Bad/missing marker or failed migration → app runs on prefs, retries next
+  launch. Legacy keys are the recovery source until a later phase cleans up.
+- To force re-migration (support/debug): delete `expense_db_migrated_v1` and
+  restart (rebuilds DB from legacy keys; current-session edits made only in
+  the DB fallback window would be lost — prefer exporting first).
+- To abandon the DB: delete the app-private `dhadda.sqlite` + marker; next
+  launch re-migrates from legacy keys.
+- Real user data: validate only on emulator/copies/test installs, never the
+  primary phone; keep real exports outside Git.
+
+## 8. Known limitations / future cleanup
+
+- Write-through failures log and continue (in-memory authoritative for the
+  session) — same exposure class as before, stricter ordering via await.
+- Legacy domain keys go stale on native after migration (retained deliberately;
+  cleanup is a later-release decision after stability is proven).
+- No per-record sync metadata yet (Phase 4); no encryption (Phase 3); store
+  still notifies broadly (later performance work).
+- sqlite3 v3 ships its own native libs via build hooks (no separate libs
+  package); F-Droid native-binary provenance to be confirmed at submission.

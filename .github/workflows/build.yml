@@ -47,6 +47,8 @@ jobs:
           flutter-version: "3.47.2"
           cache: true
       - run: flutter pub get --enforce-lockfile
+      # Regenerate Drift code deterministically (committed .g.dart must match).
+      - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
         # Project pages live under /<repo>/ - keep this in sync with the repo name.
@@ -88,6 +90,7 @@ jobs:
           flutter-version: "3.47.2"
           cache: true
       - run: flutter pub get --enforce-lockfile
+      - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
       # Rebuild the embedded bundle from source so the APK can never

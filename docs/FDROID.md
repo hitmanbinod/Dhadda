@@ -50,6 +50,19 @@ read (spot-checked ecosystem packages only — all flutter/packages/dart-lang
 BSD-style); native `.so` provenance beyond zxing-cpp not traced; confirm again
 at F-Droid submission time. Re-audit on every dependency change.
 
+## 4. Phase 2 additions (same method: packaged LICENSE headers read)
+
+| Package | Purpose | License | FOSS-compatible | Concern |
+|---|---|---|---|---|
+| drift 2.34.4 | SQLite ORM/migrations | MIT | yes | none in code |
+| path_provider 2.1.6 | DB file location | MIT | yes | none |
+| path 1.9.1 | path join | MIT | yes | none |
+| drift_dev 2.34.6 / build_runner 2.16.1 (dev-only) | codegen | MIT | yes | build-time only |
+| sqlite3 3.x (transitive via drift) | native SQLite via build hooks | public-domain SQLite + MIT wrapper | yes in code | **Open item:** native libs now compile from source at build time via hooks (better than prebuilt `.so`), but F-Droid native-binary provenance must still be confirmed at submission; the obsolete `sqlite3_flutter_libs` stub was evaluated and removed |
+
+No Firebase/GMS/ads/analytics anywhere (lockfile re-scanned clean). No
+dependency replaced for this audit. License snapshot: everything permissive.
+
 ## 3. Upstream metadata (fastlane, F-Droid-compatible layout)
 
 Present under `fastlane/metadata/android/en-US/`: `title.txt` (Dhadda),

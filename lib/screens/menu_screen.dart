@@ -58,19 +58,19 @@ class _MenuScreenState extends State<MenuScreen> {
 
   void _say(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   /// Top-level backup actions (same calls as the Sync screen copy).
-  Future<void> _exportBackup(
-      BuildContext context, ExpenseStore store) async {
-    await FileSync.exportJson(context, store.exportJson(),
-        FileSync.fileNameFor(DateTime.now()));
+  Future<void> _exportBackup(BuildContext context, ExpenseStore store) async {
+    await FileSync.exportJson(
+      context,
+      store.exportJson(),
+      FileSync.fileNameFor(DateTime.now()),
+    );
   }
 
-  Future<void> _importBackup(
-      BuildContext context, ExpenseStore store) async {
+  Future<void> _importBackup(BuildContext context, ExpenseStore store) async {
     final raw = await FileSync.importJson();
     if (raw == null) return; // cancelled
     if (!context.mounted) return;
@@ -88,16 +88,14 @@ class _MenuScreenState extends State<MenuScreen> {
       children: [
         Card(
           child: ListTile(
-            leading: const CircleAvatar(
-                child: Icon(Icons.person)),
-            title: Text(store.userName.isEmpty
-                ? 'Set your name'
-                : store.userName),
+            leading: const CircleAvatar(child: Icon(Icons.person)),
+            title: Text(
+              store.userName.isEmpty ? 'Set your name' : store.userName,
+            ),
             trailing: IconButton(
               tooltip: 'Edit name',
               icon: const Icon(Icons.edit),
-              onPressed: () =>
-                  _nameDialog(context, store),
+              onPressed: () => _nameDialog(context, store),
             ),
           ),
         ),
@@ -106,29 +104,32 @@ class _MenuScreenState extends State<MenuScreen> {
         Card(
           child: ListTile(
             leading: Icon(
-                store.linked ? Icons.link : Icons.link_off,
-                color: store.linked ? Colors.green : null),
-            title: Text(store.linked
-                ? 'Linked with ${store.linkPeer}'
-                : 'Not linked'),
-            subtitle: Text(store.linked
-                ? (store.linkStatus.isEmpty
-                    ? 'Auto-sync is on'
-                    : store.linkStatus)
-                : 'Pair once - then auto-sync on same WiFi'),
+              store.linked ? Icons.link : Icons.link_off,
+              color: store.linked ? Colors.green : null,
+            ),
+            title: Text(
+              store.linked ? 'Linked with ${store.linkPeer}' : 'Not linked',
+            ),
+            subtitle: Text(
+              store.linked
+                  ? (store.linkStatus.isEmpty
+                        ? 'Auto-sync is on'
+                        : store.linkStatus)
+                  : 'Pair once - then auto-sync on same WiFi',
+            ),
             trailing: FilledButton(
               onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) =>
-                          SyncScreen(engine: widget.engine))),
+                MaterialPageRoute(
+                  builder: (_) => SyncScreen(engine: widget.engine),
+                ),
+              ),
               child: const Text('Open sync'),
             ),
           ),
         ),
         const SizedBox(height: 16),
         // ---------- backup (top-level copy; Sync keeps its own) ----------
-        Text('Backup',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Backup', style: Theme.of(context).textTheme.titleMedium),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -136,24 +137,25 @@ class _MenuScreenState extends State<MenuScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                    'Your data, your file. Export to share or archive it, import it back on any device.'),
+                  'Your data, your file. Export to share or archive it, import it back on any device.',
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
                       child: FilledButton.icon(
-                          onPressed: () =>
-                              _exportBackup(context, store),
-                          icon: const Icon(Icons.upload),
-                          label: const Text('Export')),
+                        onPressed: () => _exportBackup(context, store),
+                        icon: const Icon(Icons.upload),
+                        label: const Text('Export'),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
-                          onPressed: () =>
-                              _importBackup(context, store),
-                          icon: const Icon(Icons.download),
-                          label: const Text('Import')),
+                        onPressed: () => _importBackup(context, store),
+                        icon: const Icon(Icons.download),
+                        label: const Text('Import'),
+                      ),
                     ),
                   ],
                 ),
@@ -163,8 +165,7 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         const SizedBox(height: 16),
         // ---------- appearance ----------
-        Text('Appearance',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Appearance', style: Theme.of(context).textTheme.titleMedium),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -185,8 +186,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         avatar: Icon(icon, size: 18),
                         showCheckmark: false,
                         selected: store.themeMode == v,
-                        onSelected: (_) =>
-                            store.setThemeMode(v),
+                        onSelected: (_) => store.setThemeMode(v),
                       ),
                   ],
                 ),
@@ -200,31 +200,24 @@ class _MenuScreenState extends State<MenuScreen> {
                       color: Color(store.accent),
                       shape: BoxShape.circle,
                       border: Border.all(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .outline),
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                     ),
                   ),
                   title: const Text('Accent colour'),
-                  subtitle:
-                      Text(ExpenseStore.accentName(store.accent)),
+                  subtitle: Text(ExpenseStore.accentName(store.accent)),
                   children: [
                     GridView.count(
                       crossAxisCount: 3,
                       shrinkWrap: true,
-                      physics:
-                          const NeverScrollableScrollPhysics(),
+                      physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 4),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       children: [
-                        if (!ExpenseStore.accentChoices
-                            .contains(store.accent))
-                          _swatch(context, store,
-                              store.accent, true),
-                        for (final c
-                            in ExpenseStore.accentChoices)
+                        if (!ExpenseStore.accentChoices.contains(store.accent))
+                          _swatch(context, store, store.accent, true),
+                        for (final c in ExpenseStore.accentChoices)
                           _swatch(context, store, c, false),
                       ],
                     ),
@@ -232,26 +225,20 @@ class _MenuScreenState extends State<MenuScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: OutlinedButton.icon(
-                        onPressed: () =>
-                            _pickCustom(context, store),
+                        onPressed: () => _pickCustom(context, store),
                         icon: const Icon(Icons.palette),
-                        label:
-                            const Text('Custom colour…'),
+                        label: const Text('Custom colour…'),
                       ),
                     ),
                     if (!kIsWeb &&
-                        defaultTargetPlatform ==
-                            TargetPlatform.android)
+                        defaultTargetPlatform == TargetPlatform.android)
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         dense: true,
-                        title:
-                            const Text('Match wallpaper'),
-                        subtitle: const Text(
-                            'Material You, Android 12+'),
+                        title: const Text('Match wallpaper'),
+                        subtitle: const Text('Material You, Android 12+'),
                         value: store.materialYou,
-                        onChanged: (v) =>
-                            store.setMaterialYou(v),
+                        onChanged: (v) => store.setMaterialYou(v),
                       ),
                   ],
                 ),
@@ -261,8 +248,7 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         const SizedBox(height: 16),
         // ---------- security ----------
-        Text('Security',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Security', style: Theme.of(context).textTheme.titleMedium),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -273,11 +259,13 @@ class _MenuScreenState extends State<MenuScreen> {
                     const Icon(Icons.lock),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(vault == null
-                          ? 'Checking...'
-                          : (vault.isEnabled
-                              ? 'PIN lock is ON (4 digits)'
-                              : 'PIN lock is off')),
+                      child: Text(
+                        vault == null
+                            ? 'Checking...'
+                            : (vault.isEnabled
+                                  ? 'PIN lock is ON (4 digits)'
+                                  : 'PIN lock is off'),
+                      ),
                     ),
                   ],
                 ),
@@ -296,26 +284,23 @@ class _MenuScreenState extends State<MenuScreen> {
                   OverflowBar(
                     children: [
                       TextButton(
-                          onPressed: () =>
-                              _changePin(vault),
-                          child: const Text('Change')),
+                        onPressed: () => _changePin(vault),
+                        child: const Text('Change'),
+                      ),
                       TextButton(
-                          onPressed: () =>
-                              _disablePin(vault),
-                          child: const Text('Disable')),
+                        onPressed: () => _disablePin(vault),
+                        child: const Text('Disable'),
+                      ),
                     ],
                   ),
                   if (_bioSupported)
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      secondary:
-                          const Icon(Icons.fingerprint),
+                      secondary: const Icon(Icons.fingerprint),
                       title: const Text('Fingerprint'),
-                      subtitle: const Text(
-                          'Unlock without typing the PIN'),
+                      subtitle: const Text('Unlock without typing the PIN'),
                       value: vault.biometric,
-                      onChanged: (v) =>
-                          _toggleBio(vault, v),
+                      onChanged: (v) => _toggleBio(vault, v),
                     ),
                 ],
               ],
@@ -324,23 +309,23 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         const SizedBox(height: 16),
         // ---------- currency ----------
-        Text('Currency',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Currency', style: Theme.of(context).textTheme.titleMedium),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
-            child: DropdownButtonFormField<String>(isExpanded: true,
+            child: DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: store.currency,
               decoration: const InputDecoration(
-                  labelText: 'Display currency',
-                  border: OutlineInputBorder()),
+                labelText: 'Display currency',
+                border: OutlineInputBorder(),
+              ),
               items: [
-                for (final c
-                    in ExpenseStore.currencySymbols.keys)
+                for (final c in ExpenseStore.currencySymbols.keys)
                   DropdownMenuItem(
-                      value: c,
-                      child: Text(
-                          '$c - ${ExpenseStore.currencyNames[c]}')),
+                    value: c,
+                    child: Text('$c - ${ExpenseStore.currencyNames[c]}'),
+                  ),
               ],
               onChanged: (v) async {
                 if (v == null) return;
@@ -352,8 +337,7 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         const SizedBox(height: 16),
         // ---------- data ----------
-        Text('Data',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Data', style: Theme.of(context).textTheme.titleMedium),
         if (!kIsWeb)
           Card(
             child: Padding(
@@ -367,64 +351,56 @@ class _MenuScreenState extends State<MenuScreen> {
                       const SizedBox(width: 8),
                       const Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('SMS import',
-                                style: TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold)),
                             Text(
-                                'Auto adds on open · Manual asks first',
-                                style: TextStyle(fontSize: 12)),
+                              'SMS import',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              'Auto adds on open · Manual asks first',
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ],
                         ),
                       ),
                       SegmentedButton<String>(
                         showSelectedIcon: false,
                         style: SegmentedButton.styleFrom(
-                          visualDensity:
-                              VisualDensity.compact,
+                          visualDensity: VisualDensity.compact,
                         ),
                         segments: const [
-                          ButtonSegment(
-                              value: 'manual',
-                              label: Text('Manual')),
-                          ButtonSegment(
-                              value: 'auto',
-                              label: Text('Auto')),
+                          ButtonSegment(value: 'manual', label: Text('Manual')),
+                          ButtonSegment(value: 'auto', label: Text('Auto')),
                         ],
                         selected: {store.smsMode},
-                        onSelectionChanged: (s) =>
-                            store.setSmsMode(s.first),
+                        onSelectionChanged: (s) => store.setSmsMode(s.first),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                      'Only these senders are scanned - everything else is ignored as junk.'),
+                    'Only these senders are scanned - everything else is ignored as junk.',
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _smsSender,
-                          textCapitalization:
-                              TextCapitalization.characters,
+                          textCapitalization: TextCapitalization.characters,
                           decoration: const InputDecoration(
-                              labelText:
-                                  'Sender (eSewa, Nabil…)',
-                              border: OutlineInputBorder(),
-                              isDense: true),
-                          onSubmitted: (_) =>
-                              _addSmsSender(store),
+                            labelText: 'Sender (eSewa, Nabil…)',
+                            border: OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          onSubmitted: (_) => _addSmsSender(store),
                         ),
                       ),
                       IconButton(
                         tooltip: 'Add sender',
                         icon: const Icon(Icons.add),
-                        onPressed: () =>
-                            _addSmsSender(store),
+                        onPressed: () => _addSmsSender(store),
                       ),
                     ],
                   ),
@@ -437,12 +413,9 @@ class _MenuScreenState extends State<MenuScreen> {
                         for (final s in store.smsSenders)
                           Chip(
                             label: Text(s),
-                            deleteIcon: const Icon(Icons.close,
-                                size: 18),
-                            onDeleted: () =>
-                                store.setSmsSenders([
-                              for (final e
-                                  in store.smsSenders)
+                            deleteIcon: const Icon(Icons.close, size: 18),
+                            onDeleted: () => store.setSmsSenders([
+                              for (final e in store.smsSenders)
                                 if (e != s) e,
                             ]),
                           ),
@@ -451,8 +424,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   ],
                   const SizedBox(height: 8),
                   FilledButton.icon(
-                    onPressed: () =>
-                        _importSms(context, store),
+                    onPressed: () => _importSms(context, store),
                     icon: const Icon(Icons.download),
                     label: const Text('Scan SMS now'),
                   ),
@@ -463,38 +435,33 @@ class _MenuScreenState extends State<MenuScreen> {
         if (!kIsWeb) const SizedBox(height: 8),
         Card(
           child: ListTile(
-            leading: const Icon(Icons.delete_forever,
-                color: Colors.red),
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
             title: const Text('Erase all data'),
-            subtitle: const Text(
-                'Wipes everything on THIS device only'),
+            subtitle: const Text('Wipes everything on THIS device only'),
             trailing: TextButton(
               onPressed: () => _erase(context, store),
-              child: const Text('Erase',
-                  style: TextStyle(color: Colors.red)),
+              child: const Text('Erase', style: TextStyle(color: Colors.red)),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        Text('About',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('About', style: Theme.of(context).textTheme.titleMedium),
         const Card(
           child: ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('Expense $kAppVersion ($kBuildStamp)'),
-            subtitle:
-                Text('Local-first • offline • free forever'),
+            subtitle: Text('Local-first • offline • free forever'),
           ),
         ),
         const SizedBox(height: 8),
         const Text(
-            'Private by design: data lives on your devices. No account, no server fees, ever.'),
+          'Private by design: data lives on your devices. No account, no server fees, ever.',
+        ),
       ],
     );
   }
 
-  Future<void> _nameDialog(
-      BuildContext context, ExpenseStore store) async {
+  Future<void> _nameDialog(BuildContext context, ExpenseStore store) async {
     final ctrl = TextEditingController(text: store.userName);
     final ok = await showDialog<bool>(
       context: context,
@@ -505,16 +472,19 @@ class _MenuScreenState extends State<MenuScreen> {
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
-              labelText: 'Shown in the home greeting',
-              border: OutlineInputBorder()),
+            labelText: 'Shown in the home greeting',
+            border: OutlineInputBorder(),
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Save')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Save'),
+          ),
         ],
       ),
     );
@@ -538,17 +508,20 @@ class _MenuScreenState extends State<MenuScreen> {
           maxLength: 4,
           autofocus: true,
           decoration: const InputDecoration(
-              labelText: '4-digit PIN',
-              border: OutlineInputBorder(),
-              counterText: ''),
+            labelText: '4-digit PIN',
+            border: OutlineInputBorder(),
+            counterText: '',
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('OK')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('OK'),
+          ),
         ],
       ),
     );
@@ -626,13 +599,16 @@ class _MenuScreenState extends State<MenuScreen> {
     _say(on ? 'Fingerprint unlock on.' : 'Fingerprint unlock off.');
   }
 
-  Widget _swatch(BuildContext context, ExpenseStore store,
-      int color, bool custom) {
+  Widget _swatch(
+    BuildContext context,
+    ExpenseStore store,
+    int color,
+    bool custom,
+  ) {
     final selected = store.accent == color;
     return GestureDetector(
-      onTap: () => custom
-          ? _pickCustom(context, store)
-          : store.setAccent(color),
+      onTap: () =>
+          custom ? _pickCustom(context, store) : store.setAccent(color),
       child: Container(
         decoration: BoxDecoration(
           color: Color(color),
@@ -648,8 +624,7 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Future<void> _pickCustom(
-      BuildContext context, ExpenseStore store) async {
+  Future<void> _pickCustom(BuildContext context, ExpenseStore store) async {
     var picked = Color(store.accent);
     final ok = await showDialog<bool>(
       context: context,
@@ -673,11 +648,13 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Use')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Use'),
+          ),
         ],
       ),
     );
@@ -695,20 +672,24 @@ class _MenuScreenState extends State<MenuScreen> {
 
   /// Opt-in SMS import: reads bank/wallet texts, parses candidates,
   /// user ticks what to keep. Nothing is saved without confirmation.
-  Future<void> _importSms(
-      BuildContext context, ExpenseStore store) async {
+  Future<void> _importSms(BuildContext context, ExpenseStore store) async {
     final messenger = ScaffoldMessenger.of(context);
     final allowed = await SmsReader.ensurePermission();
     if (!mounted) return;
     if (!allowed) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text(
-              'SMS permission needed - enable it to scan texts.')));
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('SMS permission needed - enable it to scan texts.'),
+        ),
+      );
       return;
     }
-    messenger.showSnackBar(const SnackBar(
+    messenger.showSnackBar(
+      const SnackBar(
         content: Text('Reading SMS…'),
-        duration: Duration(seconds: 1)));
+        duration: Duration(seconds: 1),
+      ),
+    );
     final rows = await SmsReader.readInbox(limit: 100);
     if (!mounted) return;
     final seen = await SmsReader.importedIds();
@@ -728,8 +709,9 @@ class _MenuScreenState extends State<MenuScreen> {
       if (c != null) found.add(c);
     }
     if (found.isEmpty) {
-      messenger.showSnackBar(const SnackBar(
-          content: Text('No new bank/wallet SMS found.')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('No new bank/wallet SMS found.')),
+      );
       return;
     }
     if (!context.mounted) return;
@@ -740,22 +722,29 @@ class _MenuScreenState extends State<MenuScreen> {
         type: c.isIncome ? 'income' : 'expense',
         amount: c.amount,
         categoryId: categorizeSms(
-            merchant: c.merchant,
-            body: c.body,
-            candidates: store.categories),
+          merchant: c.merchant,
+          body: c.body,
+          candidates: store.categories,
+        ),
         date: c.date,
         note: c.merchant.isEmpty ? c.sender : c.merchant,
         mode: c.mode,
       );
     }
     await SmsReader.markImported(picked.map((c) => c.id));
-    messenger.showSnackBar(SnackBar(
+    messenger.showSnackBar(
+      SnackBar(
         content: Text(
-            'Added ${picked.length} entr${picked.length == 1 ? 'y' : 'ies'} from SMS.')));
+          'Added ${picked.length} entr${picked.length == 1 ? 'y' : 'ies'} from SMS.',
+        ),
+      ),
+    );
   }
 
   Future<List<SmsCandidate>?> _pickSmsDialog(
-      BuildContext context, List<SmsCandidate> found) {
+    BuildContext context,
+    List<SmsCandidate> found,
+  ) {
     final picked = {for (final c in found) c.id};
     return showDialog<List<SmsCandidate>>(
       context: context,
@@ -781,44 +770,47 @@ class _MenuScreenState extends State<MenuScreen> {
                     }
                   }),
                   title: Text(
-                      '${c.isIncome ? '+' : '-'}${money(c.amount)} ${c.merchant.isEmpty ? c.sender : c.merchant}'),
-                  subtitle:
-                      Text('${c.sender} · ${dayStr(c.date)}'),
+                    '${c.isIncome ? '+' : '-'}${money(c.amount)} ${c.merchant.isEmpty ? c.sender : c.merchant}',
+                  ),
+                  subtitle: Text('${c.sender} · ${dayStr(c.date)}'),
                 );
               },
             ),
           ),
           actions: [
             TextButton(
-                onPressed: () =>
-                    Navigator.of(ctx).pop(null),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('Cancel'),
+            ),
             FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(found
-                    .where((c) => picked.contains(c.id))
-                    .toList()),
-                child: const Text('Add')),
+              onPressed: () =>
+                  Navigator.of(ctx)
+                      .pop(found.where((c) => picked.contains(c.id)).toList()),
+              child: const Text('Add'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _erase(
-      BuildContext context, ExpenseStore store) async {
+  Future<void> _erase(BuildContext context, ExpenseStore store) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Erase everything?'),
         content: const Text(
-            'All expenses, loans, events and settings on THIS device will be deleted. The other device keeps its copy.'),
+          'All expenses, loans, events and settings on THIS device will be deleted. The other device keeps its copy.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Keep')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Erase')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Erase'),
+          ),
         ],
       ),
     );
@@ -827,23 +819,24 @@ class _MenuScreenState extends State<MenuScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Last chance'),
-        content:
-            const Text('There is no undo. Really erase?'),
+        content: const Text('There is no undo. Really erase?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Erase everything')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Erase everything'),
+          ),
         ],
       ),
     );
     if (sure != true || !context.mounted) return;
     await store.eraseAll();
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All data erased.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('All data erased.')));
     }
   }
 }

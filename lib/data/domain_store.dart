@@ -25,11 +25,11 @@ class DomainData {
   });
 
   factory DomainData.empty() => const DomainData(
-        categories: [],
-        transactions: [],
-        loans: [],
-        projects: [],
-      );
+    categories: [],
+    transactions: [],
+    loans: [],
+    projects: [],
+  );
 
   DomainSummary summarize() {
     var txnTotal = 0.0;
@@ -113,8 +113,7 @@ abstract class DomainStore {
   Future<void> close();
 }
 
-List<T> _decodeList<T>(
-    String? raw, T Function(Map<String, dynamic>) fromJson) {
+List<T> _decodeList<T>(String? raw, T Function(Map<String, dynamic>) fromJson) {
   if (raw == null || raw.isEmpty) return <T>[];
   try {
     final v = jsonDecode(raw);
@@ -134,10 +133,9 @@ DomainData decodeLegacyDomain({
   required String? txns,
   required String? loans,
   required String? projects,
-}) =>
-    DomainData(
-      categories: _decodeList(cats, Category.fromJson),
-      transactions: _decodeList(txns, Txn.fromJson),
-      loans: _decodeList(loans, Loan.fromJson),
-      projects: _decodeList(projects, Project.fromJson),
-    );
+}) => DomainData(
+  categories: _decodeList(cats, Category.fromJson),
+  transactions: _decodeList(txns, Txn.fromJson),
+  loans: _decodeList(loans, Loan.fromJson),
+  projects: _decodeList(projects, Project.fromJson),
+);

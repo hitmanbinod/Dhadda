@@ -10,6 +10,6 @@ import 'package:path_provider/path_provider.dart';
 /// Opens (creating first) the app-private database file. Local-only, matching
 /// the Phase 1 `allowBackup=false` posture: no cloud, no sync of the file.
 QueryExecutor openDbConnection() => LazyDatabase(() async {
-      final dir = await getApplicationDocumentsDirectory();
-      return NativeDatabase(File(p.join(dir.path, 'dhadda.sqlite')));
-    });
+  final dir = await getApplicationDocumentsDirectory();
+  return NativeDatabase(File(p.join(dir.path, 'dhadda.sqlite')));
+});

@@ -89,14 +89,16 @@ class LoanRepayments extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [
-  Categories,
-  Transactions,
-  Projects,
-  Loans,
-  LoanTopups,
-  LoanRepayments,
-])
+@DriftDatabase(
+  tables: [
+    Categories,
+    Transactions,
+    Projects,
+    Loans,
+    LoanTopups,
+    LoanRepayments,
+  ],
+)
 class AppDb extends _$AppDb {
   AppDb(super.executor);
 

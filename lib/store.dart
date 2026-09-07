@@ -53,6 +53,7 @@ class ExpenseStore extends ChangeNotifier {
   String userName = '';
   String smsMode = 'manual'; // manual | auto
   List<String> smsSenders = [];
+
   /// Wallpaper seed (ARGB) when Material You is on and available.
   int? dynamicSeedArgb;
   // Persistent link (pair once, stay synced). Empty id = not linked.
@@ -89,8 +90,10 @@ class ExpenseStore extends ChangeNotifier {
   };
 
   String get currencySymbol => currencySymbols[currency] ?? 'रू';
-  String updatedAt =
-      DateTime.fromMillisecondsSinceEpoch(0, isUtc: true).toIso8601String();
+  String updatedAt = DateTime.fromMillisecondsSinceEpoch(
+    0,
+    isUtc: true,
+  ).toIso8601String();
   String lastSynced = 'never';
   bool loaded = false;
 
@@ -205,23 +208,20 @@ class ExpenseStore extends ChangeNotifier {
     currency = currencySymbols.containsKey(cur) ? cur : 'NPR';
     setDisplaySymbol(currencySymbol);
     final tm = '${meta['themeMode'] ?? 'system'}';
-    themeMode =
-        (tm == 'light' || tm == 'dark') ? tm : 'system';
+    themeMode = (tm == 'light' || tm == 'dark') ? tm : 'system';
     final ac = meta['accent'];
     accent = ac is int ? ac : 0xFF009688;
     materialYou = meta['materialYou'] == true;
     userName = '${meta['userName'] ?? ''}';
-    smsMode = '${meta['smsMode'] ?? 'manual'}' == 'auto'
-        ? 'auto'
-        : 'manual';
+    smsMode = '${meta['smsMode'] ?? 'manual'}' == 'auto' ? 'auto' : 'manual';
     final senders = meta['smsSenders'];
     smsSenders = senders is List
         ? senders
-            .whereType<String>()
-            .map((s) => s.trim())
-            .where((s) => s.length >= 2)
-            .toSet()
-            .toList()
+              .whereType<String>()
+              .map((s) => s.trim())
+              .where((s) => s.length >= 2)
+              .toSet()
+              .toList()
         : [];
     final savedUpdated = '${meta['updatedAt'] ?? ''}';
     if (savedUpdated.isNotEmpty) updatedAt = savedUpdated;
@@ -241,8 +241,7 @@ class ExpenseStore extends ChangeNotifier {
       categories = defaultCategories();
       _touch();
     }
-    if (categories.isNotEmpty &&
-        categories.every((c) => c.id != 'fuel')) {
+    if (categories.isNotEmpty && categories.every((c) => c.id != 'fuel')) {
       // One-time upgrade: Fuel did not exist in earlier versions.
       // It goes before Other so Other stays last.
       final at = categories.indexWhere((c) => c.id == 'other');
@@ -258,7 +257,9 @@ class ExpenseStore extends ChangeNotifier {
   // ---------- persistence ----------
 
   List<T> _decodeList<T>(
-      String? raw, T Function(Map<String, dynamic>) fromJson) {
+    String? raw,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
     if (raw == null || raw.isEmpty) return <T>[];
     try {
       final v = jsonDecode(raw);
@@ -290,24 +291,25 @@ class ExpenseStore extends ChangeNotifier {
     final p = _prefs;
     if (p == null) return;
     p.setString(
-        _kMeta,
-        jsonEncode({
-          'deviceId': deviceId,
-          'deviceName': deviceName,
-          'updatedAt': updatedAt,
-          'lastSynced': lastSynced,
-          'relayOrigin': relayOrigin,
-          'currency': currency,
-          'themeMode': themeMode,
-          'accent': accent,
-          'materialYou': materialYou,
-          'userName': userName,
-          'smsMode': smsMode,
-          'smsSenders': smsSenders,
-          'linkId': linkId,
-          'linkPin': linkPin,
-          'linkPeer': linkPeer,
-        }));
+      _kMeta,
+      jsonEncode({
+        'deviceId': deviceId,
+        'deviceName': deviceName,
+        'updatedAt': updatedAt,
+        'lastSynced': lastSynced,
+        'relayOrigin': relayOrigin,
+        'currency': currency,
+        'themeMode': themeMode,
+        'accent': accent,
+        'materialYou': materialYou,
+        'userName': userName,
+        'smsMode': smsMode,
+        'smsSenders': smsSenders,
+        'linkId': linkId,
+        'linkPin': linkPin,
+        'linkPeer': linkPeer,
+      }),
+    );
   }
 
   void _pushBackup(String snapshotJson) {
@@ -339,10 +341,11 @@ class ExpenseStore extends ChangeNotifier {
   }
 
   /// Saves a pairing. From now on the engine keeps this device synced.
-  Future<void> setLink(
-      {required String id,
-      required String pin,
-      required String peer}) async {
+  Future<void> setLink({
+    required String id,
+    required String pin,
+    required String peer,
+  }) async {
     linkId = id;
     linkPin = pin;
     linkPeer = peer;
@@ -446,8 +449,7 @@ class ExpenseStore extends ChangeNotifier {
     for (final s in v) {
       final t = s.trim();
       if (t.length >= 2 &&
-          !clean.any(
-              (e) => e.toLowerCase() == t.toLowerCase())) {
+          !clean.any((e) => e.toLowerCase() == t.toLowerCase())) {
         clean.add(t);
       }
     }
@@ -495,12 +497,7 @@ class ExpenseStore extends ChangeNotifier {
     }
     return categories.isNotEmpty
         ? categories.last
-        : Category(
-            id: 'other',
-            name: 'Other',
-            icon: 0xe148,
-            color: 0xFF607D8B,
-          );
+        : Category(id: 'other', name: 'Other', icon: 0xe148, color: 0xFF607D8B);
   }
 
   void _sortTxns() {
@@ -587,48 +584,55 @@ class ExpenseStore extends ChangeNotifier {
   // ---------- categories & budgets ----------
 
   Future<void> addCategory(String name, {double budget = 0}) async {
-    categories.add(Category(
-      id: _uuid.v4(),
-      name: name,
-      icon: 0xe148,
-      color: 0xFF607D8B,
-      budget: budget,
-    ));
+    categories.add(
+      Category(
+        id: _uuid.v4(),
+        name: name,
+        icon: 0xe148,
+        color: 0xFF607D8B,
+        budget: budget,
+      ),
+    );
     _touch();
     await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
+
   Future<void> setBudget(String id, double budget) async {
     final i = categories.indexWhere((c) => c.id == id);
     if (i < 0) return;
     final c = categories[i];
     categories[i] = Category(
-        id: c.id,
-        name: c.name,
-        icon: c.icon,
-        color: c.color,
-        budget: budget);
+      id: c.id,
+      name: c.name,
+      icon: c.icon,
+      color: c.color,
+      budget: budget,
+    );
     _touch();
     await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
 
   /// Renames / re-icons / re-colors a category (budget optional).
-  Future<void> updateCategory(String id,
-      {String? name,
-      int? icon,
-      int? color,
-      double? budget}) async {
+  Future<void> updateCategory(
+    String id, {
+    String? name,
+    int? icon,
+    int? color,
+    double? budget,
+  }) async {
     final i = categories.indexWhere((c) => c.id == id);
     if (i < 0) return;
     final c = categories[i];
     final n = (name ?? c.name).trim();
     categories[i] = Category(
-        id: c.id,
-        name: n.isEmpty ? c.name : n,
-        icon: icon ?? c.icon,
-        color: color ?? c.color,
-        budget: budget ?? c.budget);
+      id: c.id,
+      name: n.isEmpty ? c.name : n,
+      icon: icon ?? c.icon,
+      color: color ?? c.color,
+      budget: budget ?? c.budget,
+    );
     _touch();
     await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
@@ -642,16 +646,18 @@ class ExpenseStore extends ChangeNotifier {
     final fixed = <Txn>[];
     for (final t in transactions) {
       if (t.categoryId == id) {
-        fixed.add(Txn(
-          id: t.id,
-          type: t.type,
-          amount: t.amount,
-          categoryId: 'other',
-          date: t.date,
-          note: t.note,
-          mode: t.mode,
-          projectId: t.projectId,
-        ));
+        fixed.add(
+          Txn(
+            id: t.id,
+            type: t.type,
+            amount: t.amount,
+            categoryId: 'other',
+            date: t.date,
+            note: t.note,
+            mode: t.mode,
+            projectId: t.projectId,
+          ),
+        );
       } else {
         fixed.add(t);
       }
@@ -702,15 +708,17 @@ class ExpenseStore extends ChangeNotifier {
     String note = '',
     DateTime? due,
   }) async {
-    loans.add(Loan(
-      id: _uuid.v4(),
-      person: person,
-      lent: amount,
-      dateLent: date.millisecondsSinceEpoch,
-      dueDate: due?.millisecondsSinceEpoch,
-      note: note,
-      kind: 'lent',
-    ));
+    loans.add(
+      Loan(
+        id: _uuid.v4(),
+        person: person,
+        lent: amount,
+        dateLent: date.millisecondsSinceEpoch,
+        dueDate: due?.millisecondsSinceEpoch,
+        note: note,
+        kind: 'lent',
+      ),
+    );
     _touch();
     await _persistDomain((d) => d.upsertLoan(loans.last));
     notifyListeners();
@@ -725,15 +733,17 @@ class ExpenseStore extends ChangeNotifier {
     String note = '',
     DateTime? due,
   }) async {
-    loans.add(Loan(
-      id: _uuid.v4(),
-      person: person,
-      lent: amount,
-      dateLent: date.millisecondsSinceEpoch,
-      dueDate: due?.millisecondsSinceEpoch,
-      note: note,
-      kind: 'borrowed',
-    ));
+    loans.add(
+      Loan(
+        id: _uuid.v4(),
+        person: person,
+        lent: amount,
+        dateLent: date.millisecondsSinceEpoch,
+        dueDate: due?.millisecondsSinceEpoch,
+        note: note,
+        kind: 'borrowed',
+      ),
+    );
     _touch();
     await _persistDomain((d) => d.upsertLoan(loans.last));
     notifyListeners();
@@ -764,16 +774,23 @@ class ExpenseStore extends ChangeNotifier {
   }
 
   Future<void> addRepayment(
-      String loanId, double amount, DateTime date, String note) async {
+    String loanId,
+    double amount,
+    DateTime date,
+    String note,
+  ) async {
     final i = loans.indexWhere((l) => l.id == loanId);
     if (i < 0) return;
     final l = loans[i];
     final reps = List<Repayment>.from(l.repayments)
-      ..add(Repayment(
+      ..add(
+        Repayment(
           id: _uuid.v4(),
           amount: amount,
           date: date.millisecondsSinceEpoch,
-          note: note));
+          note: note,
+        ),
+      );
     loans[i] = Loan(
       id: l.id,
       person: l.person,
@@ -795,16 +812,23 @@ class ExpenseStore extends ChangeNotifier {
   /// Lend more money to the same person (top-up). Mirrors repayments:
   /// raises pending instead of lowering it.
   Future<void> lendMore(
-      String loanId, double amount, DateTime date, String note) async {
+    String loanId,
+    double amount,
+    DateTime date,
+    String note,
+  ) async {
     final i = loans.indexWhere((l) => l.id == loanId);
     if (i < 0) return;
     final l = loans[i];
     final tops = List<Topup>.from(l.topups)
-      ..add(Topup(
+      ..add(
+        Topup(
           id: _uuid.v4(),
           amount: amount,
           date: date.millisecondsSinceEpoch,
-          note: note));
+          note: note,
+        ),
+      );
     loans[i] = Loan(
       id: l.id,
       person: l.person,
@@ -861,9 +885,9 @@ class ExpenseStore extends ChangeNotifier {
   // ---------- aggregates ----------
 
   List<Txn> monthTxns(DateTime month) => transactions.where((t) {
-        final d = t.dateTime;
-        return d.year == month.year && d.month == month.month;
-      }).toList();
+    final d = t.dateTime;
+    return d.year == month.year && d.month == month.month;
+  }).toList();
 
   double monthSpend(DateTime month) {
     var sum = 0.0;
@@ -902,12 +926,14 @@ class ExpenseStore extends ChangeNotifier {
   /// Creates an event project and returns its id (for inline creation).
   Future<String> addProject(String name, String note) async {
     final id = _uuid.v4();
-    projects.add(Project(
-      id: id,
-      name: name,
-      note: note,
-      created: DateTime.now().millisecondsSinceEpoch,
-    ));
+    projects.add(
+      Project(
+        id: id,
+        name: name,
+        note: note,
+        created: DateTime.now().millisecondsSinceEpoch,
+      ),
+    );
     _touch();
     await _persistDomain((d) => d.upsertProject(projects.last));
     notifyListeners();
@@ -915,8 +941,13 @@ class ExpenseStore extends ChangeNotifier {
   }
 
   /// Renames / re-icons / re-colors an event.
-  Future<void> updateProject(String id,
-      {String? name, String? note, int? icon, int? color}) async {
+  Future<void> updateProject(
+    String id, {
+    String? name,
+    String? note,
+    int? icon,
+    int? color,
+  }) async {
     final i = projects.indexWhere((e) => e.id == id);
     if (i < 0) return;
     final p = projects[i];
@@ -933,20 +964,23 @@ class ExpenseStore extends ChangeNotifier {
     await _persistDomain((d) => d.upsertProject(projects[i]));
     notifyListeners();
   }
+
   Future<void> deleteProject(String id) async {
     projects.removeWhere((e) => e.id == id);
     final fixed = <Txn>[];
     for (final t in transactions) {
       if (t.projectId == id) {
-        fixed.add(Txn(
-          id: t.id,
-          type: t.type,
-          amount: t.amount,
-          categoryId: t.categoryId,
-          date: t.date,
-          note: t.note,
-          mode: t.mode,
-        ));
+        fixed.add(
+          Txn(
+            id: t.id,
+            type: t.type,
+            amount: t.amount,
+            categoryId: t.categoryId,
+            date: t.date,
+            note: t.note,
+            mode: t.mode,
+          ),
+        );
       } else {
         fixed.add(t);
       }
@@ -959,9 +993,8 @@ class ExpenseStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<Txn> projectTxns(String id) => transactions
-      .where((t) => t.projectId == id)
-      .toList();
+  List<Txn> projectTxns(String id) =>
+      transactions.where((t) => t.projectId == id).toList();
 
   double projectSpend(String id) {
     var sum = 0.0;
@@ -974,22 +1007,21 @@ class ExpenseStore extends ChangeNotifier {
   // ---------- snapshot / sync ----------
 
   Snapshot toSnapshot() => Snapshot(
-        version: kSnapshotVersion,
-        updatedAt: updatedAt,
-        deviceId: deviceId,
-        deviceName: deviceName,
-        categories: List<Category>.from(categories),
-        transactions: List<Txn>.from(transactions),
-        loans: List<Loan>.from(loans),
-        projects: List<Project>.from(projects),
-      );
+    version: kSnapshotVersion,
+    updatedAt: updatedAt,
+    deviceId: deviceId,
+    deviceName: deviceName,
+    categories: List<Category>.from(categories),
+    transactions: List<Txn>.from(transactions),
+    loans: List<Loan>.from(loans),
+    projects: List<Project>.from(projects),
+  );
 
   String exportJson() => toSnapshot().encode();
 
   /// Applies [raw] snapshot JSON if it is newer than local data.
   /// Returns a short human-readable message for the UI.
-  Future<String> importSnapshotString(String raw,
-      {bool force = false}) async {
+  Future<String> importSnapshotString(String raw, {bool force = false}) async {
     late Snapshot remote;
     try {
       remote = Snapshot.decode(raw);
@@ -997,23 +1029,29 @@ class ExpenseStore extends ChangeNotifier {
       return 'Could not read that file.';
     }
     final r = remote.updatedAtTime;
-    final l = DateTime.tryParse(updatedAt) ??
+    final l =
+        DateTime.tryParse(updatedAt) ??
         DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
     if (!force && !r.isAfter(l)) {
       return 'Already up to date (this device is newer).';
     }
     _pushBackup(exportJson());
-    categories =
-        remote.categories.isEmpty ? defaultCategories() : remote.categories;
+    categories = remote.categories.isEmpty
+        ? defaultCategories()
+        : remote.categories;
     transactions = remote.transactions;
     loans = remote.loans;
     projects = remote.projects;
-    await _persistDomain((d) => d.replaceAll(DomainData(
+    await _persistDomain(
+      (d) => d.replaceAll(
+        DomainData(
           categories: List.of(categories),
           transactions: List.of(transactions),
           loans: List.of(loans),
           projects: List.of(projects),
-        )));
+        ),
+      ),
+    );
     _sortTxns();
     updatedAt = remote.updatedAt;
     lastSynced = DateTime.now().toUtc().toIso8601String();

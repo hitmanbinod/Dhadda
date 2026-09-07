@@ -69,7 +69,9 @@ Previous state: `release` builds silently used debug keys. That is gone.
 - Toolchain pinned (`flutter-version: 3.47.2`), `pub get --enforce-lockfile`,
   analyze + tests in the `web` and `apk` jobs; `embedded-web` job gates the
   committed bundle via `--check`; the `apk` job rebuilds the bundle from source
-  before building so APKs cannot embed stale web UI.
+  before building so APKs cannot embed stale web UI. Drift codegen
+  (`dart run build_runner build --delete-conflicting-outputs`) runs before
+  analyze in both build jobs so committed `.g.dart` files stay canonical.
 - Permissions are least-privilege per job (`contents: read` default; Pages job
   adds `pages/id-token: write`; only the `release` job gets `contents: write`).
 - Releases happen only on `v*` tags: signed APK (maintainer secrets, fail-closed
