@@ -159,7 +159,6 @@ Future<PhoneHostSession> startPhoneHost() async {
       return _json(400, {'error': 'bad json'});
     }
     final scope = 'box:${b['link'] ?? ''}';
-    if (!throttle.allowed(scope)) return _rateLimited(throttle, scope);
     final r = mail.push(
       id: '${b['link'] ?? ''}',
       pin: '${b['pin'] ?? ''}',
@@ -176,6 +175,11 @@ Future<PhoneHostSession> startPhoneHost() async {
       case LinkOutcome.gone:
         return _json(404, {'error': 'link gone - pair again'});
       case LinkOutcome.forbidden:
+        // Correct credentials always work (checked above by outcome);
+        // only failures throttle, so legit users never lock themselves out.
+        if (!throttle.allowed(scope)) {
+          return _rateLimited(throttle, scope);
+        }
         throttle.failed(scope);
         return _json(403, {'error': 'wrong pin'});
       case LinkOutcome.badInput:
@@ -185,7 +189,6 @@ Future<PhoneHostSession> startPhoneHost() async {
   router.get('/api/sync/pull', (Request req) {
     final q = req.url.queryParameters;
     final scope = 'box:${q['link'] ?? ''}';
-    if (!throttle.allowed(scope)) return _rateLimited(throttle, scope);
     final r = mail.pull(
       id: q['link'] ?? '',
       pin: q['pin'] ?? '',
@@ -209,6 +212,9 @@ Future<PhoneHostSession> startPhoneHost() async {
       case LinkOutcome.gone:
         return _json(404, {'error': 'link gone - pair again'});
       case LinkOutcome.forbidden:
+        if (!throttle.allowed(scope)) {
+          return _rateLimited(throttle, scope);
+        }
         throttle.failed(scope);
         return _json(403, {'error': 'wrong pin'});
       case LinkOutcome.badInput:

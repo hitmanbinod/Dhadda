@@ -22,6 +22,12 @@ class BodyTooBig implements Exception {
 /// [FormatException] (caller: 400, non-UTF8 bytes).
 Future<String> readCappedBody(Request req,
     {int maxBytes = maxSyncBodyBytes}) async {
+  // Fast path: honest clients send Content-Length, so oversized bodies are
+  // rejected before a single byte is buffered (clean 413 mid-upload).
+  final declared = req.contentLength;
+  if (declared != null && declared > maxBytes) {
+    throw const BodyTooBig();
+  }
   var n = 0;
   final chunks = <List<int>>[];
   await for (final c in req.read()) {
