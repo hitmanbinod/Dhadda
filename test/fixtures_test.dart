@@ -155,13 +155,15 @@ void main() {
     final a = ExpenseStore();
     await a.load();
     final raw = _read('snapshot_populated.json');
-    expect(a.importSnapshotString(raw, force: true), contains('Synced'));
+    expect(await a.importSnapshotString(raw, force: true),
+        contains('Synced'));
     final exported = a.exportJson();
 
     SharedPreferences.setMockInitialValues({});
     final b = ExpenseStore();
     await b.load();
-    expect(b.importSnapshotString(exported, force: true), contains('Synced'));
+    expect(await b.importSnapshotString(exported, force: true),
+        contains('Synced'));
 
     expect(b.transactions.map((t) => t.id),
         orderedEquals(a.transactions.map((t) => t.id)));

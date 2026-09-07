@@ -179,7 +179,7 @@ class _SyncScreenState extends State<SyncScreen> {
       final localTime = DateTime.tryParse(store.updatedAt) ??
           DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
       if (best.timeValue.isAfter(localTime)) {
-        msg = store.importSnapshotString(best.snapshot);
+        msg = await store.importSnapshotString(best.snapshot);
       }
     }
     await client.push(
@@ -397,7 +397,7 @@ class _SyncScreenState extends State<SyncScreen> {
     if (raw == null) return; // cancelled
     if (!mounted) return;
     final store = context.read<ExpenseStore>();
-    final msg = store.importSnapshotString(raw);
+    final msg = await store.importSnapshotString(raw);
     store.noteSynced();
     _say(msg);
   }
@@ -413,8 +413,8 @@ class _SyncScreenState extends State<SyncScreen> {
     try {
       final s = await startSendServer(
         currentSnapshot: store.exportJson,
-        onUpload: (body) {
-          store.importSnapshotString(body, force: true);
+        onUpload: (body) async {
+          await store.importSnapshotString(body, force: true);
           store.noteSynced();
         },
         pin: pin,
@@ -469,7 +469,7 @@ class _SyncScreenState extends State<SyncScreen> {
       if (remoteMeta != null && remoteMeta.isAfter(localTime)) {
         final body =
             await WifiClient.fetchRemoteSnapshot(url, pin);
-        msg = store.importSnapshotString(body);
+        msg = await store.importSnapshotString(body);
       } else {
         await WifiClient.pushLocalSnapshot(
             url, pin, store.exportJson());
@@ -906,8 +906,8 @@ class _SyncScreenState extends State<SyncScreen> {
             title: Text('Backup ${i + 1}'),
             subtitle: Text(_backupLabel(backups[i])),
             trailing: TextButton(
-                onPressed: () {
-                  final msg = store.restoreBackup(i);
+                onPressed: () async {
+                  final msg = await store.restoreBackup(i);
                   store.noteSynced();
                   _say(msg);
                 },

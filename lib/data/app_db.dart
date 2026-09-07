@@ -21,6 +21,11 @@ class Categories extends Table {
 }
 
 @DataClassName('TxnRow')
+// Justified by actual queries: monthTxns() filters date on every Home
+// build, spendByCategory() filters categoryId, projectTxns() projectId.
+@TableIndex(name: 'idx_transactions_date', columns: {#date})
+@TableIndex(name: 'idx_transactions_category', columns: {#categoryId})
+@TableIndex(name: 'idx_transactions_project', columns: {#projectId})
 class Transactions extends Table {
   TextColumn get id => text()();
   TextColumn get type => text()();
@@ -32,17 +37,6 @@ class Transactions extends Table {
   TextColumn get projectId => text()();
   @override
   Set<Column> get primaryKey => {id};
-
-  // Justified by actual queries: monthTxns() filters date on every Home
-  // build, spendByCategory() filters categoryId, projectTxns() projectId.
-  List<Index> get indexes => [
-        Index('idx_transactions_date',
-            'CREATE INDEX idx_transactions_date ON transactions (date)'),
-        Index('idx_transactions_category',
-            'CREATE INDEX idx_transactions_category ON transactions (categoryId)'),
-        Index('idx_transactions_project',
-            'CREATE INDEX idx_transactions_project ON transactions (projectId)'),
-      ];
 }
 
 @DataClassName('ProjectRow')

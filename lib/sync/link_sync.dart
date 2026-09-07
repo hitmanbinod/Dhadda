@@ -87,7 +87,7 @@ class LinkEngine {
       final localTime =
           DateTime.tryParse(store.updatedAt) ?? _epoch();
       if (best != null && best.timeValue.isAfter(localTime)) {
-        final msg = store.importSnapshotString(best.snapshot);
+        final msg = await store.importSnapshotString(best.snapshot);
         store.noteSynced();
         await _announce(client);
         store.setLinkStatus('Synced with ${best.name}.');

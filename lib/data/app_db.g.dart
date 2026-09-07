@@ -2514,6 +2514,18 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final $LoansTable loans = $LoansTable(this);
   late final $LoanTopupsTable loanTopups = $LoanTopupsTable(this);
   late final $LoanRepaymentsTable loanRepayments = $LoanRepaymentsTable(this);
+  late final Index idxTransactionsDate = Index(
+    'idx_transactions_date',
+    'CREATE INDEX idx_transactions_date ON transactions (date)',
+  );
+  late final Index idxTransactionsCategory = Index(
+    'idx_transactions_category',
+    'CREATE INDEX idx_transactions_category ON transactions (category_id)',
+  );
+  late final Index idxTransactionsProject = Index(
+    'idx_transactions_project',
+    'CREATE INDEX idx_transactions_project ON transactions (project_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2525,6 +2537,9 @@ abstract class _$AppDb extends GeneratedDatabase {
     loans,
     loanTopups,
     loanRepayments,
+    idxTransactionsDate,
+    idxTransactionsCategory,
+    idxTransactionsProject,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([

@@ -6,9 +6,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'format.dart';
+import 'data/domain_store.dart';
+import 'data/drift_domain_store.dart';
+import 'data/prefs_domain_store.dart';
+import 'data/test_env.dart';
 
 /// Local-first store. No backend, no account, no cost.
-/// Persists plain JSON via SharedPreferences (Android / Windows / Web).
+///
+/// Domain data (transactions, categories, loans, projects) persists in SQLite
+/// via Drift on Android/desktop and in SharedPreferences JSON on Web; small
+/// settings stay in SharedPreferences everywhere (see docs/PERSISTENCE.md).
 class ExpenseStore extends ChangeNotifier {
   static const _kCats = 'expense_cats_v1';
   static const _kTxns = 'expense_txns_v1';
@@ -16,7 +23,20 @@ class ExpenseStore extends ChangeNotifier {
   static const _kProjects = 'expense_projects_v1';
   static const _kMeta = 'expense_meta_v1';
   static const _kBackups = 'expense_backups_v1';
+
+  /// Set to 1 once the legacy prefs domain data has been verified inside
+  /// SQLite. Absent/0 keeps the legacy keys authoritative. Never deleted.
+  static const _kDbMigrated = 'expense_db_migrated_v1';
   static const _uuid = Uuid();
+
+  DomainStore? _domain;
+  bool _ownsDomain = false;
+
+  /// Test-only backend injection (unit tests have no native database).
+  /// When set, [load] uses it instead of opening SQLite.
+  final DomainStore? _domainOverride;
+
+  ExpenseStore({this._domainOverride});
 
   List<Category> categories = [];
   List<Txn> transactions = [];
@@ -77,12 +97,101 @@ class ExpenseStore extends ChangeNotifier {
   SharedPreferences? _prefs;
 
   Future<void> load() async {
+    // Reopening (eraseAll, tests): close only backends we opened ourselves.
+    // Injected test backends stay open across loads.
+    if (_ownsDomain) {
+      try {
+        await _domain?.close();
+      } catch (_) {}
+    }
+    _domain = null;
+    _ownsDomain = false;
     _prefs ??= await SharedPreferences.getInstance();
     final p = _prefs!;
-    categories = _decodeList(p.getString(_kCats), Category.fromJson);
-    transactions = _decodeList(p.getString(_kTxns), Txn.fromJson);
-    loans = _decodeList(p.getString(_kLoans), Loan.fromJson);
-    projects = _decodeList(p.getString(_kProjects), Project.fromJson);
+    _readMeta(p);
+    dynamicSeedArgb = null;
+    if (materialYou) {
+      await _refreshDynamicSeed();
+    }
+    _domain = _domainOverride ?? await _openDomain(p);
+    _ownsDomain = _domainOverride == null && _domain is DriftDomainStore;
+    if (_domain is! PrefsDomainStore && p.getInt(_kDbMigrated) == 1) {
+      await _loadDomainFromStore();
+    } else {
+      _readLegacyDomain(p);
+      if (_domain is! PrefsDomainStore) {
+        await _migrateLegacyToDb(p);
+      }
+    }
+    _sortTxns();
+    loaded = true;
+    notifyListeners();
+  }
+
+  /// Opens SQLite, falling back to the prefs backend when unavailable (unit
+  /// tests, broken native lib). The fallback never sets the marker, so a
+  /// later launch retries the real database. Unit/widget tests always use
+  /// prefs: drift's async machinery does not complete inside testWidgets'
+  /// fake-async zone, so attempting a real open there hangs forever.
+  Future<DomainStore> _openDomain(SharedPreferences p) async {
+    if (!kIsWeb && !isFlutterTest) {
+      try {
+        return await DriftDomainStore.open();
+      } catch (e) {
+        debugPrint('Dhadda: SQLite unavailable ($e); prefs backend for now.');
+      }
+    }
+    return PrefsDomainStore(p);
+  }
+
+  Future<void> _loadDomainFromStore() async {
+    final d = await _domain!.loadDomain();
+    categories = d.categories;
+    transactions = d.transactions;
+    loans = d.loans;
+    projects = d.projects;
+  }
+
+  /// One-time legacy -> SQLite migration. The source is the in-memory state
+  /// built by [_readLegacyDomain] (first-run seeds and the fuel upgrade
+  /// included), written in a single transaction and verified by summary
+  /// before the marker is set. Legacy prefs keys are never deleted here. Any
+  /// failure keeps this launch on the prefs backend; the intact legacy keys
+  /// make the next launch retry safely.
+  Future<void> _migrateLegacyToDb(SharedPreferences p) async {
+    final source = DomainData(
+      categories: List.of(categories),
+      transactions: List.of(transactions),
+      loans: List.of(loans),
+      projects: List.of(projects),
+    );
+    try {
+      await _domain!.replaceAll(source);
+      final wrote = await _domain!.loadDomain();
+      if (!source.summarize().matches(wrote.summarize())) {
+        throw StateError('migration verification mismatch');
+      }
+      await p.setInt(_kDbMigrated, 1);
+    } catch (e) {
+      debugPrint('Dhadda: DB migration failed, staying on prefs ($e)');
+      _domain = PrefsDomainStore(p);
+    }
+  }
+
+  /// Write-through for domain mutations. Awaited by mutators; failures are
+  /// logged, never thrown into the UI. In-memory state stays authoritative
+  /// for the session (same exposure class as prefs writes before Phase 2).
+  Future<void> _persistDomain(Future<void> Function(DomainStore) op) async {
+    final d = _domain;
+    if (d == null) return;
+    try {
+      await op(d);
+    } catch (e) {
+      debugPrint('Dhadda: domain persist failed ($e)');
+    }
+  }
+
+  void _readMeta(SharedPreferences p) {
     final meta = _decodeMap(p.getString(_kMeta));
     deviceId = '${meta['deviceId'] ?? ''}';
     if (deviceId.isEmpty) deviceId = _uuid.v4();
@@ -114,13 +223,19 @@ class ExpenseStore extends ChangeNotifier {
             .toSet()
             .toList()
         : [];
-    dynamicSeedArgb = null;
-    if (materialYou) {
-      await _refreshDynamicSeed();
-    }
     final savedUpdated = '${meta['updatedAt'] ?? ''}';
     if (savedUpdated.isNotEmpty) updatedAt = savedUpdated;
     lastSynced = '${meta['lastSynced'] ?? 'never'}';
+  }
+
+  /// Today's effective legacy state: the four domain keys decoded leniently,
+  /// plus first-run seeding and the fuel upgrade. Unchanged Phase 0/1
+  /// behavior; doubles as migration input on native platforms.
+  void _readLegacyDomain(SharedPreferences p) {
+    categories = _decodeList(p.getString(_kCats), Category.fromJson);
+    transactions = _decodeList(p.getString(_kTxns), Txn.fromJson);
+    loans = _decodeList(p.getString(_kLoans), Loan.fromJson);
+    projects = _decodeList(p.getString(_kProjects), Project.fromJson);
     if (p.getString(_kCats) == null) {
       // First run: seed defaults.
       categories = defaultCategories();
@@ -138,9 +253,6 @@ class ExpenseStore extends ChangeNotifier {
       }
       _touch();
     }
-    _sortTxns();
-    loaded = true;
-    notifyListeners();
   }
 
   // ---------- persistence ----------
@@ -172,17 +284,11 @@ class ExpenseStore extends ChangeNotifier {
     _saveAll();
   }
 
+  /// Saves prefs-side state only (device/link/settings/sync stamps).
+  /// Domain collections persist through [_domain]; backups stay separate.
   void _saveAll() {
     final p = _prefs;
     if (p == null) return;
-    p.setString(_kCats,
-        jsonEncode(categories.map((c) => c.toJson()).toList()));
-    p.setString(
-        _kTxns, jsonEncode(transactions.map((t) => t.toJson()).toList()));
-    p.setString(
-        _kLoans, jsonEncode(loans.map((l) => l.toJson()).toList()));
-    p.setString(_kProjects,
-        jsonEncode(projects.map((e) => e.toJson()).toList()));
     p.setString(
         _kMeta,
         jsonEncode({
@@ -412,7 +518,7 @@ class ExpenseStore extends ChangeNotifier {
     String mode = 'cash',
     String projectId = '',
   }) async {
-    transactions.add(Txn(
+    final txn = Txn(
       id: _uuid.v4(),
       type: type,
       amount: amount,
@@ -421,9 +527,11 @@ class ExpenseStore extends ChangeNotifier {
       note: note,
       mode: mode,
       projectId: projectId,
-    ));
+    );
+    transactions.add(txn);
     _sortTxns();
     _touch();
+    await _persistDomain((d) => d.upsertTransaction(txn));
     notifyListeners();
   }
 
@@ -441,7 +549,7 @@ class ExpenseStore extends ChangeNotifier {
     final i = transactions.indexWhere((t) => t.id == id);
     if (i < 0) return false;
     final t = transactions[i];
-    transactions[i] = Txn(
+    final updated = Txn(
       id: t.id,
       type: t.type,
       amount: amount ?? t.amount,
@@ -451,8 +559,10 @@ class ExpenseStore extends ChangeNotifier {
       mode: mode ?? t.mode,
       projectId: projectId ?? t.projectId,
     );
+    transactions[i] = updated;
     _sortTxns();
     _touch();
+    await _persistDomain((d) => d.upsertTransaction(updated));
     notifyListeners();
     return true;
   }
@@ -460,6 +570,7 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> deleteTransaction(String id) async {
     transactions.removeWhere((t) => t.id == id);
     _touch();
+    await _persistDomain((d) => d.deleteTransaction(id));
     notifyListeners();
   }
 
@@ -469,6 +580,7 @@ class ExpenseStore extends ChangeNotifier {
     transactions.add(txn);
     _sortTxns();
     _touch();
+    await _persistDomain((d) => d.upsertTransaction(txn));
     notifyListeners();
   }
 
@@ -483,6 +595,7 @@ class ExpenseStore extends ChangeNotifier {
       budget: budget,
     ));
     _touch();
+    await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
   Future<void> setBudget(String id, double budget) async {
@@ -496,6 +609,7 @@ class ExpenseStore extends ChangeNotifier {
         color: c.color,
         budget: budget);
     _touch();
+    await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
 
@@ -516,6 +630,7 @@ class ExpenseStore extends ChangeNotifier {
         color: color ?? c.color,
         budget: budget ?? c.budget);
     _touch();
+    await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
 
@@ -544,6 +659,8 @@ class ExpenseStore extends ChangeNotifier {
     transactions = fixed;
     _sortTxns();
     _touch();
+    await _persistDomain((d) => d.saveCategories(categories));
+    await _persistDomain((d) => d.saveTransactions(transactions));
     notifyListeners();
     return true;
   }
@@ -556,6 +673,7 @@ class ExpenseStore extends ChangeNotifier {
     final c = categories.removeAt(i);
     categories.insert(j, c);
     _touch();
+    await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
 
@@ -571,6 +689,7 @@ class ExpenseStore extends ChangeNotifier {
     final c = categories.removeAt(i);
     categories.insert(j, c);
     _touch();
+    await _persistDomain((d) => d.saveCategories(categories));
     notifyListeners();
   }
 
@@ -593,6 +712,7 @@ class ExpenseStore extends ChangeNotifier {
       kind: 'lent',
     ));
     _touch();
+    await _persistDomain((d) => d.upsertLoan(loans.last));
     notifyListeners();
     _loansChanged();
   }
@@ -615,6 +735,7 @@ class ExpenseStore extends ChangeNotifier {
       kind: 'borrowed',
     ));
     _touch();
+    await _persistDomain((d) => d.upsertLoan(loans.last));
     notifyListeners();
     _loansChanged();
   }
@@ -637,6 +758,7 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: when?.millisecondsSinceEpoch ?? 0,
     );
     _touch();
+    await _persistDomain((d) => d.upsertLoan(loans[i]));
     notifyListeners();
     _loansChanged();
   }
@@ -665,6 +787,7 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: l.remindAt,
     );
     _touch();
+    await _persistDomain((d) => d.upsertLoan(loans[i]));
     notifyListeners();
     _loansChanged();
   }
@@ -695,6 +818,7 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: l.remindAt,
     );
     _touch();
+    await _persistDomain((d) => d.upsertLoan(loans[i]));
     notifyListeners();
     _loansChanged();
   }
@@ -702,6 +826,7 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> deleteLoan(String id) async {
     loans.removeWhere((l) => l.id == id);
     _touch();
+    await _persistDomain((d) => d.deleteLoan(id));
     notifyListeners();
     _loansChanged();
   }
@@ -784,6 +909,7 @@ class ExpenseStore extends ChangeNotifier {
       created: DateTime.now().millisecondsSinceEpoch,
     ));
     _touch();
+    await _persistDomain((d) => d.upsertProject(projects.last));
     notifyListeners();
     return id;
   }
@@ -804,6 +930,7 @@ class ExpenseStore extends ChangeNotifier {
       color: color ?? p.color,
     );
     _touch();
+    await _persistDomain((d) => d.upsertProject(projects[i]));
     notifyListeners();
   }
   Future<void> deleteProject(String id) async {
@@ -827,6 +954,8 @@ class ExpenseStore extends ChangeNotifier {
     transactions = fixed;
     _sortTxns();
     _touch();
+    await _persistDomain((d) => d.deleteProject(id));
+    await _persistDomain((d) => d.saveTransactions(transactions));
     notifyListeners();
   }
 
@@ -859,7 +988,8 @@ class ExpenseStore extends ChangeNotifier {
 
   /// Applies [raw] snapshot JSON if it is newer than local data.
   /// Returns a short human-readable message for the UI.
-  String importSnapshotString(String raw, {bool force = false}) {
+  Future<String> importSnapshotString(String raw,
+      {bool force = false}) async {
     late Snapshot remote;
     try {
       remote = Snapshot.decode(raw);
@@ -878,6 +1008,12 @@ class ExpenseStore extends ChangeNotifier {
     transactions = remote.transactions;
     loans = remote.loans;
     projects = remote.projects;
+    await _persistDomain((d) => d.replaceAll(DomainData(
+          categories: List.of(categories),
+          transactions: List.of(transactions),
+          loans: List.of(loans),
+          projects: List.of(projects),
+        )));
     _sortTxns();
     updatedAt = remote.updatedAt;
     lastSynced = DateTime.now().toUtc().toIso8601String();
@@ -887,7 +1023,7 @@ class ExpenseStore extends ChangeNotifier {
     return 'Synced from ${remote.deviceName}.';
   }
 
-  String restoreBackup(int index) {
+  Future<String> restoreBackup(int index) async {
     final list = backups;
     if (index < 0 || index >= list.length) return 'Backup not found.';
     return importSnapshotString(list[index], force: true);
