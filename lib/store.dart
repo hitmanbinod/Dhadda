@@ -240,8 +240,7 @@ class ExpenseStore extends ChangeNotifier {
   /// Records a deletion. The tombstone (not the row) is what converges.
   TombEntry _makeTomb(String type, String id) {
     final cur = _metaFor(type, id);
-    final tomb =
-        TombEntry(type: type, id: id, rev: cur.rev + 1, by: deviceId);
+    final tomb = TombEntry(type: type, id: id, rev: cur.rev + 1, by: deviceId);
     _tombs[tomb.key] = tomb;
     _revs.remove(_mkey(type, id));
     return tomb;
@@ -958,8 +957,7 @@ class ExpenseStore extends ChangeNotifier {
 
   /// Bumps revisions for categories whose list position changed (order is
   /// merged sync state, so reorder is an edit).
-  Future<void> _saveMovedCategoryRevs(
-      DomainStore d, DomainData before) async {
+  Future<void> _saveMovedCategoryRevs(DomainStore d, DomainData before) async {
     final oldPos = <String, int>{};
     for (var k = 0; k < before.categories.length; k++) {
       oldPos[before.categories[k].id] = k;
@@ -1366,8 +1364,11 @@ class ExpenseStore extends ChangeNotifier {
   /// them all; [dropTombstonesForPresent] (user-picked file) drops them for
   /// imported ids; ambient sync keeps them so deletions stand. Restored-over
   /// tombstone ids outrank the deletion they undo.
-  Future<String> importSnapshotString(String raw,
-      {bool force = false, bool dropTombstonesForPresent = false}) async {
+  Future<String> importSnapshotString(
+    String raw, {
+    bool force = false,
+    bool dropTombstonesForPresent = false,
+  }) async {
     late Snapshot remote;
     try {
       remote = Snapshot.decode(raw);
@@ -1475,10 +1476,16 @@ class ExpenseStore extends ChangeNotifier {
         for (final e in dropped.entries) {
           final m = _revs[e.key]!;
           final sep = e.key.indexOf('/');
-          await d.saveRecordMeta(e.key.substring(0, sep),
-              e.key.substring(sep + 1), m.rev, m.by);
+          await d.saveRecordMeta(
+            e.key.substring(0, sep),
+            e.key.substring(sep + 1),
+            m.rev,
+            m.by,
+          );
           await d.deleteTombstone(
-              e.key.substring(0, sep), e.key.substring(sep + 1));
+            e.key.substring(0, sep),
+            e.key.substring(sep + 1),
+          );
         }
         lastPersistError = null;
       } catch (e) {
@@ -1522,20 +1529,20 @@ class ExpenseStore extends ChangeNotifier {
   // ---------- Snapshot v2 (record-level sync) ----------
 
   static Map<String, dynamic> _catContent(Category c, int order) => {
-        ...c.toJson(),
-        'sortOrder': order,
-      };
+    ...c.toJson(),
+    'sortOrder': order,
+  };
 
   static Map<String, dynamic> _loanContent(Loan l) => {
-        'id': l.id,
-        'person': l.person,
-        'kind': l.kind,
-        'lent': l.lent,
-        'dateLent': l.dateLent,
-        'dueDate': l.dueDate,
-        'note': l.note,
-        'remindAt': l.remindAt,
-      };
+    'id': l.id,
+    'person': l.person,
+    'kind': l.kind,
+    'lent': l.lent,
+    'dateLent': l.dateLent,
+    'dueDate': l.dueDate,
+    'note': l.note,
+    'remindAt': l.remindAt,
+  };
 
   /// This device's full state as v2 records (live + tombstones outsourced
   /// to the caller for message counts).
@@ -1544,58 +1551,76 @@ class ExpenseStore extends ChangeNotifier {
     for (var i = 0; i < categories.length; i++) {
       final c = categories[i];
       final m = _metaFor(SyncType.cat, c.id);
-      out.add(SyncRecord(
+      out.add(
+        SyncRecord(
           type: SyncType.cat,
           id: c.id,
           rev: m.rev,
           by: m.by,
-          data: _catContent(c, i)));
+          data: _catContent(c, i),
+        ),
+      );
     }
     for (final t in transactions) {
       final m = _metaFor(SyncType.txn, t.id);
-      out.add(SyncRecord(
+      out.add(
+        SyncRecord(
           type: SyncType.txn,
           id: t.id,
           rev: m.rev,
           by: m.by,
-          data: t.toJson()));
+          data: t.toJson(),
+        ),
+      );
     }
     for (final p in projects) {
       final m = _metaFor(SyncType.proj, p.id);
-      out.add(SyncRecord(
+      out.add(
+        SyncRecord(
           type: SyncType.proj,
           id: p.id,
           rev: m.rev,
           by: m.by,
-          data: p.toJson()));
+          data: p.toJson(),
+        ),
+      );
     }
     for (final l in loans) {
       final m = _metaFor(SyncType.loan, l.id);
-      out.add(SyncRecord(
+      out.add(
+        SyncRecord(
           type: SyncType.loan,
           id: l.id,
           rev: m.rev,
           by: m.by,
-          data: _loanContent(l)));
+          data: _loanContent(l),
+        ),
+      );
       for (final t in l.topups) {
         final cm = _metaFor(SyncType.topup, t.id);
-        out.add(SyncRecord(
+        out.add(
+          SyncRecord(
             type: SyncType.topup,
             id: t.id,
             rev: cm.rev,
             by: cm.by,
             parent: l.id,
-            data: t.toJson()));
+            data: t.toJson(),
+          ),
+        );
       }
       for (final r in l.repayments) {
         final cm = _metaFor(SyncType.repay, r.id);
-        out.add(SyncRecord(
+        out.add(
+          SyncRecord(
             type: SyncType.repay,
             id: r.id,
             rev: cm.rev,
             by: cm.by,
             parent: l.id,
-            data: r.toJson()));
+            data: r.toJson(),
+          ),
+        );
       }
     }
     return out;
@@ -1604,8 +1629,9 @@ class ExpenseStore extends ChangeNotifier {
   String exportSnapshotV2() {
     final records = _localV2Records();
     for (final t in _tombs.values) {
-      records.add(SyncRecord(
-          type: t.type, id: t.id, rev: t.rev, by: t.by, dead: true));
+      records.add(
+        SyncRecord(type: t.type, id: t.id, rev: t.rev, by: t.by, dead: true),
+      );
     }
     return V2Snapshot(
       deviceId: deviceId,
@@ -1621,45 +1647,71 @@ class ExpenseStore extends ChangeNotifier {
     final out = <SyncRecord>[];
     for (var i = 0; i < snap.categories.length; i++) {
       final c = snap.categories[i];
-      out.add(SyncRecord(
+      out.add(
+        SyncRecord(
           type: SyncType.cat,
           id: c.id,
           rev: 0,
           by: '',
-          data: _catContent(c, i)));
+          data: _catContent(c, i),
+        ),
+      );
     }
     for (final t in snap.transactions) {
-      out.add(SyncRecord(
-          type: SyncType.txn, id: t.id, rev: 0, by: '', data: t.toJson()));
+      out.add(
+        SyncRecord(
+          type: SyncType.txn,
+          id: t.id,
+          rev: 0,
+          by: '',
+          data: t.toJson(),
+        ),
+      );
     }
     for (final p in snap.projects) {
-      out.add(SyncRecord(
-          type: SyncType.proj, id: p.id, rev: 0, by: '', data: p.toJson()));
+      out.add(
+        SyncRecord(
+          type: SyncType.proj,
+          id: p.id,
+          rev: 0,
+          by: '',
+          data: p.toJson(),
+        ),
+      );
     }
     for (final l in snap.loans) {
-      out.add(SyncRecord(
+      out.add(
+        SyncRecord(
           type: SyncType.loan,
           id: l.id,
           rev: 0,
           by: '',
-          data: _loanContent(l)));
+          data: _loanContent(l),
+        ),
+      );
       for (final t in l.topups) {
-        out.add(SyncRecord(
+        out.add(
+          SyncRecord(
             type: SyncType.topup,
             id: t.id,
             rev: 0,
             by: '',
             parent: l.id,
-            data: t.toJson()));
+            data: t.toJson(),
+          ),
+        );
       }
       for (final r in l.repayments) {
-        out.add(SyncRecord(
+        out.add(
+          SyncRecord(
             type: SyncType.repay,
             id: r.id,
             rev: 0,
             by: '',
             parent: l.id,
-            data: r.toJson()));
+            data: r.toJson(),
+          ),
+        );
       }
     }
     return out;
@@ -1670,8 +1722,8 @@ class ExpenseStore extends ChangeNotifier {
   /// missing), dangling category refs fall back to `other` (current display
   /// behavior), dangling project refs are untagged (current delete behavior),
   /// orphan loan children are dropped (counted, never crash).
-  ({DomainData data, Map<String, RecordMeta> meta, List<TombEntry> tombs}) _materializeMerge(
-      MergeResult result) {
+  ({DomainData data, Map<String, RecordMeta> meta, List<TombEntry> tombs})
+  _materializeMerge(MergeResult result) {
     var skippedOrphans = 0;
     final catRecs = <SyncRecord>[];
     for (final r in result.records.values) {
@@ -1693,17 +1745,18 @@ class ExpenseStore extends ChangeNotifier {
     } else {
       // The app invariant needs an Other: re-seed it rather than run broken.
       other = const SyncRecord(
-          type: SyncType.cat,
-          id: 'other',
-          rev: 0,
-          by: '',
-          data: {
-            'id': 'other',
-            'name': 'Other',
-            'icon': 0xe148,
-            'color': 0xFF607D8B,
-            'budget': 0,
-          });
+        type: SyncType.cat,
+        id: 'other',
+        rev: 0,
+        by: '',
+        data: {
+          'id': 'other',
+          'name': 'Other',
+          'icon': 0xe148,
+          'color': 0xFF607D8B,
+          'budget': 0,
+        },
+      );
     }
     catRecs.add(other);
     final catIds = {for (final r in catRecs) r.id};
@@ -1711,16 +1764,18 @@ class ExpenseStore extends ChangeNotifier {
     final categories = <Category>[];
     final meta = <String, RecordMeta>{};
     for (final r in catRecs) {
-      categories.add(Category.fromJson(
-          Map<String, dynamic>.from(r.data ?? {'id': r.id})));
+      categories.add(
+        Category.fromJson(Map<String, dynamic>.from(r.data ?? {'id': r.id})),
+      );
       meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
     }
 
     final projects = <Project>[];
     for (final r in result.records.values) {
       if (r.type != SyncType.proj || r.dead) continue;
-      projects.add(Project.fromJson(
-          Map<String, dynamic>.from(r.data ?? {'id': r.id})));
+      projects.add(
+        Project.fromJson(Map<String, dynamic>.from(r.data ?? {'id': r.id})),
+      );
       meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
     }
     final projIds = {for (final p in projects) p.id};
@@ -1736,7 +1791,8 @@ class ExpenseStore extends ChangeNotifier {
         }
         final t = Topup.fromJson(Map<String, dynamic>.from(r.data ?? {}));
         (topupsByLoan[r.parent] ??= []).add(
-            Topup(id: r.id, amount: t.amount, date: t.date, note: t.note));
+          Topup(id: r.id, amount: t.amount, date: t.date, note: t.note),
+        );
         meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
       } else if (r.type == SyncType.repay && !r.dead) {
         if (!result.records.containsKey('loan/${r.parent}')) {
@@ -1744,8 +1800,9 @@ class ExpenseStore extends ChangeNotifier {
           continue;
         }
         final x = Repayment.fromJson(Map<String, dynamic>.from(r.data ?? {}));
-        (repaysByLoan[r.parent] ??= []).add(Repayment(
-            id: r.id, amount: x.amount, date: x.date, note: x.note));
+        (repaysByLoan[r.parent] ??= []).add(
+          Repayment(id: r.id, amount: x.amount, date: x.date, note: x.note),
+        );
         meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
       }
     }
@@ -1753,20 +1810,22 @@ class ExpenseStore extends ChangeNotifier {
     for (final r in result.records.values) {
       if (r.type != SyncType.loan || r.dead) continue;
       final d = Map<String, dynamic>.from(r.data ?? {'id': r.id});
-      loans.add(Loan(
-        id: r.id,
-        person: '${d['person'] ?? ''}',
-        kind: d['kind'] == 'borrowed' ? 'borrowed' : 'lent',
-        lent: d['lent'] is num ? (d['lent'] as num).toDouble() : 0,
-        dateLent: d['dateLent'] is int
-            ? d['dateLent'] as int
-            : DateTime.now().millisecondsSinceEpoch,
-        dueDate: d['dueDate'] is int ? d['dueDate'] as int : null,
-        note: '${d['note'] ?? ''}',
-        remindAt: d['remindAt'] is int ? d['remindAt'] as int : 0,
-        topups: topupsByLoan[r.id] ?? const [],
-        repayments: repaysByLoan[r.id] ?? const [],
-      ));
+      loans.add(
+        Loan(
+          id: r.id,
+          person: '${d['person'] ?? ''}',
+          kind: d['kind'] == 'borrowed' ? 'borrowed' : 'lent',
+          lent: d['lent'] is num ? (d['lent'] as num).toDouble() : 0,
+          dateLent: d['dateLent'] is int
+              ? d['dateLent'] as int
+              : DateTime.now().millisecondsSinceEpoch,
+          dueDate: d['dueDate'] is int ? d['dueDate'] as int : null,
+          note: '${d['note'] ?? ''}',
+          remindAt: d['remindAt'] is int ? d['remindAt'] as int : 0,
+          topups: topupsByLoan[r.id] ?? const [],
+          repayments: repaysByLoan[r.id] ?? const [],
+        ),
+      );
       meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
     }
 
@@ -1774,26 +1833,26 @@ class ExpenseStore extends ChangeNotifier {
     for (final r in result.records.values) {
       if (r.type != SyncType.txn || r.dead) continue;
       final d = Map<String, dynamic>.from(r.data ?? {'id': r.id});
-      final catId =
-          catIds.contains('${d['categoryId'] ?? ''}')
-              ? '${d['categoryId']}'
-              : 'other';
-      final projId =
-          projIds.contains('${d['projectId'] ?? ''}')
-              ? '${d['projectId']}'
-              : '';
-      transactions.add(Txn(
-        id: r.id,
-        type: d['type'] == 'income' ? 'income' : 'expense',
-        amount: d['amount'] is num ? (d['amount'] as num).toDouble() : 0,
-        categoryId: catId,
-        date: d['date'] is int
-            ? d['date'] as int
-            : DateTime.now().millisecondsSinceEpoch,
-        note: '${d['note'] ?? ''}',
-        mode: '${d['mode'] ?? 'cash'}',
-        projectId: projId,
-      ));
+      final catId = catIds.contains('${d['categoryId'] ?? ''}')
+          ? '${d['categoryId']}'
+          : 'other';
+      final projId = projIds.contains('${d['projectId'] ?? ''}')
+          ? '${d['projectId']}'
+          : '';
+      transactions.add(
+        Txn(
+          id: r.id,
+          type: d['type'] == 'income' ? 'income' : 'expense',
+          amount: d['amount'] is num ? (d['amount'] as num).toDouble() : 0,
+          categoryId: catId,
+          date: d['date'] is int
+              ? d['date'] as int
+              : DateTime.now().millisecondsSinceEpoch,
+          note: '${d['note'] ?? ''}',
+          mode: '${d['mode'] ?? 'cash'}',
+          projectId: projId,
+        ),
+      );
       meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
     }
 
@@ -1806,10 +1865,11 @@ class ExpenseStore extends ChangeNotifier {
     }
     return (
       data: DomainData(
-          categories: categories,
-          transactions: transactions,
-          loans: loans,
-          projects: projects),
+        categories: categories,
+        transactions: transactions,
+        loans: loans,
+        projects: projects,
+      ),
       meta: meta,
       tombs: tombs,
     );
@@ -1819,7 +1879,7 @@ class ExpenseStore extends ChangeNotifier {
   /// discipline extended to rev/tomb maps). Never throws: failures restore
   /// everything and surface through the returned error.
   Future<({bool changed, int adopted, int tombs, String? error})>
-      _mergeAndApply(List<SyncRecord> remote) async {
+  _mergeAndApply(List<SyncRecord> remote) async {
     final d = _domain;
     if (d == null) {
       return (changed: false, adopted: 0, tombs: 0, error: 'not ready');
@@ -1831,10 +1891,18 @@ class ExpenseStore extends ChangeNotifier {
     final localTombs = <String, SyncRecord>{
       for (final t in _tombs.values)
         t.key: SyncRecord(
-            type: t.type, id: t.id, rev: t.rev, by: t.by, dead: true),
+          type: t.type,
+          id: t.id,
+          rev: t.rev,
+          by: t.by,
+          dead: true,
+        ),
     };
     final result = mergeRecords(
-        localRecords: local, localTombs: localTombs, remote: remote);
+      localRecords: local,
+      localTombs: localTombs,
+      remote: remote,
+    );
     if (!result.changed) {
       return (changed: false, adopted: 0, tombs: 0, error: null);
     }
@@ -1897,8 +1965,10 @@ class ExpenseStore extends ChangeNotifier {
   /// revision; v1 payloads convert to baseline rev-0 records and merge the
   /// same way (never whole-replace). Malformed payloads throw for the
   /// existing friendly-error UX.
-  Future<String> ingestPeerSnapshot(String raw,
-      {String peerName = 'device'}) async {
+  Future<String> ingestPeerSnapshot(
+    String raw, {
+    String peerName = 'device',
+  }) async {
     final fmt = V2Snapshot.detectFormat(raw);
     if (fmt == 2) return importSnapshotV2(raw);
     if (fmt == 1) {

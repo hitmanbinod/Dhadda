@@ -15,15 +15,17 @@ class RelayClient {
   static const _timeout = Duration(seconds: 10);
 
   /// Offer this device's snapshot. Returns the 6-char session code.
-  Future<String> offer(
-      {required String pin,
-      required String snapshot,
-      required String name}) async {
+  Future<String> offer({
+    required String pin,
+    required String snapshot,
+    required String name,
+  }) async {
     final res = await http
-        .post(_u('/api/sync/offer'),
-            headers: _json,
-            body: jsonEncode(
-                {'pin': pin, 'snapshot': snapshot, 'name': name}))
+        .post(
+          _u('/api/sync/offer'),
+          headers: _json,
+          body: jsonEncode({'pin': pin, 'snapshot': snapshot, 'name': name}),
+        )
         .timeout(_timeout);
     if (res.statusCode != 200) {
       throw FormatException('Relay refused offer (${res.statusCode}).');
@@ -32,8 +34,10 @@ class RelayClient {
   }
 
   /// Read a session (offer + answer-if-any). Throws on wrong PIN/expiry.
-  Future<RelayView> fetch(
-      {required String session, required String pin}) async {
+  Future<RelayView> fetch({
+    required String session,
+    required String pin,
+  }) async {
     final res = await http
         .get(_u('/api/sync/session?id=$session&pin=$pin'))
         .timeout(_timeout);
@@ -49,28 +53,30 @@ class RelayClient {
     if (res.statusCode != 200) {
       throw FormatException('Relay error (${res.statusCode}).');
     }
-    return RelayView.fromJson(
-        jsonDecode(res.body) as Map<String, dynamic>);
+    return RelayView.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
   /// Answer a session. Pass your snapshot if YOU are newer, else null
   /// (meaning "I took yours").
-  Future<void> answer(
-      {required String session,
-      required String pin,
-      required String? snapshot,
-      required String name,
-      required String time}) async {
+  Future<void> answer({
+    required String session,
+    required String pin,
+    required String? snapshot,
+    required String name,
+    required String time,
+  }) async {
     final res = await http
-        .post(_u('/api/sync/answer'),
-            headers: _json,
-            body: jsonEncode({
-              'session': session,
-              'pin': pin,
-              'snapshot': snapshot,
-              'name': name,
-              'time': time,
-            }))
+        .post(
+          _u('/api/sync/answer'),
+          headers: _json,
+          body: jsonEncode({
+            'session': session,
+            'pin': pin,
+            'snapshot': snapshot,
+            'name': name,
+            'time': time,
+          }),
+        )
         .timeout(_timeout);
     if (res.statusCode == 403) {
       throw const FormatException('Wrong PIN.');
@@ -87,13 +93,14 @@ class RelayClient {
   }
 
   /// Best-effort cleanup after a finished session.
-  Future<void> close(
-      {required String session, required String pin}) async {
+  Future<void> close({required String session, required String pin}) async {
     try {
       await http
-          .post(_u('/api/sync/close'),
-              headers: _json,
-              body: jsonEncode({'session': session, 'pin': pin}))
+          .post(
+            _u('/api/sync/close'),
+            headers: _json,
+            body: jsonEncode({'session': session, 'pin': pin}),
+          )
           .timeout(_timeout);
     } catch (_) {}
   }
@@ -132,8 +139,7 @@ class RelayView {
       offerName: '${offer['name'] ?? 'device'}',
       offerTime: '${offer['time'] ?? ''}',
       answerSnapshot: ansSnap is String ? ansSnap : null,
-      answerName:
-          answer == null ? null : '${answer['name'] ?? 'device'}',
+      answerName: answer == null ? null : '${answer['name'] ?? 'device'}',
       answerTime: answer == null ? null : '${answer['time'] ?? ''}',
     );
   }
@@ -158,8 +164,8 @@ String friendlySyncError(Object e) {
   final f = m.startsWith(prefix) ? m.substring(prefix.length) : m;
   return f.length > 140 ? '${f.substring(0, 140)}...' : f;
 }
-SyncDirection decideSync(
-    {required DateTime local, required DateTime remote}) =>
+
+SyncDirection decideSync({required DateTime local, required DateTime remote}) =>
     remote.isAfter(local) ? SyncDirection.pull : SyncDirection.push;
 
 /// QR v2 payload: relay origin + session + pin. Origin is included so the
@@ -169,10 +175,7 @@ class QrV2 {
   final String origin;
   final String session;
   final String pin;
-  const QrV2(
-      {required this.origin,
-      required this.session,
-      required this.pin});
+  const QrV2({required this.origin, required this.session, required this.pin});
 
   static String build(String origin, String session, String pin) =>
       '$prefix$origin::$session::$pin';
@@ -186,8 +189,7 @@ class QrV2 {
     final session = parts[1].trim();
     final pin = parts[2].trim();
     if (origin.isEmpty || session.isEmpty || pin.isEmpty) return null;
-    if (!origin.startsWith('http://') &&
-        !origin.startsWith('https://')) {
+    if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
       return null;
     }
     return QrV2(origin: origin, session: session, pin: pin);
@@ -202,20 +204,21 @@ class LinkPeer {
   final String snapshotV2;
   final String name;
   final String time;
-  const LinkPeer(
-      {required this.deviceId,
-      required this.snapshot,
-      this.snapshotV2 = '',
-      required this.name,
-      required this.time});
+  const LinkPeer({
+    required this.deviceId,
+    required this.snapshot,
+    this.snapshotV2 = '',
+    required this.name,
+    required this.time,
+  });
 
   factory LinkPeer.fromJson(Map<String, dynamic> j) => LinkPeer(
-        deviceId: '${j['deviceId'] ?? ''}',
-        snapshot: '${j['snapshot'] ?? ''}',
-        snapshotV2: '${j['snapshotV2'] ?? ''}',
-        name: '${j['name'] ?? 'device'}',
-        time: '${j['time'] ?? ''}',
-      );
+    deviceId: '${j['deviceId'] ?? ''}',
+    snapshot: '${j['snapshot'] ?? ''}',
+    snapshotV2: '${j['snapshotV2'] ?? ''}',
+    name: '${j['name'] ?? 'device'}',
+    time: '${j['time'] ?? ''}',
+  );
 
   DateTime get timeValue =>
       DateTime.tryParse(time) ??
@@ -247,24 +250,27 @@ class LinkClient {
   /// never contain "localhost" (which phones cannot reach).
   /// [snapshotV2] is sent only when non-empty, so old relays see byte-
   /// identical payloads to before.
-  Future<({String link, String origin})> create(
-      {required String pin,
-      required String deviceId,
-      required String snapshot,
-      String snapshotV2 = '',
-      required String name,
-      required String time}) async {
+  Future<({String link, String origin})> create({
+    required String pin,
+    required String deviceId,
+    required String snapshot,
+    String snapshotV2 = '',
+    required String name,
+    required String time,
+  }) async {
     final res = await http
-        .post(_u('/api/sync/link'),
-            headers: _json,
-            body: jsonEncode({
-              'pin': pin,
-              'deviceId': deviceId,
-              'snapshot': snapshot,
-              if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
-              'name': name,
-              'time': time,
-            }))
+        .post(
+          _u('/api/sync/link'),
+          headers: _json,
+          body: jsonEncode({
+            'pin': pin,
+            'deviceId': deviceId,
+            'snapshot': snapshot,
+            if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
+            'name': name,
+            'time': time,
+          }),
+        )
         .timeout(_timeout);
     if (res.statusCode != 200) _fail(res);
     final m = jsonDecode(res.body) as Map<String, dynamic>;
@@ -272,35 +278,39 @@ class LinkClient {
   }
 
   /// Announce your latest snapshot to the mailbox.
-  Future<void> push(
-      {required String link,
-      required String pin,
-      required String deviceId,
-      required String snapshot,
-      String snapshotV2 = '',
-      required String name,
-      required String time}) async {
+  Future<void> push({
+    required String link,
+    required String pin,
+    required String deviceId,
+    required String snapshot,
+    String snapshotV2 = '',
+    required String name,
+    required String time,
+  }) async {
     final res = await http
-        .post(_u('/api/sync/push'),
-            headers: _json,
-            body: jsonEncode({
-              'link': link,
-              'pin': pin,
-              'deviceId': deviceId,
-              'snapshot': snapshot,
-              if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
-              'name': name,
-              'time': time,
-            }))
+        .post(
+          _u('/api/sync/push'),
+          headers: _json,
+          body: jsonEncode({
+            'link': link,
+            'pin': pin,
+            'deviceId': deviceId,
+            'snapshot': snapshot,
+            if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
+            'name': name,
+            'time': time,
+          }),
+        )
         .timeout(_timeout);
     if (res.statusCode != 200) _fail(res);
   }
 
   /// Read everyone else's latest snapshots (never your own slot).
-  Future<List<LinkPeer>> pull(
-      {required String link,
-      required String pin,
-      required String deviceId}) async {
+  Future<List<LinkPeer>> pull({
+    required String link,
+    required String pin,
+    required String deviceId,
+  }) async {
     final res = await http
         .get(_u('/api/sync/pull?link=$link&pin=$pin&deviceId=$deviceId'))
         .timeout(_timeout);
@@ -317,9 +327,11 @@ class LinkClient {
   Future<void> unlink({required String link, required String pin}) async {
     try {
       await http
-          .post(_u('/api/sync/unlink'),
-              headers: _json,
-              body: jsonEncode({'link': link, 'pin': pin}))
+          .post(
+            _u('/api/sync/unlink'),
+            headers: _json,
+            body: jsonEncode({'link': link, 'pin': pin}),
+          )
           .timeout(_timeout);
     } catch (_) {}
   }

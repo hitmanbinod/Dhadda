@@ -106,11 +106,9 @@ class RecordMeta {
   Map<String, dynamic> toJson() => {'rev': rev, 'by': by};
 
   factory RecordMeta.fromJson(Map<String, dynamic> j) => RecordMeta(
-        rev: j['rev'] is int && (j['rev'] as int) >= 0
-            ? j['rev'] as int
-            : 0,
-        by: '${j['by'] ?? ''}',
-      );
+    rev: j['rev'] is int && (j['rev'] as int) >= 0 ? j['rev'] as int : 0,
+    by: '${j['by'] ?? ''}',
+  );
 }
 
 /// A deletion record. Retained indefinitely in Phase 4 (no tombstone GC):
@@ -129,8 +127,7 @@ class TombEntry {
 
   String get key => '$type/$id';
 
-  Map<String, dynamic> toJson() =>
-      {'t': type, 'id': id, 'rev': rev, 'by': by};
+  Map<String, dynamic> toJson() => {'t': type, 'id': id, 'rev': rev, 'by': by};
 
   static TombEntry? tryParse(Object? v) {
     if (v is! Map<String, dynamic>) return null;

@@ -60,11 +60,12 @@ Future<ExpenseStore> _store(DomainStore backend, String device) async {
 
 Future<void> _addTxn(ExpenseStore s, String note, double amount) =>
     s.addTransaction(
-        type: 'expense',
-        amount: amount,
-        categoryId: 'food',
-        date: DateTime(2026, 9, 6),
-        note: note);
+      type: 'expense',
+      amount: amount,
+      categoryId: 'food',
+      date: DateTime(2026, 9, 6),
+      note: note,
+    );
 
 void main() {
   test('direct WiFi v2: merge both ways over HTTP', () async {
@@ -85,12 +86,17 @@ void main() {
       );
       // Receiver merges the v2 snapshot, then posts its union back.
       final v2 = await WifiClient.fetchRemoteSnapshotV2(
-          session.url, session.pin);
+        session.url,
+        session.pin,
+      );
       expect(v2, isNotNull);
       expect(await b.ingestPeerSnapshot(v2!), startsWith('Synced'));
       await _addTxn(b, 'B1', 200);
       await WifiClient.pushLocalSnapshot(
-          session.url, session.pin, b.exportSnapshotV2());
+        session.url,
+        session.pin,
+        b.exportSnapshotV2(),
+      );
       // Sender merged the union (no whole-replace anywhere).
       expect(a.transactions.any((t) => t.note == 'B1'), isTrue);
       expect(a.transactions.any((t) => t.note == 'A1'), isTrue);
@@ -107,7 +113,8 @@ void main() {
     HostSession? session;
     try {
       // v1-only sender: no v2 closure, like a pre-Phase-4 app.
-      String v1 = '{"version":1,"updatedAt":"2026-09-06T12:00:00.000Z",'
+      String v1 =
+          '{"version":1,"updatedAt":"2026-09-06T12:00:00.000Z",'
           '"deviceId":"old","deviceName":"Old","categories":[],'
           '"transactions":[{"id":"o1","type":"expense","amount":5,'
           '"categoryId":"food","date":1788220800000,"note":"Old","mode":"cash",'
@@ -118,13 +125,14 @@ void main() {
         pin: '123456',
       );
       expect(
-          await WifiClient.fetchRemoteSnapshotV2(
-              session.url, session.pin),
-          isNull); // 404 -> fallback
+        await WifiClient.fetchRemoteSnapshotV2(session.url, session.pin),
+        isNull,
+      ); // 404 -> fallback
       final b = await _store(dbb.backend, 'devB');
       final msg = await b.ingestPeerSnapshot(
-          await WifiClient.fetchRemoteSnapshot(session.url, session.pin),
-          peerName: 'Old');
+        await WifiClient.fetchRemoteSnapshot(session.url, session.pin),
+        peerName: 'Old',
+      );
       expect(msg, startsWith('Synced'));
       expect(b.transactions.any((t) => t.id == 'o1'), isTrue);
     } finally {
@@ -166,8 +174,9 @@ void main() {
         name: 'B',
         time: b.updatedAt,
       );
-      for (final peer in await LinkClient(origin).pull(
-          link: created.link, pin: pin, deviceId: 'devA')) {
+      for (final peer in await LinkClient(
+        origin,
+      ).pull(link: created.link, pin: pin, deviceId: 'devA')) {
         expect(peer.snapshotV2, isNotEmpty); // v2 survived the relay
         await a.ingestPeerSnapshot(peer.snapshotV2, peerName: peer.name);
       }
@@ -181,8 +190,9 @@ void main() {
         name: 'B',
         time: b.updatedAt,
       );
-      for (final peer in await LinkClient(origin).pull(
-          link: created.link, pin: pin, deviceId: 'devA')) {
+      for (final peer in await LinkClient(
+        origin,
+      ).pull(link: created.link, pin: pin, deviceId: 'devA')) {
         await a.ingestPeerSnapshot(peer.snapshotV2, peerName: peer.name);
       }
       await LinkClient(origin).push(
@@ -194,8 +204,9 @@ void main() {
         name: 'A',
         time: a.updatedAt,
       );
-      for (final peer in await LinkClient(origin).pull(
-          link: created.link, pin: pin, deviceId: 'devB')) {
+      for (final peer in await LinkClient(
+        origin,
+      ).pull(link: created.link, pin: pin, deviceId: 'devB')) {
         await b.ingestPeerSnapshot(peer.snapshotV2, peerName: peer.name);
       }
       expect(a.transactions.any((t) => t.note == 'B1'), isTrue);

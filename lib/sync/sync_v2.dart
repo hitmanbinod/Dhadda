@@ -50,14 +50,14 @@ class SyncRecord {
   String get key => '$type/$id';
 
   Map<String, dynamic> toJson() => {
-        't': type,
-        'id': id,
-        'rev': rev,
-        'by': by,
-        if (dead) 'dead': true,
-        if (parent.isNotEmpty) 'parent': parent,
-        if (data != null) 'd': data,
-      };
+    't': type,
+    'id': id,
+    'rev': rev,
+    'by': by,
+    if (dead) 'dead': true,
+    if (parent.isNotEmpty) 'parent': parent,
+    if (data != null) 'd': data,
+  };
 
   /// Returns null for malformed entries (caller counts and skips them).
   static SyncRecord? tryParse(Object? v) {
@@ -102,12 +102,12 @@ class V2Snapshot {
   });
 
   String encode() => jsonEncode({
-        'format': kSnapshotV2Format,
-        'deviceId': deviceId,
-        'deviceName': deviceName,
-        'exportedAt': exportedAt,
-        'records': [for (final r in records) r.toJson()],
-      });
+    'format': kSnapshotV2Format,
+    'deviceId': deviceId,
+    'deviceName': deviceName,
+    'exportedAt': exportedAt,
+    'records': [for (final r in records) r.toJson()],
+  });
 
   /// Returns null when [raw] is not a well-formed v2 envelope. Unknown
   /// top-level fields are ignored (forward compatibility).
@@ -280,7 +280,9 @@ MergeResult mergeRecords({
     if (incoming == null) continue; // untouched by this peer
 
     // The 'other' category can never be deleted (UI invariant predates v2).
-    if (incoming.dead && incoming.type == SyncType.cat && incoming.id == 'other') {
+    if (incoming.dead &&
+        incoming.type == SyncType.cat &&
+        incoming.id == 'other') {
       skipped++;
       continue;
     }
@@ -319,14 +321,17 @@ MergeResult mergeRecords({
 
     if (winnerDead) {
       final prev = tombs[key];
-      if (prev == null ||
-          w.rev != prev.rev ||
-          w.by != prev.by) {
+      if (prev == null || w.rev != prev.rev || w.by != prev.by) {
         tombsChanged++;
         changed = true;
       }
       tombs[key] = SyncRecord(
-          type: w.type, id: w.id, rev: w.rev, by: w.by, dead: true);
+        type: w.type,
+        id: w.id,
+        rev: w.rev,
+        by: w.by,
+        dead: true,
+      );
       if (out.remove(key) != null) {
         // A locally live record lost to a tombstone: that is a change.
         changed = true;

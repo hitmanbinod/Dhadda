@@ -22,8 +22,7 @@ class WifiClient {
     return DateTime.tryParse('${m['updatedAt']}');
   }
 
-  static Future<String> fetchRemoteSnapshot(
-      String baseUrl, String pin) async {
+  static Future<String> fetchRemoteSnapshot(String baseUrl, String pin) async {
     final res = await http
         .get(Uri.parse('$baseUrl/snapshot'), headers: _h(pin))
         .timeout(const Duration(seconds: 20));
@@ -37,7 +36,9 @@ class WifiClient {
   /// v2 snapshot when the sender has one; null on 404 (v1-only sender).
   /// Callers fall back to [fetchRemoteSnapshot] + compat merge.
   static Future<String?> fetchRemoteSnapshotV2(
-      String baseUrl, String pin) async {
+    String baseUrl,
+    String pin,
+  ) async {
     final res = await http
         .get(Uri.parse('$baseUrl/snapshot-v2'), headers: _h(pin))
         .timeout(const Duration(seconds: 20));
@@ -50,11 +51,16 @@ class WifiClient {
   }
 
   static Future<void> pushLocalSnapshot(
-      String baseUrl, String pin, String snapshotJson) async {
+    String baseUrl,
+    String pin,
+    String snapshotJson,
+  ) async {
     final res = await http
-        .post(Uri.parse('$baseUrl/snapshot'),
-            headers: {..._h(pin), 'Content-Type': 'application/json'},
-            body: snapshotJson)
+        .post(
+          Uri.parse('$baseUrl/snapshot'),
+          headers: {..._h(pin), 'Content-Type': 'application/json'},
+          body: snapshotJson,
+        )
         .timeout(const Duration(seconds: 20));
     if (res.statusCode == 403) throw const FormatException('Wrong PIN.');
     if (res.statusCode != 200) {

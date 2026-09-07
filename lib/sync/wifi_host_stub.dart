@@ -13,6 +13,7 @@ Future<HostSession> startSendServer({
   required String pin,
 }) async {
   throw UnsupportedError(
-      'WiFi send needs the Android/Windows app (browsers cannot host). '
-      'On this device use Receive instead, and Send from the other device.');
+    'WiFi send needs the Android/Windows app (browsers cannot host). '
+    'On this device use Receive instead, and Send from the other device.',
+  );
 }

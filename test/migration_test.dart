@@ -141,11 +141,11 @@ class _ThrowingBackend implements DomainStore {
   Future<void> deleteTombstone(String t, String id) =>
       inner.deleteTombstone(t, id);
   @override
-  Future<void> applyV2(
-          {required DomainData data,
-          required Map<String, RecordMeta> meta,
-          required List<TombEntry> tombs}) =>
-      inner.applyV2(data: data, meta: meta, tombs: tombs);
+  Future<void> applyV2({
+    required DomainData data,
+    required Map<String, RecordMeta> meta,
+    required List<TombEntry> tombs,
+  }) => inner.applyV2(data: data, meta: meta, tombs: tombs);
 
   @override
   Future<Map<String, int>> counts() => inner.counts();
@@ -279,11 +279,11 @@ class _FailingBackend implements DomainStore {
   Future<void> deleteTombstone(String t, String id) =>
       inner.deleteTombstone(t, id);
   @override
-  Future<void> applyV2(
-          {required DomainData data,
-          required Map<String, RecordMeta> meta,
-          required List<TombEntry> tombs}) =>
-      inner.applyV2(data: data, meta: meta, tombs: tombs);
+  Future<void> applyV2({
+    required DomainData data,
+    required Map<String, RecordMeta> meta,
+    required List<TombEntry> tombs,
+  }) => inner.applyV2(data: data, meta: meta, tombs: tombs);
 }
 
 /// Seeds the populated fixture through a working backend; returns the temp

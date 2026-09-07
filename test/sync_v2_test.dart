@@ -6,18 +6,25 @@ import 'dart:math';
 import 'package:expense/sync/sync_v2.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-SyncRecord _r(String type, String id, int rev, String by,
-        [Map<String, dynamic>? data, bool dead = false]) =>
-    SyncRecord(
-        type: type,
-        id: id,
-        rev: rev,
-        by: by,
-        dead: dead,
-        data: dead ? null : (data ?? {'v': '$id@$rev'}));
+SyncRecord _r(
+  String type,
+  String id,
+  int rev,
+  String by, [
+  Map<String, dynamic>? data,
+  bool dead = false,
+]) => SyncRecord(
+  type: type,
+  id: id,
+  rev: rev,
+  by: by,
+  dead: dead,
+  data: dead ? null : (data ?? {'v': '$id@$rev'}),
+);
 
-Map<String, SyncRecord> _map(List<SyncRecord> rs) =>
-    {for (final r in rs) r.key: r};
+Map<String, SyncRecord> _map(List<SyncRecord> rs) => {
+  for (final r in rs) r.key: r,
+};
 
 /// Canonical string of a merge outcome for convergence comparisons.
 String _canon(MergeResult m) {
@@ -26,71 +33,88 @@ String _canon(MergeResult m) {
   return jsonEncode({
     'r': [
       for (final k in recs)
-        [k, m.records[k]!.rev, m.records[k]!.by, m.records[k]!.dead,
-            m.records[k]!.data]
+        [
+          k,
+          m.records[k]!.rev,
+          m.records[k]!.by,
+          m.records[k]!.dead,
+          m.records[k]!.data,
+        ],
     ],
     't': [
-      for (final k in tombs)
-        [k, m.tombs[k]!.rev, m.tombs[k]!.by]
+      for (final k in tombs) [k, m.tombs[k]!.rev, m.tombs[k]!.by],
     ],
   });
 }
 
-MergeResult _merge(List<SyncRecord> local,
-        [List<SyncRecord> tombs = const [],
-        List<SyncRecord> remote = const []]) =>
-    mergeRecords(
-        localRecords: _map(local),
-        localTombs: _map(tombs),
-        remote: remote);
+MergeResult _merge(
+  List<SyncRecord> local, [
+  List<SyncRecord> tombs = const [],
+  List<SyncRecord> remote = const [],
+]) => mergeRecords(
+  localRecords: _map(local),
+  localTombs: _map(tombs),
+  remote: remote,
+);
 
 void main() {
   test('codec round-trips and detects formats', () {
     final s = V2Snapshot(
-        deviceId: 'a',
-        deviceName: 'A',
-        exportedAt: '2026-09-07T00:00:00.000Z',
-        records: [_r('txn', 'x', 1, 'a')]);
+      deviceId: 'a',
+      deviceName: 'A',
+      exportedAt: '2026-09-07T00:00:00.000Z',
+      records: [_r('txn', 'x', 1, 'a')],
+    );
     final back = V2Snapshot.tryDecode(s.encode())!;
     expect(back.records.single.id, 'x');
     expect(V2Snapshot.detectFormat(s.encode()), 2);
     expect(
-        V2Snapshot.detectFormat(
-            '{"version":1,"transactions":[],"categories":[]}'),
-        1);
+      V2Snapshot.detectFormat(
+        '{"version":1,"transactions":[],"categories":[]}',
+      ),
+      1,
+    );
     expect(V2Snapshot.detectFormat('nope'), 0);
     expect(V2Snapshot.detectFormat('[1,2]'), 0);
     expect(V2Snapshot.tryDecode('{"format":2}'), isNull); // no records
     // Unknown top-level fields are ignored (forward compat).
     final extra = jsonDecode(s.encode()) as Map<String, dynamic>;
-    extra['futureField'] = {'nested': [1, 2, 3]};
+    extra['futureField'] = {
+      'nested': [1, 2, 3],
+    };
     expect(V2Snapshot.tryDecode(jsonEncode(extra))!.records, hasLength(1));
   });
 
   test('tryParse rejects malformed entries', () {
     expect(SyncRecord.tryParse(null), isNull);
     expect(SyncRecord.tryParse({'t': 'txn'}), isNull); // no id
-    expect(SyncRecord.tryParse({'t': 'nope', 'id': 'x', 'rev': 1}),
-        isNull); // unknown type
-    expect(SyncRecord.tryParse({'t': 'txn', 'id': 'x', 'rev': -1}),
-        isNull); // negative rev
-    expect(SyncRecord.tryParse({'t': 'txn', 'id': 'x', 'rev': 1}),
-        isNull); // live without data
     expect(
-        SyncRecord.tryParse(
-            {'t': 'topup', 'id': 'x', 'rev': 1, 'd': {}}),
-        isNull); // orphan child
+      SyncRecord.tryParse({'t': 'nope', 'id': 'x', 'rev': 1}),
+      isNull,
+    ); // unknown type
     expect(
-        SyncRecord.tryParse({
-          't': 'repay',
-          'id': 'x',
-          'rev': 2,
-          'by': 'b',
-          'parent': 'L',
-          'd': {'amount': 5}
-        })!
-            .parent,
-        'L');
+      SyncRecord.tryParse({'t': 'txn', 'id': 'x', 'rev': -1}),
+      isNull,
+    ); // negative rev
+    expect(
+      SyncRecord.tryParse({'t': 'txn', 'id': 'x', 'rev': 1}),
+      isNull,
+    ); // live without data
+    expect(
+      SyncRecord.tryParse({'t': 'topup', 'id': 'x', 'rev': 1, 'd': {}}),
+      isNull,
+    ); // orphan child
+    expect(
+      SyncRecord.tryParse({
+        't': 'repay',
+        'id': 'x',
+        'rev': 2,
+        'by': 'b',
+        'parent': 'L',
+        'd': {'amount': 5},
+      })!.parent,
+      'L',
+    );
   });
 
   test('one-side-only records union in both directions', () {
@@ -106,7 +130,13 @@ void main() {
 
   test('unchanged records produce no change', () {
     final x = _r('txn', 'x', 3, 'a', {'v': 1});
-    final m = _merge([x], [], [_r('txn', 'x', 3, 'a', {'v': 1})]);
+    final m = _merge(
+      [x],
+      [],
+      [
+        _r('txn', 'x', 3, 'a', {'v': 1}),
+      ],
+    );
     expect(m.changed, isFalse);
     expect(m.adopted, 0);
   });
@@ -200,8 +230,12 @@ void main() {
     final c = [_r('txn', 'x', 3, 'c'), _r('cat', 'c', 1, 'a')];
     final ab = _merge([...a, ...b]);
     // Idempotence.
-    expect(_canon(_merge(ab.records.values.toList(), [],
-        ab.records.values.toList())), _canon(ab));
+    expect(
+      _canon(
+        _merge(ab.records.values.toList(), [], ab.records.values.toList()),
+      ),
+      _canon(ab),
+    );
     // Commutativity.
     expect(_canon(_merge(a, [], b)), _canon(_merge(b, [], a)));
     // Associativity: merge(merge(A,B),C) == merge(A,merge(B,C)).
@@ -233,19 +267,25 @@ void main() {
         final cur = recs[r][k]?.rev ?? tombs[r][k]?.rev ?? 0;
         tombs[r].remove(k);
         recs[r][k] = SyncRecord(
-            type: t,
-            id: id,
-            rev: cur + 1,
-            by: 'dev$r',
-            data: data ?? {'n': rand.nextInt(1000000)});
+          type: t,
+          id: id,
+          rev: cur + 1,
+          by: 'dev$r',
+          data: data ?? {'n': rand.nextInt(1000000)},
+        );
       }
 
       void kill(int r, String t, String id) {
         final k = key(t, id);
         final cur = recs[r][k]?.rev ?? tombs[r][k]?.rev ?? 0;
         recs[r].remove(k);
-        tombs[r][k] =
-            SyncRecord(type: t, id: id, rev: cur + 1, by: 'dev$r', dead: true);
+        tombs[r][k] = SyncRecord(
+          type: t,
+          id: id,
+          rev: cur + 1,
+          by: 'dev$r',
+          dead: true,
+        );
       }
 
       // Random history.
@@ -262,25 +302,28 @@ void main() {
           // Sync replica r <- other, random direction coverage.
           final o = 1 - r;
           final m = mergeRecords(
-              localRecords: recs[r],
-              localTombs: tombs[r],
-              remote: [...recs[o].values, ...tombs[o].values]);
+            localRecords: recs[r],
+            localTombs: tombs[r],
+            remote: [...recs[o].values, ...tombs[o].values],
+          );
           recs[r] = Map.of(m.records);
           tombs[r] = Map.of(m.tombs);
         }
       }
       // All merge orders converge to the same canonical state.
       MergeResult run(int a, int b) => mergeRecords(
-          localRecords: recs[a],
-          localTombs: tombs[a],
-          remote: [...recs[b].values, ...tombs[b].values]);
+        localRecords: recs[a],
+        localTombs: tombs[a],
+        remote: [...recs[b].values, ...tombs[b].values],
+      );
       expect(_canon(run(0, 1)), _canon(run(1, 0)), reason: 'iter $iter');
       final ab = run(0, 1);
       // Idempotence: merging the result with either input changes nothing.
       final again = mergeRecords(
-          localRecords: ab.records,
-          localTombs: ab.tombs,
-          remote: [...recs[0].values, ...tombs[0].values]);
+        localRecords: ab.records,
+        localTombs: ab.tombs,
+        remote: [...recs[0].values, ...tombs[0].values],
+      );
       expect(again.changed, isFalse, reason: 'iter $iter');
     }
   });

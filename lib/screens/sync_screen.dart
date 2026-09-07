@@ -485,8 +485,7 @@ class _SyncScreenState extends State<SyncScreen> {
       String msg;
       if (v2body != null) {
         msg = await store.ingestPeerSnapshot(v2body);
-        await WifiClient.pushLocalSnapshot(
-            url, pin, store.exportSnapshotV2());
+        await WifiClient.pushLocalSnapshot(url, pin, store.exportSnapshotV2());
       } else {
         // v1-only sender: legacy meta-compare flow, v1 bytes only.
         final remoteMeta = await WifiClient.fetchRemoteMeta(url, pin);

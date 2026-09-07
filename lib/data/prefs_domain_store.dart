@@ -184,11 +184,17 @@ class PrefsDomainStore implements DomainStore {
 
   @override
   Future<void> saveRecordMeta(
-      String type, String id, int rev, String by) async {
+    String type,
+    String id,
+    int rev,
+    String by,
+  ) async {
     final map = _readRevs();
     map['$type/$id'] = RecordMeta(rev: rev, by: by);
     await prefs.setString(
-        kRevs, jsonEncode(map.map((k, v) => MapEntry(k, v.toJson()))));
+      kRevs,
+      jsonEncode(map.map((k, v) => MapEntry(k, v.toJson()))),
+    );
   }
 
   @override
@@ -210,15 +216,16 @@ class PrefsDomainStore implements DomainStore {
   @override
   Future<void> saveTombstone(TombEntry tomb) async {
     final current = await loadTombstones();
-    final i = current.indexWhere(
-        (t) => t.type == tomb.type && t.id == tomb.id);
+    final i = current.indexWhere((t) => t.type == tomb.type && t.id == tomb.id);
     if (i < 0) {
       current.add(tomb);
     } else {
       current[i] = tomb;
     }
     await prefs.setString(
-        kTombs, jsonEncode([for (final t in current) t.toJson()]));
+      kTombs,
+      jsonEncode([for (final t in current) t.toJson()]),
+    );
   }
 
   @override
@@ -226,7 +233,9 @@ class PrefsDomainStore implements DomainStore {
     final current = await loadTombstones();
     current.removeWhere((t) => t.type == type && t.id == id);
     await prefs.setString(
-        kTombs, jsonEncode([for (final t in current) t.toJson()]));
+      kTombs,
+      jsonEncode([for (final t in current) t.toJson()]),
+    );
   }
 
   @override
@@ -237,8 +246,12 @@ class PrefsDomainStore implements DomainStore {
   }) async {
     await replaceAll(data);
     await prefs.setString(
-        kRevs, jsonEncode(meta.map((k, v) => MapEntry(k, v.toJson()))));
+      kRevs,
+      jsonEncode(meta.map((k, v) => MapEntry(k, v.toJson()))),
+    );
     await prefs.setString(
-        kTombs, jsonEncode([for (final t in tombs) t.toJson()]));
+      kTombs,
+      jsonEncode([for (final t in tombs) t.toJson()]),
+    );
   }
 }

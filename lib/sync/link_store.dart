@@ -9,11 +9,12 @@ class LinkSlot {
   String snapshotV2;
   String name;
   String time;
-  LinkSlot(
-      {required this.snapshot,
-      this.snapshotV2 = '',
-      required this.name,
-      required this.time});
+  LinkSlot({
+    required this.snapshot,
+    this.snapshotV2 = '',
+    required this.name,
+    required this.time,
+  });
 }
 
 class _Box {
@@ -44,8 +45,8 @@ class LinkStore {
   final DateTime Function() _clock;
 
   LinkStore({Random? random, DateTime Function()? clock})
-      : _random = random ?? Random.secure(),
-        _clock = clock ?? DateTime.now;
+    : _random = random ?? Random.secure(),
+      _clock = clock ?? DateTime.now;
 
   void sweep() {
     final now = _clock();
@@ -57,38 +58,39 @@ class LinkStore {
   String _nid() {
     var id = '';
     do {
-      id = List.generate(
-              8, (_) => _abc[_random.nextInt(_abc.length)])
-          .join();
+      id = List.generate(8, (_) => _abc[_random.nextInt(_abc.length)]).join();
     } while (_boxes.containsKey(id));
     return id;
   }
 
   /// Creates a mailbox with this device's first slot. Returns the
   /// link id, or null on bad input.
-  String? create(
-      {required String pin,
-      required String deviceId,
-      required String snapshot,
-      String snapshotV2 = '',
-      required String name,
-      required String time}) {
+  String? create({
+    required String pin,
+    required String deviceId,
+    required String snapshot,
+    String snapshotV2 = '',
+    required String name,
+    required String time,
+  }) {
     if (!_validPin(pin) || deviceId.isEmpty || snapshot.isEmpty) {
       return null;
     }
     sweep();
     if (_boxes.length >= maxBoxes) {
       final oldest = _boxes.entries
-          .reduce((a, b) => a.value.touched.isBefore(b.value.touched)
-              ? a
-              : b)
+          .reduce((a, b) => a.value.touched.isBefore(b.value.touched) ? a : b)
           .key;
       _boxes.remove(oldest);
     }
     final id = _nid();
     final box = _Box(pin: pin, now: _clock());
     box.slots[deviceId] = LinkSlot(
-        snapshot: snapshot, snapshotV2: snapshotV2, name: name, time: time);
+      snapshot: snapshot,
+      snapshotV2: snapshotV2,
+      name: name,
+      time: time,
+    );
     _boxes[id] = box;
     return id;
   }
@@ -103,14 +105,15 @@ class LinkStore {
     return b;
   }
 
-  LinkOutcome push(
-      {required String id,
-      required String pin,
-      required String deviceId,
-      required String snapshot,
-      String snapshotV2 = '',
-      required String name,
-      required String time}) {
+  LinkOutcome push({
+    required String id,
+    required String pin,
+    required String deviceId,
+    required String snapshot,
+    String snapshotV2 = '',
+    required String name,
+    required String time,
+  }) {
     final b = _get(id);
     if (b == null) return LinkOutcome.gone;
     if (b.pin != pin) return LinkOutcome.forbidden;
@@ -118,16 +121,21 @@ class LinkStore {
       return LinkOutcome.badInput;
     }
     b.slots[deviceId] = LinkSlot(
-        snapshot: snapshot, snapshotV2: snapshotV2, name: name, time: time);
+      snapshot: snapshot,
+      snapshotV2: snapshotV2,
+      name: name,
+      time: time,
+    );
     b.touched = _clock();
     return LinkOutcome.ok;
   }
 
   /// Everyone else's slots (never the requester's own).
-  LinkPull pull(
-      {required String id,
-      required String pin,
-      required String deviceId}) {
+  LinkPull pull({
+    required String id,
+    required String pin,
+    required String deviceId,
+  }) {
     final b = _get(id);
     if (b == null) return const LinkPull(LinkOutcome.gone, []);
     if (b.pin != pin) {

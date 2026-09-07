@@ -15,8 +15,11 @@ class PhoneHostSession {
   final String url;
   final ValueNotifier<int> hits;
   final Future<void> Function() close;
-  PhoneHostSession(
-      {required this.url, required this.hits, required this.close});
+  PhoneHostSession({
+    required this.url,
+    required this.hits,
+    required this.close,
+  });
 }
 
 const _mime = {
@@ -37,7 +40,9 @@ const _mime = {
 Future<String> phoneLanIp() async {
   try {
     final ifs = await NetworkInterface.list(
-        includeLoopback: false, type: InternetAddressType.IPv4);
+      includeLoopback: false,
+      type: InternetAddressType.IPv4,
+    );
     final all = <String>[];
     for (final i in ifs) {
       for (final a in i.addresses) {
@@ -62,13 +67,13 @@ Future<String> phoneLanIp() async {
 }
 
 Response _json(int code, Map<String, dynamic> obj) => Response(
-      code,
-      body: jsonEncode(obj),
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    );
+  code,
+  body: jsonEncode(obj),
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+  },
+);
 
 /// Serves the bundled web UI plus the link-sync API on your WiFi, so
 /// any same-network browser can open the tracker straight from
@@ -90,20 +95,17 @@ Future<PhoneHostSession> startPhoneHost() async {
     Uint8List? bytes;
     try {
       final data = await rootBundle.load('assets/webapp/$name');
-      bytes = data.buffer
-          .asUint8List(data.offsetInBytes, data.lengthInBytes);
+      bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
     } catch (_) {
       bytes = null;
     }
     bytes ??= await _indexBytes();
     if (bytes == null) {
-      debugPrint(
-          'phone-host: assets/webapp bundle missing in this build');
+      debugPrint('phone-host: assets/webapp bundle missing in this build');
       return Response.notFound('app not bundled in this build');
     }
     final dot = name.lastIndexOf('.');
-    final ext =
-        dot < 0 ? '' : name.substring(dot).toLowerCase();
+    final ext = dot < 0 ? '' : name.substring(dot).toLowerCase();
     return Response.ok(
       bytes,
       headers: {
@@ -117,8 +119,7 @@ Future<PhoneHostSession> startPhoneHost() async {
   router.post('/api/sync/link', (Request req) async {
     Map<String, dynamic> b;
     try {
-      b = jsonDecode(await req.readAsString())
-          as Map<String, dynamic>;
+      b = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
     } catch (_) {
       return _json(400, {'error': 'bad json'});
     }
@@ -136,8 +137,7 @@ Future<PhoneHostSession> startPhoneHost() async {
   router.post('/api/sync/push', (Request req) async {
     Map<String, dynamic> b;
     try {
-      b = jsonDecode(await req.readAsString())
-          as Map<String, dynamic>;
+      b = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
     } catch (_) {
       return _json(400, {'error': 'bad json'});
     }
@@ -152,8 +152,7 @@ Future<PhoneHostSession> startPhoneHost() async {
     );
     return switch (r) {
       LinkOutcome.ok => _json(200, {'ok': true}),
-      LinkOutcome.gone =>
-        _json(404, {'error': 'link gone - pair again'}),
+      LinkOutcome.gone => _json(404, {'error': 'link gone - pair again'}),
       LinkOutcome.forbidden => _json(403, {'error': 'wrong pin'}),
       LinkOutcome.badInput => _json(400, {'error': 'bad input'}),
     };
@@ -167,19 +166,18 @@ Future<PhoneHostSession> startPhoneHost() async {
     );
     return switch (r.outcome) {
       LinkOutcome.ok => _json(200, {
-          'peers': [
-            for (final e in r.peers)
-              {
-                'deviceId': e.key,
-                'snapshot': e.value.snapshot,
-                'snapshotV2': e.value.snapshotV2,
-                'name': e.value.name,
-                'time': e.value.time,
-              },
-          ],
-        }),
-      LinkOutcome.gone =>
-        _json(404, {'error': 'link gone - pair again'}),
+        'peers': [
+          for (final e in r.peers)
+            {
+              'deviceId': e.key,
+              'snapshot': e.value.snapshot,
+              'snapshotV2': e.value.snapshotV2,
+              'name': e.value.name,
+              'time': e.value.time,
+            },
+        ],
+      }),
+      LinkOutcome.gone => _json(404, {'error': 'link gone - pair again'}),
       LinkOutcome.forbidden => _json(403, {'error': 'wrong pin'}),
       LinkOutcome.badInput => _json(400, {'error': 'bad input'}),
     };
@@ -187,8 +185,7 @@ Future<PhoneHostSession> startPhoneHost() async {
   router.post('/api/sync/unlink', (Request req) async {
     Map<String, dynamic> b = {};
     try {
-      b = jsonDecode(await req.readAsString())
-          as Map<String, dynamic>;
+      b = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
     } catch (_) {}
     mail.unlink(id: '${b['link'] ?? ''}', pin: '${b['pin'] ?? ''}');
     return _json(200, {'ok': true});
@@ -208,42 +205,43 @@ Future<PhoneHostSession> startPhoneHost() async {
   });
 
   final handler = const Pipeline()
-      .addMiddleware((inner) => (Request req) async {
-            if (req.method == 'OPTIONS') {
-              return Response.ok('', headers: {
+      .addMiddleware(
+        (inner) => (Request req) async {
+          if (req.method == 'OPTIONS') {
+            return Response.ok(
+              '',
+              headers: {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-              });
-            }
-            debugPrint(
-                'phone-host ${req.method} ${req.requestedUri.path}');
-            bump();
-            Response res;
-            try {
-              res = await inner(req);
-            } catch (e, st) {
-              debugPrint('phone-host handler threw: $e\n$st');
-              return Response.internalServerError(
-                  body: 'Dhadda host error: $e');
-            }
-            try {
-              return res.change(headers: {
-                ...res.headers,
-                'Access-Control-Allow-Origin': '*',
-              });
-            } catch (_) {
-              return res;
-            }
-          })
+              },
+            );
+          }
+          debugPrint('phone-host ${req.method} ${req.requestedUri.path}');
+          bump();
+          Response res;
+          try {
+            res = await inner(req);
+          } catch (e, st) {
+            debugPrint('phone-host handler threw: $e\n$st');
+            return Response.internalServerError(body: 'Dhadda host error: $e');
+          }
+          try {
+            return res.change(
+              headers: {...res.headers, 'Access-Control-Allow-Origin': '*'},
+            );
+          } catch (_) {
+            return res;
+          }
+        },
+      )
       .addHandler(router.call);
 
   HttpServer? server;
   Object? lastError;
   for (final port in [8080, 0]) {
     try {
-      server =
-          await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
+      server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
       lastError = null;
       break;
     } catch (e) {
@@ -251,8 +249,7 @@ Future<PhoneHostSession> startPhoneHost() async {
     }
   }
   if (server == null) {
-    throw StateError(
-        'Could not open a port for PC mode ($lastError).');
+    throw StateError('Could not open a port for PC mode ($lastError).');
   }
   var ip = await phoneLanIp();
   ip = ip.isEmpty ? server.address.address : ip;
@@ -272,8 +269,7 @@ Future<PhoneHostSession> startPhoneHost() async {
 Future<Uint8List?> _tryAsset(String name) async {
   try {
     final data = await rootBundle.load('assets/webapp/$name');
-    return data.buffer
-        .asUint8List(data.offsetInBytes, data.lengthInBytes);
+    return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
   } catch (_) {
     return null;
   }

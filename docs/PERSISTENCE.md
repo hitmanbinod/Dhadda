@@ -33,7 +33,12 @@ v1, sync semantics, and UI behavior are unchanged. Baseline record stays in
 - `lib/store.dart` — selects backend in `load()`, runs migration, write-through
   in mutators. Still the single `ChangeNotifier`; no decomposition (later phase).
 
-## 3. Schema (version 1) and field mapping
+## 3. Schema (versions 1 → 2) and field mapping
+
+Version 1 (Phase 2): 6 domain tables. Version 2 (Phase 4) adds `rev`
+(INTEGER NOT NULL DEFAULT 0) + `rev_by` (TEXT NOT NULL DEFAULT '') to every
+domain table and a `tombstones(type, id, rev, rev_by)` table; upgrade is a
+tested `onUpgrade` (pre-v2 rows default to rev 0 — zero bulk writes).
 
 | Table | Columns (PK / FK / index) | Maps from |
 |---|---|---|
