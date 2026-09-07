@@ -40,4 +40,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('IntegrationTea'), findsWidgets);
   });
+
+  /// Device-only SMS import flow (needs SMS permission pre-granted via adb
+  /// and, for the full path, a synthetic bank-like SMS in the inbox).
+  /// Either outcome is correct behavior: a candidates dialog when parseable
+  /// messages exist, or the empty-inbox snackbar otherwise. Prints which
+  /// branch ran so the report is honest.
+  testWidgets('SMS import flow handles inbox or empty gracefully',
+      (tester) async {
+    app.main();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+        find.widgetWithText(FilledButton, 'Scan SMS now'), 500);
+    await tester.tap(find.widgetWithText(FilledButton, 'Scan SMS now'));
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+    final dialog = find.textContaining('from SMS?');
+    final empty = find.text('No new bank/wallet SMS found.');
+    final needPerm = find.textContaining('SMS permission needed');
+    expect(
+      dialog.evaluate().isNotEmpty ||
+          empty.evaluate().isNotEmpty ||
+          needPerm.evaluate().isNotEmpty,
+      isTrue,
+      reason: 'expected candidates dialog, empty notice, or permission notice',
+    );
+    // ignore: avoid_print
+    print('SMS FLOW: dialog=${dialog.evaluate().isNotEmpty} '
+        'empty=${empty.evaluate().isNotEmpty} '
+        'needPerm=${needPerm.evaluate().isNotEmpty}');
+  });
 }
