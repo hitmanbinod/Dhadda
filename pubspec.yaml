@@ -56,6 +56,9 @@ dependencies:
   flutter_timezone: ^5.1.0
   flutter_slidable: ^4.0.3
   flutter_zxing: ^3.0.1
+  drift: ^2.34.4
+  path_provider: ^2.1.6
+  path: ^1.9.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -67,6 +70,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
+  drift_dev: ^2.34.6
+  build_runner: ^2.16.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -109,7 +109,7 @@
 
 - Maintainer-requested UI polish batch (bigger/aligned overview calendar, remove pie
   long-press hint, category-chart/Add-button reorder, logical icon packs, expansion-tile
-  animation refinement, redesigned accent picker) — requested work, NOT in code.
+  animation refinement, redesigned accent picker) — requested work, NOT in code, Backup / Export / Import should be directly accessible from the main app menu, not buried inside Sync.
 - No `integration_test/` directory. No iOS target (`flutter_launcher_icons: ios: false`).
 
 ---
