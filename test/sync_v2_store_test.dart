@@ -670,7 +670,8 @@ void main() {
     expect(await s.importSnapshotV2(s.exportSnapshotV2()), 'Already in sync.');
   });
 
-  test('bulk 300 merge converges quickly', () async {    final dba = await _Db.open('bulk-a');
+  test('bulk 300 merge converges quickly', () async {
+    final dba = await _Db.open('bulk-a');
     final dbb = await _Db.open('bulk-b');
     try {
       final a = await _store(dba.backend, 'devA');
@@ -710,25 +711,25 @@ void main() {
   });
 
   DomainData syntheticData(int n, String prefix) => DomainData(
-        categories: const [
-          Category(id: 'c0', name: 'C0', icon: 0, color: 0xFF000000),
-          Category(id: 'other', name: 'Other', icon: 0, color: 0xFF000000),
-        ],
-        transactions: [
-          for (var i = 0; i < n; i++)
-            Txn(
-              id: '$prefix-$i',
-              type: i % 10 == 0 ? 'income' : 'expense',
-              amount: i * 1.25 + 0.5,
-              categoryId: 'c0',
-              date: 1788220800000 + i * 60000,
-              note: 'note $i',
-              mode: 'cash',
-            ),
-        ],
-        loans: const [],
-        projects: const [],
-      );
+    categories: const [
+      Category(id: 'c0', name: 'C0', icon: 0, color: 0xFF000000),
+      Category(id: 'other', name: 'Other', icon: 0, color: 0xFF000000),
+    ],
+    transactions: [
+      for (var i = 0; i < n; i++)
+        Txn(
+          id: '$prefix-$i',
+          type: i % 10 == 0 ? 'income' : 'expense',
+          amount: i * 1.25 + 0.5,
+          categoryId: 'c0',
+          date: 1788220800000 + i * 60000,
+          note: 'note $i',
+          mode: 'cash',
+        ),
+    ],
+    loans: const [],
+    projects: const [],
+  );
 
   test('synthetic 1k/5k merges stay feasible (timing observation)', () async {
     final dba = await _Db.open('perf-a');
@@ -738,9 +739,15 @@ void main() {
         final stopwatch = Stopwatch()..start();
         // Disjoint record sets: worst case for union work.
         await dba.backend.applyV2(
-            data: syntheticData(n, 'a'), meta: {}, tombs: const []);
+          data: syntheticData(n, 'a'),
+          meta: {},
+          tombs: const [],
+        );
         await dbb.backend.applyV2(
-            data: syntheticData(n, 'b'), meta: {}, tombs: const []);
+          data: syntheticData(n, 'b'),
+          meta: {},
+          tombs: const [],
+        );
         // Marker preset: loads read the synthetic databases as-is.
         SharedPreferences.setMockInitialValues({
           'expense_db_migrated_v1': 1,
@@ -765,5 +772,38 @@ void main() {
       await dbb.dispose();
     }
   });
-}
 
+  test('both restart then exchange stays quiet', () async {
+    final dba = await _Db.open('restart-a');
+    final dbb = await _Db.open('restart-b');
+    try {
+      final a = await _store(dba.backend, 'devA');
+      final b = await _store(dbb.backend, 'devB', resetMocks: false);
+      await _addTxn(a, 'A1', 10);
+      await _addTxn(b, 'B1', 20);
+      await b.importSnapshotV2(a.exportSnapshotV2());
+      await a.importSnapshotV2(b.exportSnapshotV2());
+      // Restart both (real close + reopen); mocks keep markers.
+      final a2 = ExpenseStore(domainOverride: await dba.relaunch());
+      await a2.load();
+      a2.deviceId = 'devA';
+      final b2 = ExpenseStore(domainOverride: await dbb.relaunch());
+      await b2.load();
+      b2.deviceId = 'devB';
+      expect(a2.transactions.map((t) => t.note), containsAll(['A1', 'B1']));
+      expect(b2.transactions.map((t) => t.note), containsAll(['A1', 'B1']));
+      // Post-restart exchange: zero further logical changes.
+      expect(
+        await a2.importSnapshotV2(b2.exportSnapshotV2()),
+        'Already in sync.',
+      );
+      expect(
+        await b2.importSnapshotV2(a2.exportSnapshotV2()),
+        'Already in sync.',
+      );
+    } finally {
+      await dba.dispose();
+      await dbb.dispose();
+    }
+  });
+}
