@@ -8,6 +8,7 @@ class HostSession {
 
 Future<HostSession> startSendServer({
   required String Function() currentSnapshot,
+  String Function()? currentSnapshotV2,
   required void Function(String snapshotJson) onUpload,
   required String pin,
 }) async {

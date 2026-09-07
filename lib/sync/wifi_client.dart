@@ -34,6 +34,21 @@ class WifiClient {
     return res.body;
   }
 
+  /// v2 snapshot when the sender has one; null on 404 (v1-only sender).
+  /// Callers fall back to [fetchRemoteSnapshot] + compat merge.
+  static Future<String?> fetchRemoteSnapshotV2(
+      String baseUrl, String pin) async {
+    final res = await http
+        .get(Uri.parse('$baseUrl/snapshot-v2'), headers: _h(pin))
+        .timeout(const Duration(seconds: 20));
+    if (res.statusCode == 403) throw const FormatException('Wrong PIN.');
+    if (res.statusCode == 404) return null;
+    if (res.statusCode != 200) {
+      throw FormatException('Sender replied ${res.statusCode}.');
+    }
+    return res.body;
+  }
+
   static Future<void> pushLocalSnapshot(
       String baseUrl, String pin, String snapshotJson) async {
     final res = await http

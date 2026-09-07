@@ -74,7 +74,7 @@ class _MenuScreenState extends State<MenuScreen> {
     final raw = await FileSync.importJson();
     if (raw == null) return; // cancelled
     if (!context.mounted) return;
-    final msg = await store.importSnapshotString(raw);
+    final msg = await store.importFilePayload(raw);
     store.noteSynced();
     _say(msg);
   }

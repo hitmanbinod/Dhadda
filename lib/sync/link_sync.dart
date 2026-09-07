@@ -3,12 +3,14 @@ import 'dart:async';
 import '../store.dart';
 import 'relay_client.dart';
 
-DateTime _epoch() => DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-
 /// Keeps linked devices converged for as long as the app is open:
 /// pushes on every local change (debounced) and polls the relay
-/// mailbox every 15 seconds. Newer snapshot always wins, so the
-/// two sides can never ping-pong.
+/// mailbox every 15 seconds.
+///
+/// Phase 4: peers merge by record revision (v2 payloads, or v1 payloads
+/// converted to baseline rev-0 records), so independent offline edits on
+/// both sides union instead of clobbering. The two sides still cannot
+/// ping-pong: merging is idempotent, and pushes carry the merged result.
 class LinkEngine {
   final ExpenseStore store;
   Timer? _poll;
@@ -57,7 +59,7 @@ class LinkEngine {
     _lastPushedAt = updatedAt;
   }
 
-  /// One full cycle: pull peers, take anything newer, announce self.
+  /// One full cycle: merge every peer in, announce the union.
   /// Returns a short human message for snackbars.
   Future<String> syncNow() async {
     if (!store.linked) return 'Not linked yet.';
@@ -74,20 +76,24 @@ class LinkEngine {
         pin: store.linkPin,
         deviceId: store.deviceId,
       );
-      LinkPeer? best;
+      String? firstMsg;
       for (final p in peers) {
-        if (p.snapshot.isEmpty) continue;
-        if (best == null || p.timeValue.isAfter(best.timeValue)) {
-          best = p;
+        // v2 payload supersedes v1 (same state, with revisions); v1-only
+        // peers (or old relays that drop the field) merge as baseline.
+        final raw = p.snapshotV2.isNotEmpty ? p.snapshotV2 : p.snapshot;
+        if (raw.isEmpty) continue;
+        try {
+          final m = await store.ingestPeerSnapshot(raw, peerName: p.name);
+          if (m.startsWith('Synced') && firstMsg == null) firstMsg = m;
+        } catch (_) {
+          // Malformed peer slot: skip it, keep syncing with the rest.
         }
       }
-      final localTime = DateTime.tryParse(store.updatedAt) ?? _epoch();
-      if (best != null && best.timeValue.isAfter(localTime)) {
-        final msg = await store.importSnapshotString(best.snapshot);
+      if (firstMsg != null) {
         store.noteSynced();
         await _announce(client);
-        store.setLinkStatus('Synced with ${best.name}.');
-        return msg;
+        store.setLinkStatus('Synced.');
+        return firstMsg;
       }
       if (store.updatedAt != _lastPushedAt) {
         await _announce(client);
@@ -119,6 +125,7 @@ class LinkEngine {
       pin: store.linkPin,
       deviceId: store.deviceId,
       snapshot: store.exportJson(),
+      snapshotV2: store.exportSnapshotV2(),
       name: store.deviceName,
       time: store.updatedAt,
     );

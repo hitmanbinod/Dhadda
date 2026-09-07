@@ -195,20 +195,24 @@ class QrV2 {
 }
 
 /// One slot in a persistent link mailbox (someone else's latest state).
+/// [snapshotV2] is empty for v1-only peers/relays (old relays drop it).
 class LinkPeer {
   final String deviceId;
   final String snapshot;
+  final String snapshotV2;
   final String name;
   final String time;
   const LinkPeer(
       {required this.deviceId,
       required this.snapshot,
+      this.snapshotV2 = '',
       required this.name,
       required this.time});
 
   factory LinkPeer.fromJson(Map<String, dynamic> j) => LinkPeer(
         deviceId: '${j['deviceId'] ?? ''}',
         snapshot: '${j['snapshot'] ?? ''}',
+        snapshotV2: '${j['snapshotV2'] ?? ''}',
         name: '${j['name'] ?? 'device'}',
         time: '${j['time'] ?? ''}',
       );
@@ -241,10 +245,13 @@ class LinkClient {
   /// Create a mailbox holding this device's snapshot.
   /// Returns the link id plus the server's own LAN origin, so QR codes
   /// never contain "localhost" (which phones cannot reach).
+  /// [snapshotV2] is sent only when non-empty, so old relays see byte-
+  /// identical payloads to before.
   Future<({String link, String origin})> create(
       {required String pin,
       required String deviceId,
       required String snapshot,
+      String snapshotV2 = '',
       required String name,
       required String time}) async {
     final res = await http
@@ -254,6 +261,7 @@ class LinkClient {
               'pin': pin,
               'deviceId': deviceId,
               'snapshot': snapshot,
+              if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
               'name': name,
               'time': time,
             }))
@@ -269,6 +277,7 @@ class LinkClient {
       required String pin,
       required String deviceId,
       required String snapshot,
+      String snapshotV2 = '',
       required String name,
       required String time}) async {
     final res = await http
@@ -279,6 +288,7 @@ class LinkClient {
               'pin': pin,
               'deviceId': deviceId,
               'snapshot': snapshot,
+              if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
               'name': name,
               'time': time,
             }))

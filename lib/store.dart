@@ -1471,6 +1471,14 @@ class ExpenseStore extends ChangeNotifier {
     return importSnapshotString(list[index], force: true);
   }
 
+  /// User-picked file import: v2 payloads merge by revision; v1 payloads
+  /// whole-replace with tombstones dropped for imported ids (preserves the
+  /// file-restore UX: file content appears after import).
+  Future<String> importFilePayload(String raw) {
+    if (V2Snapshot.detectFormat(raw) == 2) return importSnapshotV2(raw);
+    return importSnapshotString(raw, dropTombstonesForPresent: true);
+  }
+
   // ---------- Snapshot v2 (record-level sync) ----------
 
   static Map<String, dynamic> _catContent(Category c, int order) => {

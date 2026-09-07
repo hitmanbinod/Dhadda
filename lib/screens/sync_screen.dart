@@ -99,6 +99,7 @@ class _SyncScreenState extends State<SyncScreen> {
         pin: pin,
         deviceId: store.deviceId,
         snapshot: store.exportJson(),
+        snapshotV2: store.exportSnapshotV2(),
         name: store.deviceName,
         time: store.updatedAt,
       );
@@ -158,9 +159,9 @@ class _SyncScreenState extends State<SyncScreen> {
     }
   }
 
-  /// Merges the other side's newest slot (if newer), announces our own
-  /// slot, and saves the pairing. Identical logic on both sides, so a
-  /// single scan converges the pair no matter who was newer.
+  /// Merges every peer slot (v2 when present, else v1-as-baseline),
+  /// announces our union, and saves the pairing. Identical logic on both
+  /// sides, so a single scan converges the pair no matter who changed what.
   Future<String> _adoptPeers(
     LinkClient client,
     String link,
@@ -168,20 +169,21 @@ class _SyncScreenState extends State<SyncScreen> {
     List<LinkPeer> peers,
   ) async {
     final store = context.read<ExpenseStore>();
-    LinkPeer? best;
+    String? firstMsg;
+    String peerName = 'other device';
+    var sawPeer = false;
     for (final p in peers) {
-      if (p.snapshot.isEmpty) continue;
-      if (best == null || p.timeValue.isAfter(best.timeValue)) {
-        best = p;
+      final raw = p.snapshotV2.isNotEmpty ? p.snapshotV2 : p.snapshot;
+      if (raw.isEmpty) continue;
+      if (!sawPeer) {
+        sawPeer = true;
+        peerName = p.name;
       }
-    }
-    String msg = 'Paired - both will stay in sync now.';
-    if (best != null) {
-      final localTime =
-          DateTime.tryParse(store.updatedAt) ??
-          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
-      if (best.timeValue.isAfter(localTime)) {
-        msg = await store.importSnapshotString(best.snapshot);
+      try {
+        final m = await store.ingestPeerSnapshot(raw, peerName: p.name);
+        if (m.startsWith('Synced') && firstMsg == null) firstMsg = m;
+      } catch (_) {
+        // Malformed peer slot: skip it, keep converging with the rest.
       }
     }
     await client.push(
@@ -189,14 +191,15 @@ class _SyncScreenState extends State<SyncScreen> {
       pin: pin,
       deviceId: store.deviceId,
       snapshot: store.exportJson(),
+      snapshotV2: store.exportSnapshotV2(),
       name: store.deviceName,
       time: store.updatedAt,
     );
     await store.setRelayOrigin(client.origin);
-    await store.setLink(id: link, pin: pin, peer: best?.name ?? 'other device');
+    await store.setLink(id: link, pin: pin, peer: peerName);
     store.noteSynced();
     _engine?.markAnnounced(store.updatedAt);
-    return msg;
+    return firstMsg ?? 'Paired - both will stay in sync now.';
   }
 
   /// Stops showing our code. Keeps the mailbox if it became our live
@@ -408,7 +411,7 @@ class _SyncScreenState extends State<SyncScreen> {
     if (raw == null) return; // cancelled
     if (!mounted) return;
     final store = context.read<ExpenseStore>();
-    final msg = await store.importSnapshotString(raw);
+    final msg = await store.importFilePayload(raw);
     store.noteSynced();
     _say(msg);
   }
@@ -424,8 +427,11 @@ class _SyncScreenState extends State<SyncScreen> {
     try {
       final s = await startSendServer(
         currentSnapshot: store.exportJson,
+        currentSnapshotV2: store.exportSnapshotV2,
         onUpload: (body) async {
-          await store.importSnapshotString(body, force: true);
+          // Uniform ingest: v2 merges by revision, v1 converts to
+          // baseline rev-0 records and merges the same way. Never replaces.
+          await store.ingestPeerSnapshot(body);
           store.noteSynced();
         },
         pin: pin,
@@ -472,17 +478,28 @@ class _SyncScreenState extends State<SyncScreen> {
     setState(() => _busy = true);
     try {
       final store = context.read<ExpenseStore>();
-      final remoteMeta = await WifiClient.fetchRemoteMeta(url, pin);
-      final localTime =
-          DateTime.tryParse(store.updatedAt) ??
-          DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+      // v2-capable sender: merge by revision both ways in one tap (our
+      // union goes back so the sender converges too). The sender proved
+      // v2-capable by serving it, so the v2 POST below is safe.
+      final v2body = await WifiClient.fetchRemoteSnapshotV2(url, pin);
       String msg;
-      if (remoteMeta != null && remoteMeta.isAfter(localTime)) {
-        final body = await WifiClient.fetchRemoteSnapshot(url, pin);
-        msg = await store.importSnapshotString(body);
+      if (v2body != null) {
+        msg = await store.ingestPeerSnapshot(v2body);
+        await WifiClient.pushLocalSnapshot(
+            url, pin, store.exportSnapshotV2());
       } else {
-        await WifiClient.pushLocalSnapshot(url, pin, store.exportJson());
-        msg = 'This device was newer - sent it to the other device.';
+        // v1-only sender: legacy meta-compare flow, v1 bytes only.
+        final remoteMeta = await WifiClient.fetchRemoteMeta(url, pin);
+        final localTime =
+            DateTime.tryParse(store.updatedAt) ??
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+        if (remoteMeta != null && remoteMeta.isAfter(localTime)) {
+          final body = await WifiClient.fetchRemoteSnapshot(url, pin);
+          msg = await store.ingestPeerSnapshot(body);
+        } else {
+          await WifiClient.pushLocalSnapshot(url, pin, store.exportJson());
+          msg = 'This device was newer - sent it to the other device.';
+        }
       }
       store.noteSynced();
       _say(msg);

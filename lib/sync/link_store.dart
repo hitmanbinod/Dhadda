@@ -1,12 +1,17 @@
 import 'dart:math';
 
 /// One device's latest state inside a link mailbox.
+/// [snapshotV2] carries the record-level sync encoding alongside the legacy
+/// v1 [snapshot]; empty when the peer is v1-only. Relays treat both as
+/// opaque strings.
 class LinkSlot {
   String snapshot;
+  String snapshotV2;
   String name;
   String time;
   LinkSlot(
       {required this.snapshot,
+      this.snapshotV2 = '',
       required this.name,
       required this.time});
 }
@@ -65,6 +70,7 @@ class LinkStore {
       {required String pin,
       required String deviceId,
       required String snapshot,
+      String snapshotV2 = '',
       required String name,
       required String time}) {
     if (!_validPin(pin) || deviceId.isEmpty || snapshot.isEmpty) {
@@ -81,8 +87,8 @@ class LinkStore {
     }
     final id = _nid();
     final box = _Box(pin: pin, now: _clock());
-    box.slots[deviceId] =
-        LinkSlot(snapshot: snapshot, name: name, time: time);
+    box.slots[deviceId] = LinkSlot(
+        snapshot: snapshot, snapshotV2: snapshotV2, name: name, time: time);
     _boxes[id] = box;
     return id;
   }
@@ -102,6 +108,7 @@ class LinkStore {
       required String pin,
       required String deviceId,
       required String snapshot,
+      String snapshotV2 = '',
       required String name,
       required String time}) {
     final b = _get(id);
@@ -110,8 +117,8 @@ class LinkStore {
     if (deviceId.isEmpty || snapshot.isEmpty) {
       return LinkOutcome.badInput;
     }
-    b.slots[deviceId] =
-        LinkSlot(snapshot: snapshot, name: name, time: time);
+    b.slots[deviceId] = LinkSlot(
+        snapshot: snapshot, snapshotV2: snapshotV2, name: name, time: time);
     b.touched = _clock();
     return LinkOutcome.ok;
   }

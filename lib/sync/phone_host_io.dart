@@ -126,6 +126,7 @@ Future<PhoneHostSession> startPhoneHost() async {
       pin: '${b['pin'] ?? ''}',
       deviceId: '${b['deviceId'] ?? ''}',
       snapshot: '${b['snapshot'] ?? ''}',
+      snapshotV2: '${b['snapshotV2'] ?? ''}',
       name: '${b['name'] ?? 'device'}',
       time: '${b['time'] ?? ''}',
     );
@@ -145,6 +146,7 @@ Future<PhoneHostSession> startPhoneHost() async {
       pin: '${b['pin'] ?? ''}',
       deviceId: '${b['deviceId'] ?? ''}',
       snapshot: '${b['snapshot'] ?? ''}',
+      snapshotV2: '${b['snapshotV2'] ?? ''}',
       name: '${b['name'] ?? 'device'}',
       time: '${b['time'] ?? ''}',
     );
@@ -170,6 +172,7 @@ Future<PhoneHostSession> startPhoneHost() async {
               {
                 'deviceId': e.key,
                 'snapshot': e.value.snapshot,
+                'snapshotV2': e.value.snapshotV2,
                 'name': e.value.name,
                 'time': e.value.time,
               },

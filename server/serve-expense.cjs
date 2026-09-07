@@ -117,7 +117,10 @@ async function api(req, res) {
     if (typeof b.deviceId !== "string" || !b.deviceId.length) return apiSend(res, 400, {error: "bad device"});
     if (links.size >= 50) { const oldest = [...links.entries()].sort((a, c) => a[1].touched - c[1].touched)[0]; links.delete(oldest[0]); }
     const id = lid();
-    const slot = {snapshot: b.snapshot, name: String(b.name || "device"), time: String(b.time || "")};
+    // snapshotV2 is opaque record-level state alongside the v1 snapshot.
+    // Old clients omit it; old relays drop it; both degrade to v1 merge.
+    const v2 = typeof b.snapshotV2 === "string" ? b.snapshotV2 : "";
+    const slot = {snapshot: b.snapshot, snapshotV2: v2, name: String(b.name || "device"), time: String(b.time || "")};
     const now = Date.now();
     links.set(id, {pin: b.pin, slots: {[b.deviceId]: slot}, created: now, touched: now});
     return apiSend(res, 200, {link: id, origin: lanOrigin(req)});
@@ -129,7 +132,7 @@ async function api(req, res) {
     if (b.pin !== l.pin) return apiSend(res, 403, {error: "wrong pin"});
     if (typeof b.deviceId !== "string" || !b.deviceId.length) return apiSend(res, 400, {error: "bad device"});
     if (typeof b.snapshot !== "string" || !b.snapshot.length) return apiSend(res, 400, {error: "bad snapshot"});
-    l.slots[b.deviceId] = {snapshot: b.snapshot, name: String(b.name || "device"), time: String(b.time || "")};
+    l.slots[b.deviceId] = {snapshot: b.snapshot, snapshotV2: typeof b.snapshotV2 === "string" ? b.snapshotV2 : "", name: String(b.name || "device"), time: String(b.time || "")};
     l.touched = Date.now();
     return apiSend(res, 200, {ok: true});
   }
@@ -141,7 +144,7 @@ async function api(req, res) {
     const me = u.searchParams.get("deviceId") || "";
     const peers = Object.entries(l.slots)
       .filter(([id]) => id !== me)
-      .map(([deviceId, s]) => ({deviceId, snapshot: s.snapshot, name: s.name, time: s.time}));
+      .map(([deviceId, s]) => ({deviceId, snapshot: s.snapshot, snapshotV2: s.snapshotV2 || "", name: s.name, time: s.time}));
     return apiSend(res, 200, {peers});
   }
   if (req.method === "POST" && u.pathname === "/api/sync/unlink") {

@@ -10,6 +10,12 @@ import 'package:shelf_router/shelf_router.dart';
 /// The receiver fetches GET /meta, then GET /snapshot (pull) or
 /// POST /snapshot (push its newer snapshot). Guarded by a 6-digit PIN
 /// header. Auto-closes after 5 minutes.
+///
+/// Phase 4: v2-capable senders also serve GET /snapshot-v2 (record-level
+/// state). Old receivers never call it; new receivers fall back to
+/// /snapshot when it 404s. POST /snapshot accepts either encoding; the
+/// receiver only POSTs v2 to senders that proved v2-capable, so old
+/// senders (whose whole-replace import would misread v2) never see it.
 class HostSession {
   final String url;
   final String pin;
@@ -56,6 +62,7 @@ Future<String> _lanIp() async {
 
 Future<HostSession> startSendServer({
   required String Function() currentSnapshot,
+  String Function()? currentSnapshotV2,
   required void Function(String snapshotJson) onUpload,
   required String pin,
 }) async {
@@ -82,6 +89,18 @@ Future<HostSession> startSendServer({
           headers: _cors());
     }
     return Response.ok(currentSnapshot(), headers: _cors());
+  });
+  router.get('/snapshot-v2', (Request req) {
+    if (!authed(req)) {
+      return Response.forbidden(jsonEncode({'error': 'bad pin'}),
+          headers: _cors());
+    }
+    final v2 = currentSnapshotV2?.call();
+    if (v2 == null || v2.isEmpty) {
+      return Response.notFound(jsonEncode({'error': 'no v2'}),
+          headers: _cors());
+    }
+    return Response.ok(v2, headers: _cors());
   });
   router.post('/snapshot', (Request req) async {
     if (!authed(req)) {
