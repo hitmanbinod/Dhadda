@@ -208,7 +208,12 @@ class _RootShellState extends State<RootShell>
         localizedReason: 'Unlock Expense',
         biometricOnly: true,
       );
-      if (ok && mounted) setState(() => _locked = false);
+      // Biometric success proves the user: reset PIN-failure delays too.
+      if (ok && mounted) {
+        final v = _vault;
+        if (v != null) await PinThrottle(v.prefs).recordSuccess();
+        if (mounted) setState(() => _locked = false);
+      }
     } catch (_) {
       // No biometrics enrolled - the PIN pad stays.
     }

@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import '../security.dart';
 
 /// 4-digit PIN gate. Auto-verifies the moment the 4th digit lands -
-/// no Unlock button to hunt for.
+/// no Unlock button to hunt for. Failed attempts progressively delay the
+/// next try ([PinThrottle]); the delay survives app restart.
 class LockScreen extends StatefulWidget {
   final PinVault vault;
   final VoidCallback onUnlock;
+
+  /// Injected for tests (fake clock). Defaults to a prefs-backed instance.
+  final PinThrottle? throttle;
   const LockScreen(
-      {super.key, required this.vault, required this.onUnlock});
+      {super.key, required this.vault, required this.onUnlock, this.throttle});
 
   @override
   State<LockScreen> createState() => _LockScreenState();
@@ -36,19 +40,42 @@ class _LockScreenState extends State<LockScreen> {
     });
   }
 
+  String _waitText(Duration wait) {
+    final s = (wait.inMilliseconds + 999) ~/ 1000;
+    return 'Try again in ${s}s';
+  }
+
   Future<void> _tryUnlock() async {
     setState(() => _checking = true);
     // Let the 4th dot paint before verifying.
     await Future<void>.delayed(const Duration(milliseconds: 150));
+    final t = widget.throttle ?? PinThrottle(widget.vault.prefs);
+    final wait = t.delayRemaining();
+    if (!mounted) return;
+    if (wait > Duration.zero) {
+      setState(() {
+        _checking = false;
+        _error = _waitText(wait);
+        _pin = '';
+      });
+      return;
+    }
     final ok = widget.vault.verify(_pin);
     if (!mounted) return;
     if (ok) {
+      await t.recordSuccess();
+      if (!mounted) return;
       widget.onUnlock();
       return;
     }
+    await t.recordFailure();
+    if (!mounted) return;
+    final next = t.delayRemaining();
     setState(() {
       _checking = false;
-      _error = 'Wrong PIN - try again';
+      _error = next > Duration.zero
+          ? 'Wrong PIN - ${_waitText(next).toLowerCase()}'
+          : 'Wrong PIN - try again';
       _pin = '';
     });
   }

@@ -551,7 +551,13 @@ class _MenuScreenState extends State<MenuScreen> {
   Future<void> _changePin(PinVault vault) async {
     final cur = await _askPin('Current PIN');
     if (cur == null || !mounted) return;
+    final throttle = PinThrottle(vault.prefs);
+    if (throttle.delayRemaining() > Duration.zero) {
+      _say('Too many attempts - try again shortly.');
+      return;
+    }
     if (!vault.verify(cur)) {
+      await throttle.recordFailure();
       _say('Wrong PIN.');
       return;
     }
@@ -571,7 +577,13 @@ class _MenuScreenState extends State<MenuScreen> {
   Future<void> _disablePin(PinVault vault) async {
     final cur = await _askPin('Current PIN to disable lock');
     if (cur == null || !mounted) return;
+    final throttle = PinThrottle(vault.prefs);
+    if (throttle.delayRemaining() > Duration.zero) {
+      _say('Too many attempts - try again shortly.');
+      return;
+    }
     if (!vault.verify(cur)) {
+      await throttle.recordFailure();
       _say('Wrong PIN.');
       return;
     }
