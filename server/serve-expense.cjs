@@ -52,6 +52,47 @@ setInterval(() => {
   for (const [id, l] of links) if (now - l.touched > LINK_TTL_MS) links.delete(id);
 }, 60000).unref();
 
+// ---- Phase 5: LAN PIN throttling (in-memory, bounded) ----
+// Same policy as the Dart servers: 10 free PIN failures, then HTTP 429
+// with Retry-After for 60 s; any success resets. Global bucket for the
+// (single-PIN) offer/session flow, per-box buckets for link boxes
+// (boxes already cap at 50 with TTL: no attacker-growable state).
+// Counts wrong-PIN attempts only (403s), never mere 404s.
+const THROTTLE_FREE = 10;
+const THROTTLE_COOLDOWN_MS = 60000;
+const _buckets = new Map(); // scope -> {fails, windowStart}
+function _throttleScope(scope) {
+  let b = _buckets.get(scope);
+  const now = Date.now();
+  if (!b) { b = {fails: 0, windowStart: now}; _buckets.set(scope, b); }
+  if (now - b.windowStart > THROTTLE_COOLDOWN_MS) { b.fails = 0; b.windowStart = now; }
+  if (_buckets.size > 512) _buckets.clear();
+  return b;
+}
+function throttleAllowed(scope) {
+  const b = _throttleScope(scope);
+  if (b.fails < THROTTLE_FREE) return true;
+  return Date.now() - b.windowStart >= THROTTLE_COOLDOWN_MS;
+}
+function throttleRetryAfter(scope) {
+  const b = _throttleScope(scope);
+  const remain = THROTTLE_COOLDOWN_MS - (Date.now() - b.windowStart);
+  return Math.max(1, Math.ceil(remain / 1000));
+}
+function throttleFailed(scope) {
+  const b = _throttleScope(scope);
+  const now = Date.now();
+  if (now - b.windowStart > THROTTLE_COOLDOWN_MS) { b.fails = 1; b.windowStart = now; }
+  else { b.fails++; b.windowStart = now; }
+  if (_buckets.size > 512) _buckets.clear();
+}
+function throttlePassed(scope) { _buckets.delete(scope); }
+function throttleDeny(res, scope) {
+  res.writeHead(429, {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Retry-After": String(throttleRetryAfter(scope))});
+  res.end(JSON.stringify({error: "rate limited, retry later"}));
+  return true;
+}
+
 function readJson(req, max) {
   max = max || 6 * 1024 * 1024;
   return new Promise((resolve, reject) => {
@@ -98,14 +139,26 @@ async function api(req, res) {
   if (req.method === "GET" && u.pathname === "/api/sync/session") {
     const s = getSession(u.searchParams.get("id") || "");
     if (!s) return apiSend(res, 404, {error: "expired"});
-    if (u.searchParams.get("pin") !== s.pin) return apiSend(res, 403, {error: "wrong pin"});
+    const scope = "sess:" + (u.searchParams.get("id") || "");
+    if (u.searchParams.get("pin") !== s.pin) {
+      if (!throttleAllowed(scope)) return throttleDeny(res, scope);
+      throttleFailed(scope);
+      return apiSend(res, 403, {error: "wrong pin"});
+    }
+    throttlePassed(scope);
     return apiSend(res, 200, {stage: s.answer ? "done" : "waiting", offer: s.offer, answer: s.answer});
   }
   if (req.method === "POST" && u.pathname === "/api/sync/answer") {
     const b = await readJson(req);
     const s = getSession(b.session || "");
     if (!s) return apiSend(res, 404, {error: "expired"});
-    if (b.pin !== s.pin) return apiSend(res, 403, {error: "wrong pin"});
+    const scope = "sess:" + (b.session || "");
+    if (b.pin !== s.pin) {
+      if (!throttleAllowed(scope)) return throttleDeny(res, scope);
+      throttleFailed(scope);
+      return apiSend(res, 403, {error: "wrong pin"});
+    }
+    throttlePassed(scope);
     if (s.answer) return apiSend(res, 410, {error: "already answered"});
     s.answer = {snapshot: typeof b.snapshot === "string" ? b.snapshot : null, name: String(b.name || "device"), time: String(b.time || "")};
     return apiSend(res, 200, {ok: true});
@@ -129,7 +182,13 @@ async function api(req, res) {
     const b = await readJson(req);
     const l = links.get(b.link || "");
     if (!l || Date.now() - l.touched > LINK_TTL_MS) { links.delete(b.link || ""); return apiSend(res, 404, {error: "link gone - pair again"}); }
-    if (b.pin !== l.pin) return apiSend(res, 403, {error: "wrong pin"});
+    const pushScope = "box:" + (b.link || "");
+    if (b.pin !== l.pin) {
+      if (!throttleAllowed(pushScope)) return throttleDeny(res, pushScope);
+      throttleFailed(pushScope);
+      return apiSend(res, 403, {error: "wrong pin"});
+    }
+    throttlePassed(pushScope);
     if (typeof b.deviceId !== "string" || !b.deviceId.length) return apiSend(res, 400, {error: "bad device"});
     if (typeof b.snapshot !== "string" || !b.snapshot.length) return apiSend(res, 400, {error: "bad snapshot"});
     l.slots[b.deviceId] = {snapshot: b.snapshot, snapshotV2: typeof b.snapshotV2 === "string" ? b.snapshotV2 : "", name: String(b.name || "device"), time: String(b.time || "")};
@@ -139,7 +198,13 @@ async function api(req, res) {
   if (req.method === "GET" && u.pathname === "/api/sync/pull") {
     const l = links.get(u.searchParams.get("link") || "");
     if (!l || Date.now() - l.touched > LINK_TTL_MS) { links.delete(u.searchParams.get("link") || ""); return apiSend(res, 404, {error: "link gone - pair again"}); }
-    if (u.searchParams.get("pin") !== l.pin) return apiSend(res, 403, {error: "wrong pin"});
+    const pullScope = "box:" + (u.searchParams.get("link") || "");
+    if (u.searchParams.get("pin") !== l.pin) {
+      if (!throttleAllowed(pullScope)) return throttleDeny(res, pullScope);
+      throttleFailed(pullScope);
+      return apiSend(res, 403, {error: "wrong pin"});
+    }
+    throttlePassed(pullScope);
     l.touched = Date.now();
     const me = u.searchParams.get("deviceId") || "";
     const peers = Object.entries(l.slots)

@@ -242,6 +242,10 @@ class LinkClient {
     if (res.statusCode == 404) {
       throw const FormatException('Link gone - pair again.');
     }
+    if (res.statusCode == 429) {
+      throw const FormatException(
+          'Relay is rate-limiting guesses - wait a minute and retry.');
+    }
     throw FormatException('Relay error (${res.statusCode}).');
   }
 

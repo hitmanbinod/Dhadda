@@ -8,6 +8,8 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
+import 'http_limits.dart';
+import 'lan_throttle.dart';
 import 'link_store.dart';
 
 /// A serving session of the phone-hosted app.
@@ -66,14 +68,22 @@ Future<String> phoneLanIp() async {
   }
 }
 
-Response _json(int code, Map<String, dynamic> obj) => Response(
-  code,
-  body: jsonEncode(obj),
-  headers: {
+Response _json(int code, Map<String, dynamic> obj,
+    [Map<String, String>? extraHeaders]) {
+  final headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-  },
-);
+    ...?extraHeaders,
+  };
+  return Response(code, body: jsonEncode(obj), headers: headers);
+}
+
+/// HTTP 429 with Retry-After for throttled scopes.
+Response _rateLimited(LanThrottle throttle, String scope) => _json(
+      429,
+      {'error': 'rate limited, retry later'},
+      {'Retry-After': '${throttle.remaining(scope).inSeconds + 1}'},
+    );
 
 /// Serves the bundled web UI plus the link-sync API on your WiFi, so
 /// any same-network browser can open the tracker straight from
@@ -81,6 +91,9 @@ Response _json(int code, Map<String, dynamic> obj) => Response(
 Future<PhoneHostSession> startPhoneHost() async {
   final mail = LinkStore();
   final hits = ValueNotifier<int>(0);
+  // LAN PIN throttle: per link box (boxes already cap at 50 with TTL, so
+  // no attacker-growable state). Static assets and /api/ping stay public.
+  final throttle = LanThrottle();
   var base = '';
 
   void bump() {
@@ -119,7 +132,9 @@ Future<PhoneHostSession> startPhoneHost() async {
   router.post('/api/sync/link', (Request req) async {
     Map<String, dynamic> b;
     try {
-      b = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
+      b = jsonDecode(await readCappedBody(req)) as Map<String, dynamic>;
+    } on BodyTooBig {
+      return _json(413, {'error': 'too big'});
     } catch (_) {
       return _json(400, {'error': 'bad json'});
     }
@@ -127,7 +142,7 @@ Future<PhoneHostSession> startPhoneHost() async {
       pin: '${b['pin'] ?? ''}',
       deviceId: '${b['deviceId'] ?? ''}',
       snapshot: '${b['snapshot'] ?? ''}',
-      snapshotV2: '${b['snapshotV2'] ?? ''}',
+      snapshotV2: b['snapshotV2'] is String ? b['snapshotV2'] as String : '',
       name: '${b['name'] ?? 'device'}',
       time: '${b['time'] ?? ''}',
     );
@@ -137,55 +152,75 @@ Future<PhoneHostSession> startPhoneHost() async {
   router.post('/api/sync/push', (Request req) async {
     Map<String, dynamic> b;
     try {
-      b = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
+      b = jsonDecode(await readCappedBody(req)) as Map<String, dynamic>;
+    } on BodyTooBig {
+      return _json(413, {'error': 'too big'});
     } catch (_) {
       return _json(400, {'error': 'bad json'});
     }
+    final scope = 'box:${b['link'] ?? ''}';
+    if (!throttle.allowed(scope)) return _rateLimited(throttle, scope);
     final r = mail.push(
       id: '${b['link'] ?? ''}',
       pin: '${b['pin'] ?? ''}',
       deviceId: '${b['deviceId'] ?? ''}',
       snapshot: '${b['snapshot'] ?? ''}',
-      snapshotV2: '${b['snapshotV2'] ?? ''}',
+      snapshotV2: b['snapshotV2'] is String ? b['snapshotV2'] as String : '',
       name: '${b['name'] ?? 'device'}',
       time: '${b['time'] ?? ''}',
     );
-    return switch (r) {
-      LinkOutcome.ok => _json(200, {'ok': true}),
-      LinkOutcome.gone => _json(404, {'error': 'link gone - pair again'}),
-      LinkOutcome.forbidden => _json(403, {'error': 'wrong pin'}),
-      LinkOutcome.badInput => _json(400, {'error': 'bad input'}),
-    };
+    switch (r) {
+      case LinkOutcome.ok:
+        throttle.passed(scope);
+        return _json(200, {'ok': true});
+      case LinkOutcome.gone:
+        return _json(404, {'error': 'link gone - pair again'});
+      case LinkOutcome.forbidden:
+        throttle.failed(scope);
+        return _json(403, {'error': 'wrong pin'});
+      case LinkOutcome.badInput:
+        return _json(400, {'error': 'bad input'});
+    }
   });
   router.get('/api/sync/pull', (Request req) {
     final q = req.url.queryParameters;
+    final scope = 'box:${q['link'] ?? ''}';
+    if (!throttle.allowed(scope)) return _rateLimited(throttle, scope);
     final r = mail.pull(
       id: q['link'] ?? '',
       pin: q['pin'] ?? '',
       deviceId: q['deviceId'] ?? '',
     );
-    return switch (r.outcome) {
-      LinkOutcome.ok => _json(200, {
-        'peers': [
-          for (final e in r.peers)
-            {
-              'deviceId': e.key,
-              'snapshot': e.value.snapshot,
-              'snapshotV2': e.value.snapshotV2,
-              'name': e.value.name,
-              'time': e.value.time,
-            },
-        ],
-      }),
-      LinkOutcome.gone => _json(404, {'error': 'link gone - pair again'}),
-      LinkOutcome.forbidden => _json(403, {'error': 'wrong pin'}),
-      LinkOutcome.badInput => _json(400, {'error': 'bad input'}),
-    };
+    switch (r.outcome) {
+      case LinkOutcome.ok:
+        throttle.passed(scope);
+        return _json(200, {
+          'peers': [
+            for (final e in r.peers)
+              {
+                'deviceId': e.key,
+                'snapshot': e.value.snapshot,
+                'snapshotV2': e.value.snapshotV2,
+                'name': e.value.name,
+                'time': e.value.time,
+              },
+          ],
+        });
+      case LinkOutcome.gone:
+        return _json(404, {'error': 'link gone - pair again'});
+      case LinkOutcome.forbidden:
+        throttle.failed(scope);
+        return _json(403, {'error': 'wrong pin'});
+      case LinkOutcome.badInput:
+        return _json(400, {'error': 'bad input'});
+    }
   });
   router.post('/api/sync/unlink', (Request req) async {
     Map<String, dynamic> b = {};
     try {
-      b = jsonDecode(await req.readAsString()) as Map<String, dynamic>;
+      b = jsonDecode(await readCappedBody(req)) as Map<String, dynamic>;
+    } on BodyTooBig {
+      return _json(413, {'error': 'too big'});
     } catch (_) {}
     mail.unlink(id: '${b['link'] ?? ''}', pin: '${b['pin'] ?? ''}');
     return _json(200, {'ok': true});

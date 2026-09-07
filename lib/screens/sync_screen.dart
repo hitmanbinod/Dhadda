@@ -491,14 +491,31 @@ class _SyncScreenState extends State<SyncScreen> {
     setState(() => _busy = true);
     try {
       final store = context.read<ExpenseStore>();
+      // Session bootstrap first (404 = v1-only sender, keep PIN header).
+      // One PIN exchange, then a short-lived token — the PIN no longer
+      // travels on every request.
+      final token =
+          await WifiClient.establishSession(url, pin).catchError((e) {
+        // Old senders have no /auth route; anything else is a real error.
+        if ('$e'.contains('404')) return null;
+        throw e;
+      });
       // v2-capable sender: merge by revision both ways in one tap (our
       // union goes back so the sender converges too). The sender proved
       // v2-capable by serving it, so the v2 POST below is safe.
-      final v2body = await WifiClient.fetchRemoteSnapshotV2(url, pin);
+      final v2body =
+          await WifiClient.fetchRemoteSnapshotV2(url, pin, token: token);
       String msg;
       if (v2body != null) {
         msg = await store.ingestPeerSnapshot(v2body);
-        await WifiClient.pushLocalSnapshot(url, pin, store.exportSnapshotV2());
+        await WifiClient.pushLocalSnapshot(
+            url, pin, store.exportSnapshotV2(),
+            token: token);
+        if (token != null) {
+          try {
+            await WifiClient.logout(url, pin, token);
+          } catch (_) {}
+        }
       } else {
         // v1-only sender: legacy meta-compare flow, v1 bytes only.
         final remoteMeta = await WifiClient.fetchRemoteMeta(url, pin);
@@ -675,6 +692,10 @@ class _SyncScreenState extends State<SyncScreen> {
                     ),
                   ] else ...[
                     const Text('Let the other device scan this:'),
+                    const Text(
+                      'This code + PIN can join your sync while it lives - don’t share its screenshot. Stop when paired.',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     const SizedBox(height: 8),
                     Center(
                       child: Container(
@@ -728,6 +749,10 @@ class _SyncScreenState extends State<SyncScreen> {
                     if (_serve == null) ...[
                       const Text(
                         'Serve this app on your WiFi - open it in any PC browser. Works while this app stays open.',
+                      ),
+                      const Text(
+                        'Use only a network you trust (home WiFi or personal hotspot) - never airport, hotel, or open WiFi.',
+                        style: TextStyle(fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       FilledButton.icon(
@@ -799,6 +824,10 @@ class _SyncScreenState extends State<SyncScreen> {
                         icon: const Icon(Icons.stop),
                         label: const Text('Stop'),
                       ),
+                      const Text(
+                        'Stop serving when done, especially on shared networks.',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ],
                   ],
                 ),
@@ -861,6 +890,10 @@ class _SyncScreenState extends State<SyncScreen> {
                     children: [
                       const Text(
                         'STEP 1 - on the SENDING device tap Send, then on the other device tap Receive. Same WiFi, no internet needed. Server stops after 5 min.',
+                      ),
+                      const Text(
+                        'Trusted networks only (home WiFi or hotspot). The QR holds the address + PIN - don’t forward its screenshot.',
+                        style: TextStyle(fontSize: 12),
                       ),
                       const SizedBox(height: 8),
                       if (_session == null)
