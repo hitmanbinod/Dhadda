@@ -173,6 +173,95 @@ DomainData _synthetic(int n) => DomainData(
   projects: const [],
 );
 
+/// Fails exactly the named DomainStore ops, delegates the rest: proves
+/// persist-or-revert semantics without touching real failure modes.
+class _FailingBackend implements DomainStore {
+  final DomainStore inner;
+  final Set<String> failOps;
+  _FailingBackend(this.inner, this.failOps);
+
+  void _maybe(String op) {
+    if (failOps.contains(op)) throw StateError('injected $op failure');
+  }
+
+  @override
+  Future<void> replaceAll(DomainData d) async {
+    _maybe('replaceAll');
+    return inner.replaceAll(d);
+  }
+
+  @override
+  Future<void> saveCategories(List<Category> c) async {
+    _maybe('saveCategories');
+    return inner.saveCategories(c);
+  }
+
+  @override
+  Future<void> saveTransactions(List<Txn> t) async {
+    _maybe('saveTransactions');
+    return inner.saveTransactions(t);
+  }
+
+  @override
+  Future<void> upsertTransaction(Txn t) async {
+    _maybe('upsertTransaction');
+    return inner.upsertTransaction(t);
+  }
+
+  @override
+  Future<void> deleteTransaction(String id) async {
+    _maybe('deleteTransaction');
+    return inner.deleteTransaction(id);
+  }
+
+  @override
+  Future<void> upsertLoan(Loan l) async {
+    _maybe('upsertLoan');
+    return inner.upsertLoan(l);
+  }
+
+  @override
+  Future<void> deleteLoan(String id) async {
+    _maybe('deleteLoan');
+    return inner.deleteLoan(id);
+  }
+
+  @override
+  Future<void> upsertProject(Project p) async {
+    _maybe('upsertProject');
+    return inner.upsertProject(p);
+  }
+
+  @override
+  Future<void> deleteProject(String id) async {
+    _maybe('deleteProject');
+    return inner.deleteProject(id);
+  }
+
+  @override
+  Future<Map<String, int>> counts() => inner.counts();
+  @override
+  Future<DomainData> loadDomain() => inner.loadDomain();
+  @override
+  Future<void> close() => inner.close();
+}
+
+/// Seeds the populated fixture through a working backend; returns the temp
+/// DB (marker set in the shared mock prefs) and its summary.
+Future<(_TempDb, DomainSummary)> _seedPopulated(String name) async {
+  final raw = jsonDecode(_fixture('snapshot_populated.json'));
+  SharedPreferences.setMockInitialValues({
+    _kCats: jsonEncode(raw['categories']),
+    _kTxns: jsonEncode(raw['transactions']),
+    _kLoans: jsonEncode(raw['loans']),
+    _kProjects: jsonEncode(raw['projects']),
+  });
+  final tempDb = await _TempDb.open(name);
+  final s = ExpenseStore(domainOverride: tempDb.backend);
+  await s.load();
+  return (tempDb, _domainOf(s).summarize());
+}
+
 void main() {
   test(
     'fresh install seeds, migrates, reloads from DB on 2nd launch',
@@ -269,20 +358,138 @@ void main() {
     }
   });
 
-  test('corrupt legacy keys migrate to empty without throwing', () async {
+  test('malformed legacy keys refuse migration, retry later', () async {
+    const badCats = '{"truncated":';
+    const badTxns = '[1,2';
+    const badLoans = 'nope';
     SharedPreferences.setMockInitialValues({
-      _kCats: '{"truncated":',
-      _kTxns: '[1,2',
-      _kLoans: 'nope',
+      _kCats: badCats,
+      _kTxns: badTxns,
+      _kLoans: badLoans,
     });
     final tempDb = await _TempDb.open('corrupt');
     try {
       final a = ExpenseStore(domainOverride: tempDb.backend);
       await a.load();
+      // Legacy lenient state preserved in memory (as before Phase 2)…
       expect(a.transactions, isEmpty);
       expect(a.loans, isEmpty);
+      // …but migration is REFUSED: no marker, legacy bytes untouched.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt(_marker), isNot(1));
+      expect(prefs.getString(_kCats), badCats);
+      expect(prefs.getString(_kTxns), badTxns);
+      expect(prefs.getString(_kLoans), badLoans);
+      // The session still works on the prefs backend.
+      await a.addTransaction(
+        type: 'expense',
+        amount: 10,
+        categoryId: 'food',
+        date: DateTime(2026, 9, 6),
+      );
+      expect(a.transactions, hasLength(1));
+
+      // After the underlying problem is fixed, migration proceeds.
+      final raw = jsonDecode(_fixture('snapshot_populated.json'));
+      await prefs.setString(_kCats, jsonEncode(raw['categories']));
+      await prefs.setString(_kTxns, jsonEncode(raw['transactions']));
+      await prefs.setString(_kLoans, jsonEncode(raw['loans']));
+      await prefs.setString(_kProjects, jsonEncode(raw['projects']));
+      final tempDb2 = await _TempDb.open('corrupt-retry');
+      try {
+        final b = ExpenseStore(domainOverride: tempDb2.backend);
+        await b.load();
+        expect(prefs.getInt(_marker), 1);
+        expect(b.transactions, hasLength(8));
+      } finally {
+        await tempDb2.dispose();
+      }
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('wrong top-level legacy types refuse migration', () async {
+    SharedPreferences.setMockInitialValues({
+      _kCats: '{"a":1}', // valid JSON, wrong type (object, not list)
+      _kTxns: '"just-a-string"',
+      _kLoans: '42',
+      _kProjects: '[]', // valid empty list: fine on its own
+    });
+    final tempDb = await _TempDb.open('wrongtype');
+    try {
+      final a = ExpenseStore(domainOverride: tempDb.backend);
+      await a.load();
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt(_marker), isNot(1));
+      expect(prefs.getString(_kCats), '{"a":1}');
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('lenient field-level issues still migrate with defaults', () async {
+    SharedPreferences.setMockInitialValues({
+      _kCats: jsonEncode([
+        {'id': 'food'},
+      ]),
+      _kTxns: jsonEncode([
+        {
+          'id': 'len-1',
+          'type': 'transfer', // unknown -> expense
+          'amount': '100', // non-numeric -> 0
+          'date': 'yesterday', // non-int -> now
+          'categoryId': 'nope',
+          'mode': 'crypto', // unknown passes through
+        },
+        {'id': 'len-2', 'type': 'income', 'amount': 50, 'date': 1788220800000},
+      ]),
+      _kLoans: jsonEncode([
+        {'id': 'loan-x'},
+      ]),
+      _kProjects: jsonEncode([]),
+    });
+    final tempDb = await _TempDb.open('lenient');
+    try {
+      final a = ExpenseStore(domainOverride: tempDb.backend);
+      await a.load();
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getInt(_marker), 1);
+      expect(a.transactions, hasLength(2));
+      expect(a.transactions[0].type, 'expense');
+      expect(a.transactions[0].amount, 0);
+      expect(a.loans.single.person, '');
+      // Reload from the database: same lenient state.
+      final b = ExpenseStore(domainOverride: tempDb.backend);
+      await b.load();
+      expect(b.transactions, hasLength(2));
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('duplicate IDs refuse migration instead of dropping records', () async {
+    const dupTxns =
+        '[{"id":"dup-1","type":"expense","amount":10,'
+        '"categoryId":"food","date":1788220800000},'
+        '{"id":"dup-1","type":"income","amount":50,'
+        '"date":1788220800000}]';
+    SharedPreferences.setMockInitialValues({
+      _kCats: jsonEncode([
+        {'id': 'food', 'name': 'Food'},
+      ]),
+      _kTxns: dupTxns,
+    });
+    final tempDb = await _TempDb.open('dupids');
+    try {
+      final a = ExpenseStore(domainOverride: tempDb.backend);
+      await a.load();
+      // Both records stay visible in the session…
+      expect(a.transactions, hasLength(2));
+      // …but migration is refused: no marker, source bytes kept.
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getInt(_marker), isNot(1));
+      expect(prefs.getString(_kTxns), dupTxns);
     } finally {
       await tempDb.dispose();
     }
@@ -337,6 +544,169 @@ void main() {
         expect(back.summarize().matches(data.summarize()), isTrue);
         // Generous bound: proves feasibility, not a benchmark.
         expect(stopwatch.elapsed < const Duration(seconds: 60), isTrue);
+      }
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('failed txn add reverts, records error, DB intact', () async {
+    final (tempDb, before) = await _seedPopulated('fail-txn');
+    try {
+      final failing = _FailingBackend(tempDb.backend, {'upsertTransaction'});
+      final s = ExpenseStore(domainOverride: failing);
+      await s.load();
+      expect(s.transactions, hasLength(8));
+      final stamp = s.updatedAt;
+      await s.addTransaction(
+        type: 'expense',
+        amount: 999,
+        categoryId: 'food',
+        date: DateTime(2026, 9, 6),
+      );
+      // Reverted: no phantom entry, stamp restored, error recorded.
+      expect(s.transactions, hasLength(8));
+      expect(s.updatedAt, stamp);
+      expect(s.lastPersistError, isNotNull);
+      // Reopening is consistent; prior data undamaged.
+      final s2 = ExpenseStore(domainOverride: tempDb.backend);
+      await s2.load();
+      expect(_domainOf(s2).summarize().matches(before), isTrue);
+      // A later success clears the recorded error.
+      await s2.addTransaction(
+        type: 'expense',
+        amount: 1,
+        categoryId: 'food',
+        date: DateTime(2026, 9, 6),
+      );
+      expect(s2.lastPersistError, isNull);
+      expect(s2.transactions, hasLength(9));
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('failed category/loan/project/delete ops revert cleanly', () async {
+    final (tempDb, before) = await _seedPopulated('fail-others');
+    try {
+      Future<ExpenseStore> failingStore(Set<String> ops) async {
+        final s = ExpenseStore(
+          domainOverride: _FailingBackend(tempDb.backend, ops),
+        );
+        await s.load();
+        return s;
+      }
+
+      var s = await failingStore({'saveCategories'});
+      var stamp = s.updatedAt;
+      await s.addCategory('Nope');
+      expect(s.categories.any((c) => c.name == 'Nope'), isFalse);
+      expect(s.updatedAt, stamp);
+      expect(s.lastPersistError, isNotNull);
+
+      s = await failingStore({'upsertLoan'});
+      stamp = s.updatedAt;
+      await s.addLoan(person: 'Ghost', amount: 5, date: DateTime(2026, 9, 6));
+      expect(s.loans.any((l) => l.person == 'Ghost'), isFalse);
+      expect(s.updatedAt, stamp);
+
+      s = await failingStore({'deleteLoan'});
+      stamp = s.updatedAt;
+      await s.deleteLoan('loan-0001');
+      expect(s.loans.any((l) => l.id == 'loan-0001'), isTrue);
+      expect(s.updatedAt, stamp);
+
+      s = await failingStore({'upsertProject'});
+      stamp = s.updatedAt;
+      await s.addProject('Ghost event', '');
+      expect(s.projects.any((p) => p.name == 'Ghost event'), isFalse);
+      expect(s.updatedAt, stamp);
+
+      s = await failingStore({'deleteTransaction'});
+      stamp = s.updatedAt;
+      await s.deleteTransaction('txn-0001');
+      expect(s.transactions.any((t) => t.id == 'txn-0001'), isTrue);
+      expect(s.updatedAt, stamp);
+
+      // Nothing phantom anywhere; database still the seeded state.
+      final s2 = ExpenseStore(domainOverride: tempDb.backend);
+      await s2.load();
+      expect(_domainOf(s2).summarize().matches(before), isTrue);
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('failed import restores state and says so', () async {
+    final (tempDb, before) = await _seedPopulated('fail-import');
+    try {
+      // A newer snapshot carrying one extra transaction.
+      final map = jsonDecode(
+        _fixture('snapshot_populated.json'),
+      ) as Map<String, dynamic>;
+      map['updatedAt'] = '2027-01-01T00:00:00.000Z';
+      (map['transactions'] as List).add({
+        'id': 'txn-new',
+        'type': 'expense',
+        'amount': 11,
+        'categoryId': 'food',
+        'date': 1798761600000,
+        'note': 'intruder',
+        'mode': 'cash',
+        'projectId': '',
+      });
+      final failing = _FailingBackend(tempDb.backend, {'replaceAll'});
+      final s = ExpenseStore(domainOverride: failing);
+      await s.load();
+      final stamp = s.updatedAt;
+      final msg = await s.importSnapshotString(jsonEncode(map));
+      expect(msg, 'Could not save the import. Nothing was changed.');
+      expect(s.transactions, hasLength(8));
+      expect(s.transactions.any((t) => t.id == 'txn-new'), isFalse);
+      expect(s.updatedAt, stamp);
+      expect(s.lastPersistError, isNotNull);
+      // Reopening is consistent with the pre-import state.
+      final s2 = ExpenseStore(domainOverride: tempDb.backend);
+      await s2.load();
+      expect(_domainOf(s2).summarize().matches(before), isTrue);
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('budgets survive migration, reload, export/import', () async {
+    final (tempDb, _) = await _seedPopulated('budgets');
+    try {
+      Map<String, double> budgets(ExpenseStore s) => {
+        for (final c in s.categories) c.id: c.budget,
+      };
+      final s = ExpenseStore(domainOverride: tempDb.backend);
+      await s.load();
+      // OLD (prefs JSON) -> DB: food 15000, travel 8000, pets 2000.
+      expect(budgets(s), containsPair('food', 15000));
+      expect(budgets(s), containsPair('travel', 8000));
+      expect(budgets(s), containsPair('pets', 2000));
+      // DB reload keeps them.
+      final s2 = ExpenseStore(domainOverride: tempDb.backend);
+      await s2.load();
+      expect(budgets(s2), containsPair('food', 15000));
+      // Snapshot v1 export/import round-trip keeps them (same representation).
+      final exported = Snapshot.decode(s2.exportJson());
+      final byId = {for (final c in exported.categories) c.id: c.budget};
+      expect(byId['food'], 15000);
+      expect(byId['pets'], 2000);
+      SharedPreferences.setMockInitialValues({});
+      final rt = await _TempDb.open('budgets-rt');
+      try {
+        final s3 = ExpenseStore(domainOverride: rt.backend);
+        await s3.load();
+        expect(
+          await s3.importSnapshotString(s2.exportJson(), force: true),
+          contains('Synced'),
+        );
+        expect(budgets(s3), containsPair('travel', 8000));
+      } finally {
+        await rt.dispose();
       }
     } finally {
       await tempDb.dispose();

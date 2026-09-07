@@ -122,8 +122,19 @@ class ExpenseStore extends ChangeNotifier {
       await _loadDomainFromStore();
     } else {
       _readLegacyDomain(p);
-      if (_domain is! PrefsDomainStore) {
+      if (_domain is! PrefsDomainStore &&
+          _legacyDomainReadable(p) &&
+          _domainIdsUnique()) {
         await _migrateLegacyToDb(p);
+      } else if (_domain is! PrefsDomainStore) {
+        // Unreadable legacy bytes: refuse to authorize an empty database.
+        // Legacy keys stay untouched so a later launch can retry; this
+        // session runs on the same lenient legacy state as before Phase 2.
+        debugPrint(
+          'Dhadda: legacy domain unreadable or has duplicate '
+          'IDs; migration deferred.',
+        );
+        _domain = PrefsDomainStore(p);
       }
     }
     _sortTxns();
@@ -155,6 +166,50 @@ class ExpenseStore extends ChangeNotifier {
     projects = d.projects;
   }
 
+  /// True when a legacy domain key is absent/empty (clean empty) or holds a
+  /// JSON list (decodable; item-level leniency is the parser's own contract).
+  /// Malformed JSON or a wrong top-level type is NOT safely migratable.
+  bool _legacyKeyReadable(String? raw) {
+    if (raw == null || raw.isEmpty) return true;
+    try {
+      return jsonDecode(raw) is List;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  bool _legacyDomainReadable(SharedPreferences p) =>
+      _legacyKeyReadable(p.getString(_kCats)) &&
+      _legacyKeyReadable(p.getString(_kTxns)) &&
+      _legacyKeyReadable(p.getString(_kLoans)) &&
+      _legacyKeyReadable(p.getString(_kProjects));
+
+  /// Duplicate IDs decode into lists without complaint, but PRIMARY KEYs
+  /// cannot store them without silently dropping records — so they refuse
+  /// migration exactly like corrupt input. (UUID collisions are
+  /// practically impossible; duplicates imply a hand-edited file.)
+  bool _domainIdsUnique() {
+    bool uniqueIds(Iterable<String> ids) {
+      final seen = <String>{};
+      for (final id in ids) {
+        if (!seen.add(id)) return false;
+      }
+      return true;
+    }
+
+    if (!uniqueIds([for (final c in categories) c.id])) return false;
+    if (!uniqueIds([for (final t in transactions) t.id])) return false;
+    if (!uniqueIds([for (final l in loans) l.id])) return false;
+    if (!uniqueIds([for (final p in projects) p.id])) return false;
+    final topupIds = <String>[];
+    final repaymentIds = <String>[];
+    for (final l in loans) {
+      topupIds.addAll([for (final t in l.topups) t.id]);
+      repaymentIds.addAll([for (final r in l.repayments) r.id]);
+    }
+    return uniqueIds(topupIds) && uniqueIds(repaymentIds);
+  }
+
   /// One-time legacy -> SQLite migration. The source is the in-memory state
   /// built by [_readLegacyDomain] (first-run seeds and the fuel upgrade
   /// included), written in a single transaction and verified by summary
@@ -181,16 +236,47 @@ class ExpenseStore extends ChangeNotifier {
     }
   }
 
-  /// Write-through for domain mutations. Awaited by mutators; failures are
-  /// logged, never thrown into the UI. In-memory state stays authoritative
-  /// for the session (same exposure class as prefs writes before Phase 2).
-  Future<void> _persistDomain(Future<void> Function(DomainStore) op) async {
+  /// Last domain-write failure, if any (null when the last write
+  /// succeeded or none was attempted). Surfaced for tests/diagnostics; the
+  /// import path additionally reports through its message string.
+  String? lastPersistError;
+
+  DomainData _snapshotDomain() => DomainData(
+    categories: List.of(categories),
+    transactions: List.of(transactions),
+    loans: List.of(loans),
+    projects: List.of(projects),
+  );
+
+  void _restoreDomain(DomainData snap, String prevUpdatedAt) {
+    categories = snap.categories;
+    transactions = snap.transactions;
+    loans = snap.loans;
+    projects = snap.projects;
+    updatedAt = prevUpdatedAt;
+    _saveAll(); // re-save the restored stamp so prefs meta matches memory
+  }
+
+  /// Awaited write-through with revert. [before]/[prevUpdatedAt] must be
+  /// captured by the caller BEFORE mutating memory. On database failure the
+  /// in-memory mutation is rolled back, the error recorded, and listeners
+  /// notified — the UI never shows phantom-saved state. Failures are never
+  /// thrown into the UI and never only logged.
+  Future<void> _persistDomain(
+    DomainData before,
+    String prevUpdatedAt,
+    Future<void> Function(DomainStore) op,
+  ) async {
     final d = _domain;
     if (d == null) return;
     try {
       await op(d);
+      lastPersistError = null;
     } catch (e) {
-      debugPrint('Dhadda: domain persist failed ($e)');
+      _restoreDomain(before, prevUpdatedAt);
+      lastPersistError = '$e';
+      debugPrint('Dhadda: domain persist failed, reverted ($e)');
+      notifyListeners();
     }
   }
 
@@ -515,6 +601,8 @@ class ExpenseStore extends ChangeNotifier {
     String mode = 'cash',
     String projectId = '',
   }) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     final txn = Txn(
       id: _uuid.v4(),
       type: type,
@@ -528,7 +616,7 @@ class ExpenseStore extends ChangeNotifier {
     transactions.add(txn);
     _sortTxns();
     _touch();
-    await _persistDomain((d) => d.upsertTransaction(txn));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertTransaction(txn));
     notifyListeners();
   }
 
@@ -546,6 +634,8 @@ class ExpenseStore extends ChangeNotifier {
     final i = transactions.indexWhere((t) => t.id == id);
     if (i < 0) return false;
     final t = transactions[i];
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     final updated = Txn(
       id: t.id,
       type: t.type,
@@ -559,31 +649,41 @@ class ExpenseStore extends ChangeNotifier {
     transactions[i] = updated;
     _sortTxns();
     _touch();
-    await _persistDomain((d) => d.upsertTransaction(updated));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.upsertTransaction(updated),
+    );
     notifyListeners();
     return true;
   }
 
   Future<void> deleteTransaction(String id) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     transactions.removeWhere((t) => t.id == id);
     _touch();
-    await _persistDomain((d) => d.deleteTransaction(id));
+    await _persistDomain(before, prevUpdated, (d) => d.deleteTransaction(id));
     notifyListeners();
   }
 
   /// Puts back a deleted entry (Undo). Keeps id/date so sync stays sane.
   Future<void> restoreTransaction(Txn txn) async {
     if (transactions.any((t) => t.id == txn.id)) return;
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     transactions.add(txn);
     _sortTxns();
     _touch();
-    await _persistDomain((d) => d.upsertTransaction(txn));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertTransaction(txn));
     notifyListeners();
   }
 
   // ---------- categories & budgets ----------
 
   Future<void> addCategory(String name, {double budget = 0}) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     categories.add(
       Category(
         id: _uuid.v4(),
@@ -594,7 +694,11 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain((d) => d.saveCategories(categories));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveCategories(categories),
+    );
     notifyListeners();
   }
 
@@ -602,6 +706,8 @@ class ExpenseStore extends ChangeNotifier {
     final i = categories.indexWhere((c) => c.id == id);
     if (i < 0) return;
     final c = categories[i];
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     categories[i] = Category(
       id: c.id,
       name: c.name,
@@ -610,7 +716,11 @@ class ExpenseStore extends ChangeNotifier {
       budget: budget,
     );
     _touch();
-    await _persistDomain((d) => d.saveCategories(categories));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveCategories(categories),
+    );
     notifyListeners();
   }
 
@@ -626,6 +736,8 @@ class ExpenseStore extends ChangeNotifier {
     if (i < 0) return;
     final c = categories[i];
     final n = (name ?? c.name).trim();
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     categories[i] = Category(
       id: c.id,
       name: n.isEmpty ? c.name : n,
@@ -634,7 +746,11 @@ class ExpenseStore extends ChangeNotifier {
       budget: budget ?? c.budget,
     );
     _touch();
-    await _persistDomain((d) => d.saveCategories(categories));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveCategories(categories),
+    );
     notifyListeners();
   }
 
@@ -642,6 +758,8 @@ class ExpenseStore extends ChangeNotifier {
   Future<bool> deleteCategory(String id) async {
     if (id == 'other') return false;
     if (!categories.any((c) => c.id == id)) return false;
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     categories.removeWhere((c) => c.id == id);
     final fixed = <Txn>[];
     for (final t in transactions) {
@@ -665,8 +783,16 @@ class ExpenseStore extends ChangeNotifier {
     transactions = fixed;
     _sortTxns();
     _touch();
-    await _persistDomain((d) => d.saveCategories(categories));
-    await _persistDomain((d) => d.saveTransactions(transactions));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveCategories(categories),
+    );
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveTransactions(transactions),
+    );
     notifyListeners();
     return true;
   }
@@ -676,10 +802,16 @@ class ExpenseStore extends ChangeNotifier {
     final i = categories.indexWhere((c) => c.id == id);
     final j = i + delta;
     if (i < 0 || j < 0 || j >= categories.length) return;
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     final c = categories.removeAt(i);
     categories.insert(j, c);
     _touch();
-    await _persistDomain((d) => d.saveCategories(categories));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveCategories(categories),
+    );
     notifyListeners();
   }
 
@@ -692,10 +824,16 @@ class ExpenseStore extends ChangeNotifier {
     if (j < 0) j = 0;
     if (j >= categories.length) j = categories.length - 1;
     if (i == j) return;
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     final c = categories.removeAt(i);
     categories.insert(j, c);
     _touch();
-    await _persistDomain((d) => d.saveCategories(categories));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveCategories(categories),
+    );
     notifyListeners();
   }
 
@@ -708,6 +846,8 @@ class ExpenseStore extends ChangeNotifier {
     String note = '',
     DateTime? due,
   }) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     loans.add(
       Loan(
         id: _uuid.v4(),
@@ -720,7 +860,7 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain((d) => d.upsertLoan(loans.last));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans.last));
     notifyListeners();
     _loansChanged();
   }
@@ -733,6 +873,8 @@ class ExpenseStore extends ChangeNotifier {
     String note = '',
     DateTime? due,
   }) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     loans.add(
       Loan(
         id: _uuid.v4(),
@@ -745,7 +887,7 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain((d) => d.upsertLoan(loans.last));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans.last));
     notifyListeners();
     _loansChanged();
   }
@@ -755,6 +897,8 @@ class ExpenseStore extends ChangeNotifier {
     final i = loans.indexWhere((l) => l.id == loanId);
     if (i < 0) return;
     final l = loans[i];
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     loans[i] = Loan(
       id: l.id,
       person: l.person,
@@ -768,7 +912,7 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: when?.millisecondsSinceEpoch ?? 0,
     );
     _touch();
-    await _persistDomain((d) => d.upsertLoan(loans[i]));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans[i]));
     notifyListeners();
     _loansChanged();
   }
@@ -791,6 +935,8 @@ class ExpenseStore extends ChangeNotifier {
           note: note,
         ),
       );
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     loans[i] = Loan(
       id: l.id,
       person: l.person,
@@ -804,7 +950,7 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: l.remindAt,
     );
     _touch();
-    await _persistDomain((d) => d.upsertLoan(loans[i]));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans[i]));
     notifyListeners();
     _loansChanged();
   }
@@ -829,6 +975,8 @@ class ExpenseStore extends ChangeNotifier {
           note: note,
         ),
       );
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     loans[i] = Loan(
       id: l.id,
       person: l.person,
@@ -842,15 +990,17 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: l.remindAt,
     );
     _touch();
-    await _persistDomain((d) => d.upsertLoan(loans[i]));
+    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans[i]));
     notifyListeners();
     _loansChanged();
   }
 
   Future<void> deleteLoan(String id) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     loans.removeWhere((l) => l.id == id);
     _touch();
-    await _persistDomain((d) => d.deleteLoan(id));
+    await _persistDomain(before, prevUpdated, (d) => d.deleteLoan(id));
     notifyListeners();
     _loansChanged();
   }
@@ -926,6 +1076,8 @@ class ExpenseStore extends ChangeNotifier {
   /// Creates an event project and returns its id (for inline creation).
   Future<String> addProject(String name, String note) async {
     final id = _uuid.v4();
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     projects.add(
       Project(
         id: id,
@@ -935,7 +1087,11 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain((d) => d.upsertProject(projects.last));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.upsertProject(projects.last),
+    );
     notifyListeners();
     return id;
   }
@@ -952,6 +1108,8 @@ class ExpenseStore extends ChangeNotifier {
     if (i < 0) return;
     final p = projects[i];
     final n = (name ?? p.name).trim();
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     projects[i] = Project(
       id: p.id,
       name: n.isEmpty ? p.name : n,
@@ -961,11 +1119,17 @@ class ExpenseStore extends ChangeNotifier {
       color: color ?? p.color,
     );
     _touch();
-    await _persistDomain((d) => d.upsertProject(projects[i]));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.upsertProject(projects[i]),
+    );
     notifyListeners();
   }
 
   Future<void> deleteProject(String id) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     projects.removeWhere((e) => e.id == id);
     final fixed = <Txn>[];
     for (final t in transactions) {
@@ -988,8 +1152,12 @@ class ExpenseStore extends ChangeNotifier {
     transactions = fixed;
     _sortTxns();
     _touch();
-    await _persistDomain((d) => d.deleteProject(id));
-    await _persistDomain((d) => d.saveTransactions(transactions));
+    await _persistDomain(before, prevUpdated, (d) => d.deleteProject(id));
+    await _persistDomain(
+      before,
+      prevUpdated,
+      (d) => d.saveTransactions(transactions),
+    );
     notifyListeners();
   }
 
@@ -1036,22 +1204,35 @@ class ExpenseStore extends ChangeNotifier {
       return 'Already up to date (this device is newer).';
     }
     _pushBackup(exportJson());
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
     categories = remote.categories.isEmpty
         ? defaultCategories()
         : remote.categories;
     transactions = remote.transactions;
     loans = remote.loans;
     projects = remote.projects;
-    await _persistDomain(
-      (d) => d.replaceAll(
-        DomainData(
-          categories: List.of(categories),
-          transactions: List.of(transactions),
-          loans: List.of(loans),
-          projects: List.of(projects),
-        ),
-      ),
-    );
+    final d = _domain;
+    if (d != null) {
+      try {
+        await d.replaceAll(
+          DomainData(
+            categories: List.of(categories),
+            transactions: List.of(transactions),
+            loans: List.of(loans),
+            projects: List.of(projects),
+          ),
+        );
+        lastPersistError = null;
+      } catch (e) {
+        // The import must not claim success while the database rejected it:
+        // restore everything and say so through the message channel.
+        _restoreDomain(before, prevUpdated);
+        lastPersistError = '$e';
+        debugPrint('Dhadda: import persist failed, reverted ($e)');
+        return 'Could not save the import. Nothing was changed.';
+      }
+    }
     _sortTxns();
     updatedAt = remote.updatedAt;
     lastSynced = DateTime.now().toUtc().toIso8601String();

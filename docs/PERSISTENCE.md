@@ -82,22 +82,48 @@ keys). Drift-Web/WASM was evaluated and rejected for Phase 2: it needs
 `sqlite3.wasm` + worker + MIME/hosting care for zero user gain while the domain
 fits prefs semantics on browser. Revisit only with measured need. No cloud.
 
-## 7. Recovery procedure
+## 7. Recovery procedure (read carefully: two different cases)
 
-- Bad/missing marker or failed migration → app runs on prefs, retries next
-  launch. Legacy keys are the recovery source until a later phase cleans up.
-- To force re-migration (support/debug): delete `expense_db_migrated_v1` and
-  restart (rebuilds DB from legacy keys; current-session edits made only in
-  the DB fallback window would be lost — prefer exporting first).
-- To abandon the DB: delete the app-private `dhadda.sqlite` + marker; next
-  launch re-migrates from legacy keys.
+### A. Initial-migration recovery (safe)
+
+While investigating a FIRST migration problem — marker unset, or just set
+with no meaningful post-migration writes yet — the legacy keys still equal
+(or nearly equal) the database content. Safe steps: delete
+`expense_db_migrated_v1` and restart to re-run migration from the intact
+legacy keys; or delete `dhadda.sqlite` + marker for a fully clean
+re-migration. No user data is at risk beyond the failed attempt itself,
+because nothing newer exists anywhere else yet.
+
+### B. Later rollback (UNSAFE via legacy keys — do not do this)
+
+After the SQLite-backed version is in normal use, the preserved legacy keys
+are a STALE snapshot of migration day. Deleting the marker then does NOT
+"roll back" — it re-migrates the OLD data and silently discards every
+transaction, loan change, and setting created since. Never recommend this.
+
+The primary human recovery mechanism after normal use is the
+user-controlled **Snapshot v1 export**: export before risky operations,
+import (`force`) to restore. The 5 rolling auto-backups inside the app are
+the second line. Legacy keys exist only as migration source + forensic
+evidence, never as a restore path.
+
+## 8. Write-failure semantics (persist-or-revert)
+
+Every domain mutator snapshots memory before changing it and reverts on a
+database failure: lists restored, `updatedAt` stamp restored (and re-saved so
+prefs meta matches), `lastPersistError` set, listeners notified. The UI can
+never show phantom-saved state. Import additionally refuses through its
+message channel (`Could not save the import. Nothing was changed.`) instead
+of claiming success. Corrupt/unwritable legacy input refuses migration the
+same way the database refuses bad writes: no marker, bytes kept, retry later.
+
+## 9. Known limitations / future cleanup
+
 - Real user data: validate only on emulator/copies/test installs, never the
   primary phone; keep real exports outside Git.
-
-## 8. Known limitations / future cleanup
-
-- Write-through failures log and continue (in-memory authoritative for the
-  session) — same exposure class as before, stricter ordering via await.
+- Write failures revert memory (lists + stamp), record `lastPersistError`,
+  and — for imports — report through the message channel. Per-tap mutators
+  keep their signatures; a future phase may add visible error surfaces.
 - Legacy domain keys go stale on native after migration (retained deliberately;
   cleanup is a later-release decision after stability is proven).
 - No per-record sync metadata yet (Phase 4); no encryption (Phase 3); store
