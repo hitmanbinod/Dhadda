@@ -49,6 +49,10 @@ class ExpenseStore extends ChangeNotifier {
   /// True once revision metadata is initialized (always true after [load]).
   bool get v2ready => _v2ready;
 
+  /// Counts for privacy-safe diagnostics (no content exposed).
+  int get tombstoneCount => _tombs.length;
+  int get revisionCount => _revs.length;
+
   /// Test-only backend injection (unit tests have no native database).
   /// When set, [load] uses it instead of opening SQLite.
   final DomainStore? _domainOverride;

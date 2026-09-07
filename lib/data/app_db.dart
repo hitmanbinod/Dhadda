@@ -129,8 +129,12 @@ class Tombstones extends Table {
 class AppDb extends _$AppDb {
   AppDb(super.executor);
 
+  /// Single source for the schema version (used by the database and by
+  /// privacy-safe diagnostics alike).
+  static const dbSchemaVersion = 2;
+
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => dbSchemaVersion;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
