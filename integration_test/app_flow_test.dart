@@ -71,4 +71,33 @@ void main() {
         'empty=${empty.evaluate().isNotEmpty} '
         'needPerm=${needPerm.evaluate().isNotEmpty}');
   });
+
+  /// Device-only SMS tap-through: imports candidates, then proves
+  /// duplicate suppression on re-scan. Skips honestly when the inbox has
+  /// nothing parseable (empty branch covered above).
+  testWidgets('SMS import tap-through deduplicates on rescan',
+      (tester) async {
+    app.main();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(NavigationDestination).at(3));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+        find.widgetWithText(FilledButton, 'Scan SMS now'), 500);
+    await tester.tap(find.widgetWithText(FilledButton, 'Scan SMS now'));
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+    final dialog = find.textContaining('from SMS?');
+    if (dialog.evaluate().isEmpty) {
+      // ignore: avoid_print
+      print('SMS TAP-THROUGH: skipped (inbox has nothing parseable)');
+      return;
+    }
+    await tester.tap(find.widgetWithText(FilledButton, 'Add'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Added '), findsOneWidget);
+    // ignore: avoid_print
+    print('SMS TAP-THROUGH: imported, rescanning for duplicates');
+    await tester.tap(find.widgetWithText(FilledButton, 'Scan SMS now'));
+    await tester.pumpAndSettle(const Duration(seconds: 5));
+    expect(find.text('No new bank/wallet SMS found.'), findsOneWidget);
+  });
 }
