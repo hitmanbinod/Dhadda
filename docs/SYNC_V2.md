@@ -102,7 +102,7 @@ Commutativity, associativity, and idempotence hold by construction (per-id
 max over a total order + deterministic post-pass) and are proven by seeded
 fuzz tests, not just asserted.
 
-## 8. Convergence guarantees
+## 8. Convergence guarantees (v2 ↔ v2 scope; see §11 tiers for the rest)
 
 - `merge(A,B) == merge(B,A)` (canonical-encoding tested, incl. fuzz).
 - `merge(merge(A,B),C) == merge(A,merge(B,C))` (fuzz-tested triples).
@@ -116,8 +116,9 @@ fuzz tests, not just asserted.
 - Same record, both edited: deterministic winner (rule §4); the loser is
   outvoted, visibly (counts in the sync message), but not preserved anywhere.
   No conflict UI exists; add one only if real-world need appears.
-- Cross-version (v1 peer): v1 content enters as rev-0 records — unioned, but
-  a same-record clash resolves toward the v2 side's higher revs by design.
+- Cross-version (v1 peer): v1 content enters as rev-0 records on the v2
+  side; the v1 side keeps last-write-wins, so guarantees there are reduced
+  (see §11 tiers).
 
 ## 10. Clock-skew behavior
 
@@ -127,13 +128,19 @@ v1 peers observe us as newer (compat visibility) and messages stay familiar.
 
 ## 11. v1 compatibility matrix
 
+Guarantee tiers (do not overclaim beyond these):
+
+- v2 ↔ v2: full record-level convergence guarantees
+- v2 ↔ v1: backward-compatible, but guarantees are reduced on the legacy side
+- v1 ↔ v1: original Snapshot v1 last-write-wins behavior remains
+
 | Direction | Behavior |
 |---|---|
 | v1 file/backup → v2 app | Whole-replace (unchanged UX) + re-key: existing revs kept, new ids rev 0; force drops all tombstones; file drops tombstones for present ids; ambient keeps them (suppressed ids filtered from lists) |
 | v2 app → v1 file | Export stays v1 (human format stable; existing fixtures/backups valid) |
-| v1 network peer → v2 app | Content ingested as rev-0 records and merged (union, never replace) |
-| v2 app → v1 network peer | v1 encoding served/sent (peer applies its legacy rules) |
-| v1-only relay in the middle | Drops `snapshotV2`; both sides degrade to v1-ingest merge (still no clobber) |
+| v1 network peer → v2 app | Content ingested as rev-0 records and merged on the v2 side; the v1 side keeps its own last-write-wins behavior, so guarantees there are reduced |
+| v2 app → v1 network peer | v1 encoding served/sent (peer applies its legacy rules; reduced guarantees on that side) |
+| v1-only relay in the middle | Drops `snapshotV2`; v2 sides fall back to v1-ingest merge while v1 sides keep last-write-wins (reduced guarantees wherever v1 decides) |
 | Dead offer/answer flow | Frozen v1-only, no UI callers (documented, untouched) |
 
 ## 12. Protocol / QR impact
