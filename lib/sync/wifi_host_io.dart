@@ -40,17 +40,19 @@ const _authPrefix = 'Bearer ';
 const _maxSessions = 16;
 
 Map<String, String> _cors() => {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, $_pinHeader, $_authHeader',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Content-Type': 'application/json',
-    };
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, $_pinHeader, $_authHeader',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Content-Type': 'application/json',
+};
 
 Future<String> _lanIp() async {
   final candidates = <String>[];
   try {
     final ifaces = await NetworkInterface.list(
-        includeLoopback: false, type: InternetAddressType.IPv4);
+      includeLoopback: false,
+      type: InternetAddressType.IPv4,
+    );
     for (final iface in ifaces) {
       for (final a in iface.addresses) {
         if (a.isLoopback) continue;
@@ -109,8 +111,10 @@ Future<HostSession> startSendServer({
     final token = bearerOf(req);
     if (token != null) {
       if (tokens.contains(token)) return null;
-      return Response.forbidden(jsonEncode({'error': 'bad token'}),
-          headers: _cors());
+      return Response.forbidden(
+        jsonEncode({'error': 'bad token'}),
+        headers: _cors(),
+      );
     }
     if (!throttle.allowed(scope)) {
       return Response(
@@ -118,14 +122,15 @@ Future<HostSession> startSendServer({
         body: jsonEncode({'error': 'rate limited, retry later'}),
         headers: {
           ..._cors(),
-          'Retry-After':
-              '${throttle.remaining(scope).inSeconds + 1}',
+          'Retry-After': '${throttle.remaining(scope).inSeconds + 1}',
         },
       );
     }
     throttle.failed(scope);
-    return Response.forbidden(jsonEncode({'error': 'bad pin'}),
-        headers: _cors());
+    return Response.forbidden(
+      jsonEncode({'error': 'bad pin'}),
+      headers: _cors(),
+    );
   }
 
   final router = Router();
@@ -134,11 +139,15 @@ Future<HostSession> startSendServer({
     if (deny != null) return deny;
     try {
       final m = jsonDecode(currentSnapshot()) as Map<String, dynamic>;
-      return Response.ok(jsonEncode({'updatedAt': m['updatedAt']}),
-          headers: _cors());
+      return Response.ok(
+        jsonEncode({'updatedAt': m['updatedAt']}),
+        headers: _cors(),
+      );
     } catch (_) {
       return Response.internalServerError(
-          body: jsonEncode({'error': 'bad snapshot'}), headers: _cors());
+        body: jsonEncode({'error': 'bad snapshot'}),
+        headers: _cors(),
+      );
     }
   });
   router.get('/snapshot', (Request req) {
@@ -151,8 +160,10 @@ Future<HostSession> startSendServer({
     if (deny != null) return deny;
     final v2 = currentSnapshotV2?.call();
     if (v2 == null || v2.isEmpty) {
-      return Response.notFound(jsonEncode({'error': 'no v2'}),
-          headers: _cors());
+      return Response.notFound(
+        jsonEncode({'error': 'no v2'}),
+        headers: _cors(),
+      );
     }
     return Response.ok(v2, headers: _cors());
   });
@@ -161,18 +172,27 @@ Future<HostSession> startSendServer({
     try {
       body = await readCappedBody(req);
     } on BodyTooBig {
-      return Response(413,
-          body: jsonEncode({'error': 'too big'}), headers: _cors());
+      return Response(
+        413,
+        body: jsonEncode({'error': 'too big'}),
+        headers: _cors(),
+      );
     } catch (_) {
-      return Response(400,
-          body: jsonEncode({'error': 'bad json'}), headers: _cors());
+      return Response(
+        400,
+        body: jsonEncode({'error': 'bad json'}),
+        headers: _cors(),
+      );
     }
     Map<String, dynamic> m;
     try {
       m = jsonDecode(body) as Map<String, dynamic>;
     } catch (_) {
-      return Response(400,
-          body: jsonEncode({'error': 'bad json'}), headers: _cors());
+      return Response(
+        400,
+        body: jsonEncode({'error': 'bad json'}),
+        headers: _cors(),
+      );
     }
     if ('${m['pin'] ?? ''}' != pin) {
       if (!throttle.allowed(scope)) {
@@ -181,14 +201,15 @@ Future<HostSession> startSendServer({
           body: jsonEncode({'error': 'rate limited, retry later'}),
           headers: {
             ..._cors(),
-            'Retry-After':
-                '${throttle.remaining(scope).inSeconds + 1}',
+            'Retry-After': '${throttle.remaining(scope).inSeconds + 1}',
           },
         );
       }
       throttle.failed(scope);
-      return Response.forbidden(jsonEncode({'error': 'bad pin'}),
-          headers: _cors());
+      return Response.forbidden(
+        jsonEncode({'error': 'bad pin'}),
+        headers: _cors(),
+      );
     }
     throttle.passed(scope);
     if (tokens.length >= _maxSessions) {
@@ -216,35 +237,48 @@ Future<HostSession> startSendServer({
     try {
       body = await readCappedBody(req);
     } on BodyTooBig {
-      return Response(413,
-          body: jsonEncode({'error': 'too big'}), headers: _cors());
+      return Response(
+        413,
+        body: jsonEncode({'error': 'too big'}),
+        headers: _cors(),
+      );
     } catch (_) {
-      return Response(400,
-          body: jsonEncode({'error': 'bad body'}), headers: _cors());
+      return Response(
+        400,
+        body: jsonEncode({'error': 'bad body'}),
+        headers: _cors(),
+      );
     }
     try {
       jsonDecode(body);
     } catch (_) {
-      return Response(400,
-          body: jsonEncode({'error': 'not json'}), headers: _cors());
+      return Response(
+        400,
+        body: jsonEncode({'error': 'not json'}),
+        headers: _cors(),
+      );
     }
     try {
       onUpload(body);
     } catch (_) {
       return Response.internalServerError(
-          body: jsonEncode({'error': 'not applied'}), headers: _cors());
+        body: jsonEncode({'error': 'not applied'}),
+        headers: _cors(),
+      );
     }
     return Response.ok(jsonEncode({'ok': true}), headers: _cors());
   });
 
   final handler = const Pipeline()
-      .addMiddleware((inner) => (Request req) async {
-            if (req.method == 'OPTIONS') {
-              return Response.ok('', headers: _cors());
-            }
-            final res = await inner(req);
-            return res.change(headers: {...res.headers, ..._cors()});
-          })
+      .addMiddleware(
+        (inner) => (Request req) async {
+          if (req.method == 'OPTIONS') {
+            return Response.ok('', headers: _cors());
+          }
+          final res = await inner(req);
+          return res.change(headers: {...res.headers, ..._cors()});
+        },
+      )
       .addHandler(router.call);
 
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, 0);

@@ -494,8 +494,7 @@ class _SyncScreenState extends State<SyncScreen> {
       // Session bootstrap first (404 = v1-only sender, keep PIN header).
       // One PIN exchange, then a short-lived token — the PIN no longer
       // travels on every request.
-      final token =
-          await WifiClient.establishSession(url, pin).catchError((e) {
+      final token = await WifiClient.establishSession(url, pin).catchError((e) {
         // Old senders have no /auth route; anything else is a real error.
         if ('$e'.contains('404')) return null;
         throw e;
@@ -503,14 +502,20 @@ class _SyncScreenState extends State<SyncScreen> {
       // v2-capable sender: merge by revision both ways in one tap (our
       // union goes back so the sender converges too). The sender proved
       // v2-capable by serving it, so the v2 POST below is safe.
-      final v2body =
-          await WifiClient.fetchRemoteSnapshotV2(url, pin, token: token);
+      final v2body = await WifiClient.fetchRemoteSnapshotV2(
+        url,
+        pin,
+        token: token,
+      );
       String msg;
       if (v2body != null) {
         msg = await store.ingestPeerSnapshot(v2body);
         await WifiClient.pushLocalSnapshot(
-            url, pin, store.exportSnapshotV2(),
-            token: token);
+          url,
+          pin,
+          store.exportSnapshotV2(),
+          token: token,
+        );
         if (token != null) {
           try {
             await WifiClient.logout(url, pin, token);

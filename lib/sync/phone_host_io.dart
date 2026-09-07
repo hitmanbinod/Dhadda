@@ -68,8 +68,11 @@ Future<String> phoneLanIp() async {
   }
 }
 
-Response _json(int code, Map<String, dynamic> obj,
-    [Map<String, String>? extraHeaders]) {
+Response _json(
+  int code,
+  Map<String, dynamic> obj, [
+  Map<String, String>? extraHeaders,
+]) {
   final headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -80,10 +83,10 @@ Response _json(int code, Map<String, dynamic> obj,
 
 /// HTTP 429 with Retry-After for throttled scopes.
 Response _rateLimited(LanThrottle throttle, String scope) => _json(
-      429,
-      {'error': 'rate limited, retry later'},
-      {'Retry-After': '${throttle.remaining(scope).inSeconds + 1}'},
-    );
+  429,
+  {'error': 'rate limited, retry later'},
+  {'Retry-After': '${throttle.remaining(scope).inSeconds + 1}'},
+);
 
 /// Serves the bundled web UI plus the link-sync API on your WiFi, so
 /// any same-network browser can open the tracker straight from
@@ -263,13 +266,13 @@ Future<PhoneHostSession> startPhoneHost() async {
           Response res;
           try {
             res = await inner(req);
-            } catch (e) {
-              // Error class only: messages/stacks could echo request bytes.
-              debugPrint('phone-host handler threw: ${e.runtimeType}');
-              return Response.internalServerError(
-                body: 'Dhadda host error (${e.runtimeType}).',
-              );
-            }
+          } catch (e) {
+            // Error class only: messages/stacks could echo request bytes.
+            debugPrint('phone-host handler threw: ${e.runtimeType}');
+            return Response.internalServerError(
+              body: 'Dhadda host error (${e.runtimeType}).',
+            );
+          }
           try {
             return res.change(
               headers: {...res.headers, 'Access-Control-Allow-Origin': '*'},

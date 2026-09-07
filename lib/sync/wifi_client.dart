@@ -16,8 +16,8 @@ const _qrPrefix = 'EXPENSESYNC::';
 class WifiClient {
   static Map<String, String> _h(String pin, [String? token]) =>
       token == null || token.isEmpty
-          ? {_pinHeader: pin}
-          : {_authHeader: 'Bearer $token'};
+      ? {_pinHeader: pin}
+      : {_authHeader: 'Bearer $token'};
 
   static Never _fail(http.Response res) {
     if (res.statusCode == 403) {
@@ -25,13 +25,17 @@ class WifiClient {
     }
     if (res.statusCode == 429) {
       throw const FormatException(
-          'Sender is rate-limiting guesses - wait a minute and retry.');
+        'Sender is rate-limiting guesses - wait a minute and retry.',
+      );
     }
     throw FormatException('Sender replied ${res.statusCode}.');
   }
 
-  static Future<DateTime?> fetchRemoteMeta(String baseUrl, String pin,
-      {String? token}) async {
+  static Future<DateTime?> fetchRemoteMeta(
+    String baseUrl,
+    String pin, {
+    String? token,
+  }) async {
     final res = await http
         .get(Uri.parse('$baseUrl/meta'), headers: _h(pin, token))
         .timeout(const Duration(seconds: 8));
@@ -40,8 +44,11 @@ class WifiClient {
     return DateTime.tryParse('${m['updatedAt']}');
   }
 
-  static Future<String> fetchRemoteSnapshot(String baseUrl, String pin,
-      {String? token}) async {
+  static Future<String> fetchRemoteSnapshot(
+    String baseUrl,
+    String pin, {
+    String? token,
+  }) async {
     final res = await http
         .get(Uri.parse('$baseUrl/snapshot'), headers: _h(pin, token))
         .timeout(const Duration(seconds: 20));
@@ -49,8 +56,11 @@ class WifiClient {
     return res.body;
   }
 
-  static Future<String?> fetchRemoteSnapshotV2(String baseUrl, String pin,
-      {String? token}) async {
+  static Future<String?> fetchRemoteSnapshotV2(
+    String baseUrl,
+    String pin, {
+    String? token,
+  }) async {
     final res = await http
         .get(Uri.parse('$baseUrl/snapshot-v2'), headers: _h(pin, token))
         .timeout(const Duration(seconds: 20));
@@ -60,12 +70,17 @@ class WifiClient {
   }
 
   static Future<void> pushLocalSnapshot(
-      String baseUrl, String pin, String snapshotJson,
-      {String? token}) async {
+    String baseUrl,
+    String pin,
+    String snapshotJson, {
+    String? token,
+  }) async {
     final res = await http
-        .post(Uri.parse('$baseUrl/snapshot'),
-            headers: {..._h(pin, token), 'Content-Type': 'application/json'},
-            body: snapshotJson)
+        .post(
+          Uri.parse('$baseUrl/snapshot'),
+          headers: {..._h(pin, token), 'Content-Type': 'application/json'},
+          body: snapshotJson,
+        )
         .timeout(const Duration(seconds: 20));
     if (res.statusCode != 200) _fail(res);
   }
@@ -74,14 +89,15 @@ class WifiClient {
   /// the sender predates sessions (404: keep using the PIN header).
   static Future<String?> establishSession(String baseUrl, String pin) async {
     final res = await http
-        .post(Uri.parse('$baseUrl/auth'),
-            headers: const {'Content-Type': 'application/json'},
-            body: jsonEncode({'pin': pin}))
+        .post(
+          Uri.parse('$baseUrl/auth'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'pin': pin}),
+        )
         .timeout(const Duration(seconds: 10));
     if (res.statusCode == 404) return null;
     if (res.statusCode != 200) _fail(res);
-    final token =
-        (jsonDecode(res.body) as Map<String, dynamic>)['token'];
+    final token = (jsonDecode(res.body) as Map<String, dynamic>)['token'];
     if (token is! String || token.isEmpty) {
       throw const FormatException('Sender replied badly.');
     }
@@ -89,15 +105,13 @@ class WifiClient {
   }
 
   /// Best-effort session revoke (idempotent server-side).
-  static Future<void> logout(
-      String baseUrl, String pin, String token) async {
+  static Future<void> logout(String baseUrl, String pin, String token) async {
     final res = await http
-        .post(Uri.parse('$baseUrl/logout'),
-            headers: {
-              ..._h(pin, token),
-              'Content-Type': 'application/json'
-            },
-            body: jsonEncode({'token': token}))
+        .post(
+          Uri.parse('$baseUrl/logout'),
+          headers: {..._h(pin, token), 'Content-Type': 'application/json'},
+          body: jsonEncode({'token': token}),
+        )
         .timeout(const Duration(seconds: 10));
     if (res.statusCode == 404) return;
     if (res.statusCode != 200) _fail(res);

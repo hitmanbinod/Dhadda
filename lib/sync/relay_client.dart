@@ -244,7 +244,8 @@ class LinkClient {
     }
     if (res.statusCode == 429) {
       throw const FormatException(
-          'Relay is rate-limiting guesses - wait a minute and retry.');
+        'Relay is rate-limiting guesses - wait a minute and retry.',
+      );
     }
     throw FormatException('Relay error (${res.statusCode}).');
   }
