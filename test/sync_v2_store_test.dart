@@ -670,8 +670,7 @@ void main() {
     expect(await s.importSnapshotV2(s.exportSnapshotV2()), 'Already in sync.');
   });
 
-  test('bulk 300 merge converges quickly', () async {
-    final dba = await _Db.open('bulk-a');
+  test('bulk 300 merge converges quickly', () async {    final dba = await _Db.open('bulk-a');
     final dbb = await _Db.open('bulk-b');
     try {
       final a = await _store(dba.backend, 'devA');
@@ -709,4 +708,62 @@ void main() {
       await dbb.dispose();
     }
   });
+
+  DomainData syntheticData(int n, String prefix) => DomainData(
+        categories: const [
+          Category(id: 'c0', name: 'C0', icon: 0, color: 0xFF000000),
+          Category(id: 'other', name: 'Other', icon: 0, color: 0xFF000000),
+        ],
+        transactions: [
+          for (var i = 0; i < n; i++)
+            Txn(
+              id: '$prefix-$i',
+              type: i % 10 == 0 ? 'income' : 'expense',
+              amount: i * 1.25 + 0.5,
+              categoryId: 'c0',
+              date: 1788220800000 + i * 60000,
+              note: 'note $i',
+              mode: 'cash',
+            ),
+        ],
+        loans: const [],
+        projects: const [],
+      );
+
+  test('synthetic 1k/5k merges stay feasible (timing observation)', () async {
+    final dba = await _Db.open('perf-a');
+    final dbb = await _Db.open('perf-b');
+    try {
+      for (final n in [1000, 5000]) {
+        final stopwatch = Stopwatch()..start();
+        // Disjoint record sets: worst case for union work.
+        await dba.backend.applyV2(
+            data: syntheticData(n, 'a'), meta: {}, tombs: const []);
+        await dbb.backend.applyV2(
+            data: syntheticData(n, 'b'), meta: {}, tombs: const []);
+        // Marker preset: loads read the synthetic databases as-is.
+        SharedPreferences.setMockInitialValues({
+          'expense_db_migrated_v1': 1,
+          'expense_sync_v2_v1': 1,
+        });
+        final a = ExpenseStore(domainOverride: dba.backend);
+        await a.load();
+        a.deviceId = 'devA';
+        final b = ExpenseStore(domainOverride: dbb.backend);
+        await b.load();
+        b.deviceId = 'devB';
+        await b.importSnapshotV2(a.exportSnapshotV2());
+        await a.importSnapshotV2(b.exportSnapshotV2());
+        stopwatch.stop();
+        expect(a.transactions, hasLength(2 * n));
+        expect(b.transactions, hasLength(2 * n));
+        // Generous bound: proves feasibility, not a benchmark.
+        expect(stopwatch.elapsed < const Duration(minutes: 3), isTrue);
+      }
+    } finally {
+      await dba.dispose();
+      await dbb.dispose();
+    }
+  });
 }
+
