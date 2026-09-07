@@ -151,6 +151,15 @@ class AppDb extends _$AppDb {
         await m.addColumn(loanRepayments, loanRepayments.rev);
         await m.addColumn(loanRepayments, loanRepayments.revBy);
         await m.createTable(tombstones);
+        // @TableIndex entries only build in onCreate; upgraded databases
+        // need them explicitly (IF NOT EXISTS for idempotence).
+        for (final stmt in [
+          'CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions (date)',
+          'CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions (category_id)',
+          'CREATE INDEX IF NOT EXISTS idx_transactions_project ON transactions (project_id)',
+        ]) {
+          await m.database.customStatement(stmt);
+        }
       }
     },
   );

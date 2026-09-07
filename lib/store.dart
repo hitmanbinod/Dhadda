@@ -1421,6 +1421,46 @@ class ExpenseStore extends ChangeNotifier {
         _revs[e.key] = RecordMeta(rev: want, by: deviceId);
       }
     }
+    if (!force) {
+      // Ambient/file imports keep tombstones for absent ids: those records
+      // must not reappear in the lists (suppressed until explicitly
+      // restored). Force-restore cleared every tombstone above.
+      bool tombed(String t, String id) => _tombs.containsKey(_mkey(t, id));
+      transactions = [
+        for (final t in transactions)
+          if (!tombed(SyncType.txn, t.id)) t,
+      ];
+      categories = [
+        for (final c in categories)
+          if (!tombed(SyncType.cat, c.id)) c,
+      ];
+      projects = [
+        for (final p in projects)
+          if (!tombed(SyncType.proj, p.id)) p,
+      ];
+      loans = [
+        for (final l in loans)
+          if (!tombed(SyncType.loan, l.id))
+            Loan(
+              id: l.id,
+              person: l.person,
+              kind: l.kind,
+              lent: l.lent,
+              dateLent: l.dateLent,
+              dueDate: l.dueDate,
+              note: l.note,
+              remindAt: l.remindAt,
+              topups: [
+                for (final t in l.topups)
+                  if (!tombed(SyncType.topup, t.id)) t,
+              ],
+              repayments: [
+                for (final r in l.repayments)
+                  if (!tombed(SyncType.repay, r.id)) r,
+              ],
+            ),
+      ];
+    }
     final d = _domain;
     if (d != null) {
       try {
