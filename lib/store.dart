@@ -10,6 +10,7 @@ import 'data/domain_store.dart';
 import 'data/drift_domain_store.dart';
 import 'data/prefs_domain_store.dart';
 import 'data/test_env.dart';
+import 'sync/sync_v2.dart';
 
 /// Local-first store. No backend, no account, no cost.
 ///
@@ -27,10 +28,26 @@ class ExpenseStore extends ChangeNotifier {
   /// Set to 1 once the legacy prefs domain data has been verified inside
   /// SQLite. Absent/0 keeps the legacy keys authoritative. Never deleted.
   static const _kDbMigrated = 'expense_db_migrated_v1';
+
+  /// Set to 1 once per-record sync revisions are initialized. Revisions
+  /// default to 0, so initialization writes nothing but this marker.
+  static const _kSyncV2 = 'expense_sync_v2_v1';
   static const _uuid = Uuid();
 
   DomainStore? _domain;
   bool _ownsDomain = false;
+
+  /// Per-record sync revisions, keyed "type/id" (see sync_v2 types).
+  /// Absent entries mean rev 0 (pre-v2 baseline).
+  Map<String, RecordMeta> _revs = {};
+
+  /// Deletion records, keyed "type/id". Never garbage-collected in Phase 4.
+  Map<String, TombEntry> _tombs = {};
+
+  bool _v2ready = false;
+
+  /// True once revision metadata is initialized (always true after [load]).
+  bool get v2ready => _v2ready;
 
   /// Test-only backend injection (unit tests have no native database).
   /// When set, [load] uses it instead of opening SQLite.
@@ -137,6 +154,8 @@ class ExpenseStore extends ChangeNotifier {
         _domain = PrefsDomainStore(p);
       }
     }
+    await _loadSyncMeta();
+    await _ensureV2Init(p);
     _sortTxns();
     loaded = true;
     notifyListeners();
@@ -164,6 +183,79 @@ class ExpenseStore extends ChangeNotifier {
     transactions = d.transactions;
     loans = d.loans;
     projects = d.projects;
+  }
+
+  /// Loads revision + tombstone maps from the active backend. Missing
+  /// entries mean rev 0 (pre-v2 baseline) — no backfill writes needed.
+  Future<void> _loadSyncMeta() async {
+    final d = _domain;
+    if (d == null) {
+      _revs = {};
+      _tombs = {};
+      _v2ready = false;
+      return;
+    }
+    try {
+      _revs = await d.loadRecordMeta();
+      final tombs = await d.loadTombstones();
+      _tombs = {for (final t in tombs) t.key: t};
+    } catch (e) {
+      debugPrint('Dhadda: sync metadata unreadable ($e); baseline.');
+      _revs = {};
+      _tombs = {};
+    }
+    _v2ready = false;
+  }
+
+  /// One-time revision initialization: deterministic (rev 0 baseline for
+  /// everything pre-v2) and stable (marker-gated, never regenerated).
+  Future<void> _ensureV2Init(SharedPreferences p) async {
+    if (p.getInt(_kSyncV2) == 1) {
+      _v2ready = true;
+      return;
+    }
+    try {
+      await p.setInt(_kSyncV2, 1);
+      _v2ready = true;
+    } catch (e) {
+      debugPrint('Dhadda: v2 marker unwritable ($e).');
+      _v2ready = false;
+    }
+  }
+
+  static String _mkey(String type, String id) => '$type/$id';
+
+  RecordMeta _metaFor(String type, String id) =>
+      _revs[_mkey(type, id)] ?? const RecordMeta(rev: 0, by: '');
+
+  /// Bumps a record's revision for a local edit. Returns the value to
+  /// persist alongside the row (same-statement atomicity on native).
+  RecordMeta _bumpRev(String type, String id) {
+    final cur = _metaFor(type, id);
+    final next = RecordMeta(rev: cur.rev + 1, by: deviceId);
+    _revs[_mkey(type, id)] = next;
+    return next;
+  }
+
+  /// Records a deletion. The tombstone (not the row) is what converges.
+  TombEntry _makeTomb(String type, String id) {
+    final cur = _metaFor(type, id);
+    final tomb =
+        TombEntry(type: type, id: id, rev: cur.rev + 1, by: deviceId);
+    _tombs[tomb.key] = tomb;
+    _revs.remove(_mkey(type, id));
+    return tomb;
+  }
+
+  /// Revision for a recreated id (undo-delete): outranks its tombstone,
+  /// which is dropped. Falls back to a normal bump when no tombstone exists.
+  RecordMeta _reviveRev(String type, String id) {
+    final tomb = _tombs.remove(_mkey(type, id));
+    final cur = _metaFor(type, id);
+    final base = cur.rev > (tomb?.rev ?? -1) ? cur.rev : (tomb?.rev ?? -1);
+    final next = RecordMeta(rev: base + 1, by: deviceId);
+    _revs[_mkey(type, id)] = next;
+    return next;
   }
 
   /// True when a legacy domain key is absent/empty (clean empty) or holds a
@@ -258,8 +350,9 @@ class ExpenseStore extends ChangeNotifier {
   }
 
   /// Awaited write-through with revert. [before]/[prevUpdatedAt] must be
-  /// captured by the caller BEFORE mutating memory. On database failure the
-  /// in-memory mutation is rolled back, the error recorded, and listeners
+  /// captured by the caller BEFORE mutating memory. Revision/tombstone maps
+  /// are snapshotted here (mutations bump them before calling). On database
+  /// failure everything rolls back, the error is recorded, and listeners are
   /// notified — the UI never shows phantom-saved state. Failures are never
   /// thrown into the UI and never only logged.
   Future<void> _persistDomain(
@@ -269,11 +362,19 @@ class ExpenseStore extends ChangeNotifier {
   ) async {
     final d = _domain;
     if (d == null) return;
+    final prevRevs = Map.of(_revs);
+    final prevTombs = Map.of(_tombs);
     try {
       await op(d);
       lastPersistError = null;
     } catch (e) {
       _restoreDomain(before, prevUpdatedAt);
+      _revs
+        ..clear()
+        ..addAll(prevRevs);
+      _tombs
+        ..clear()
+        ..addAll(prevTombs);
       lastPersistError = '$e';
       debugPrint('Dhadda: domain persist failed, reverted ($e)');
       notifyListeners();
@@ -563,6 +664,9 @@ class ExpenseStore extends ChangeNotifier {
     transactions = [];
     loans = [];
     projects = [];
+    _revs = {};
+    _tombs = {};
+    _v2ready = false;
     linkId = '';
     linkPin = '';
     linkPeer = '';
@@ -616,7 +720,10 @@ class ExpenseStore extends ChangeNotifier {
     transactions.add(txn);
     _sortTxns();
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertTransaction(txn));
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.txn, txn.id);
+      return d.upsertTransaction(txn, rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
   }
 
@@ -649,11 +756,10 @@ class ExpenseStore extends ChangeNotifier {
     transactions[i] = updated;
     _sortTxns();
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.upsertTransaction(updated),
-    );
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.txn, id);
+      return d.upsertTransaction(updated, rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
     return true;
   }
@@ -663,7 +769,11 @@ class ExpenseStore extends ChangeNotifier {
     final prevUpdated = updatedAt;
     transactions.removeWhere((t) => t.id == id);
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.deleteTransaction(id));
+    await _persistDomain(before, prevUpdated, (d) async {
+      final tomb = _makeTomb(SyncType.txn, id);
+      await d.deleteTransaction(id);
+      await d.saveTombstone(tomb);
+    });
     notifyListeners();
   }
 
@@ -675,7 +785,11 @@ class ExpenseStore extends ChangeNotifier {
     transactions.add(txn);
     _sortTxns();
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertTransaction(txn));
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _reviveRev(SyncType.txn, txn.id);
+      await d.upsertTransaction(txn, rev: rm.rev, by: rm.by);
+      await d.deleteTombstone(SyncType.txn, txn.id);
+    });
     notifyListeners();
   }
 
@@ -684,9 +798,10 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> addCategory(String name, {double budget = 0}) async {
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
+    final newId = _uuid.v4();
     categories.add(
       Category(
-        id: _uuid.v4(),
+        id: newId,
         name: name,
         icon: 0xe148,
         color: 0xFF607D8B,
@@ -694,11 +809,11 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveCategories(categories),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _bumpRev(SyncType.cat, newId);
+      await d.saveCategories(categories);
+      await d.saveRecordMeta(SyncType.cat, newId, rm.rev, rm.by);
+    });
     notifyListeners();
   }
 
@@ -716,11 +831,11 @@ class ExpenseStore extends ChangeNotifier {
       budget: budget,
     );
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveCategories(categories),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _bumpRev(SyncType.cat, id);
+      await d.saveCategories(categories);
+      await d.saveRecordMeta(SyncType.cat, id, rm.rev, rm.by);
+    });
     notifyListeners();
   }
 
@@ -746,11 +861,11 @@ class ExpenseStore extends ChangeNotifier {
       budget: budget ?? c.budget,
     );
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveCategories(categories),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _bumpRev(SyncType.cat, id);
+      await d.saveCategories(categories);
+      await d.saveRecordMeta(SyncType.cat, id, rm.rev, rm.by);
+    });
     notifyListeners();
   }
 
@@ -783,16 +898,22 @@ class ExpenseStore extends ChangeNotifier {
     transactions = fixed;
     _sortTxns();
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveCategories(categories),
-    );
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveTransactions(transactions),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      final tomb = _makeTomb(SyncType.cat, id);
+      // Reassigned entries changed category: bump each moved one.
+      final oldCat = {for (final t in before.transactions) t.id: t.categoryId};
+      final moved = <String>[
+        for (final t in transactions)
+          if (t.categoryId == 'other' && oldCat[t.id] != 'other') t.id,
+      ];
+      await d.saveCategories(categories);
+      await d.saveTransactions(transactions);
+      await d.saveTombstone(tomb);
+      for (final tid in moved) {
+        final rm = _bumpRev(SyncType.txn, tid);
+        await d.saveRecordMeta(SyncType.txn, tid, rm.rev, rm.by);
+      }
+    });
     notifyListeners();
     return true;
   }
@@ -807,11 +928,10 @@ class ExpenseStore extends ChangeNotifier {
     final c = categories.removeAt(i);
     categories.insert(j, c);
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveCategories(categories),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      await d.saveCategories(categories);
+      await _saveMovedCategoryRevs(d, before);
+    });
     notifyListeners();
   }
 
@@ -829,12 +949,28 @@ class ExpenseStore extends ChangeNotifier {
     final c = categories.removeAt(i);
     categories.insert(j, c);
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveCategories(categories),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      await d.saveCategories(categories);
+      await _saveMovedCategoryRevs(d, before);
+    });
     notifyListeners();
+  }
+
+  /// Bumps revisions for categories whose list position changed (order is
+  /// merged sync state, so reorder is an edit).
+  Future<void> _saveMovedCategoryRevs(
+      DomainStore d, DomainData before) async {
+    final oldPos = <String, int>{};
+    for (var k = 0; k < before.categories.length; k++) {
+      oldPos[before.categories[k].id] = k;
+    }
+    for (var k = 0; k < categories.length; k++) {
+      final id = categories[k].id;
+      if (oldPos[id] != k) {
+        final rm = _bumpRev(SyncType.cat, id);
+        await d.saveRecordMeta(SyncType.cat, id, rm.rev, rm.by);
+      }
+    }
   }
 
   // ---------- lent-money ledger ----------
@@ -848,9 +984,10 @@ class ExpenseStore extends ChangeNotifier {
   }) async {
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
+    final newId = _uuid.v4();
     loans.add(
       Loan(
-        id: _uuid.v4(),
+        id: newId,
         person: person,
         lent: amount,
         dateLent: date.millisecondsSinceEpoch,
@@ -860,7 +997,10 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans.last));
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.loan, newId);
+      return d.upsertLoan(loans.last, rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
     _loansChanged();
   }
@@ -875,9 +1015,10 @@ class ExpenseStore extends ChangeNotifier {
   }) async {
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
+    final newId = _uuid.v4();
     loans.add(
       Loan(
-        id: _uuid.v4(),
+        id: newId,
         person: person,
         lent: amount,
         dateLent: date.millisecondsSinceEpoch,
@@ -887,7 +1028,10 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans.last));
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.loan, newId);
+      return d.upsertLoan(loans.last, rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
     _loansChanged();
   }
@@ -912,7 +1056,10 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: when?.millisecondsSinceEpoch ?? 0,
     );
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans[i]));
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.loan, loanId);
+      return d.upsertLoan(loans[i], rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
     _loansChanged();
   }
@@ -926,15 +1073,16 @@ class ExpenseStore extends ChangeNotifier {
     final i = loans.indexWhere((l) => l.id == loanId);
     if (i < 0) return;
     final l = loans[i];
-    final reps = List<Repayment>.from(l.repayments)
-      ..add(
-        Repayment(
-          id: _uuid.v4(),
-          amount: amount,
-          date: date.millisecondsSinceEpoch,
-          note: note,
-        ),
-      );
+    final reps = List<Repayment>.from(l.repayments);
+    final newRepId = _uuid.v4();
+    reps.add(
+      Repayment(
+        id: newRepId,
+        amount: amount,
+        date: date.millisecondsSinceEpoch,
+        note: note,
+      ),
+    );
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
     loans[i] = Loan(
@@ -950,7 +1098,12 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: l.remindAt,
     );
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans[i]));
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _bumpRev(SyncType.loan, loanId);
+      await d.upsertLoan(loans[i], rev: rm.rev, by: rm.by);
+      final cm = _bumpRev(SyncType.repay, newRepId);
+      await d.saveRecordMeta(SyncType.repay, newRepId, cm.rev, cm.by);
+    });
     notifyListeners();
     _loansChanged();
   }
@@ -966,15 +1119,16 @@ class ExpenseStore extends ChangeNotifier {
     final i = loans.indexWhere((l) => l.id == loanId);
     if (i < 0) return;
     final l = loans[i];
-    final tops = List<Topup>.from(l.topups)
-      ..add(
-        Topup(
-          id: _uuid.v4(),
-          amount: amount,
-          date: date.millisecondsSinceEpoch,
-          note: note,
-        ),
-      );
+    final tops = List<Topup>.from(l.topups);
+    final newTopId = _uuid.v4();
+    tops.add(
+      Topup(
+        id: newTopId,
+        amount: amount,
+        date: date.millisecondsSinceEpoch,
+        note: note,
+      ),
+    );
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
     loans[i] = Loan(
@@ -990,7 +1144,12 @@ class ExpenseStore extends ChangeNotifier {
       remindAt: l.remindAt,
     );
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.upsertLoan(loans[i]));
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _bumpRev(SyncType.loan, loanId);
+      await d.upsertLoan(loans[i], rev: rm.rev, by: rm.by);
+      final cm = _bumpRev(SyncType.topup, newTopId);
+      await d.saveRecordMeta(SyncType.topup, newTopId, cm.rev, cm.by);
+    });
     notifyListeners();
     _loansChanged();
   }
@@ -1000,7 +1159,11 @@ class ExpenseStore extends ChangeNotifier {
     final prevUpdated = updatedAt;
     loans.removeWhere((l) => l.id == id);
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.deleteLoan(id));
+    await _persistDomain(before, prevUpdated, (d) async {
+      final tomb = _makeTomb(SyncType.loan, id);
+      await d.deleteLoan(id);
+      await d.saveTombstone(tomb);
+    });
     notifyListeners();
     _loansChanged();
   }
@@ -1087,11 +1250,10 @@ class ExpenseStore extends ChangeNotifier {
       ),
     );
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.upsertProject(projects.last),
-    );
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.proj, id);
+      return d.upsertProject(projects.last, rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
     return id;
   }
@@ -1119,11 +1281,10 @@ class ExpenseStore extends ChangeNotifier {
       color: color ?? p.color,
     );
     _touch();
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.upsertProject(projects[i]),
-    );
+    await _persistDomain(before, prevUpdated, (d) {
+      final rm = _bumpRev(SyncType.proj, id);
+      return d.upsertProject(projects[i], rev: rm.rev, by: rm.by);
+    });
     notifyListeners();
   }
 
@@ -1152,12 +1313,22 @@ class ExpenseStore extends ChangeNotifier {
     transactions = fixed;
     _sortTxns();
     _touch();
-    await _persistDomain(before, prevUpdated, (d) => d.deleteProject(id));
-    await _persistDomain(
-      before,
-      prevUpdated,
-      (d) => d.saveTransactions(transactions),
-    );
+    await _persistDomain(before, prevUpdated, (d) async {
+      final tomb = _makeTomb(SyncType.proj, id);
+      // Untagged entries changed project: bump each moved one.
+      final oldProj = {for (final t in before.transactions) t.id: t.projectId};
+      final moved = <String>[
+        for (final t in transactions)
+          if (t.projectId.isEmpty && oldProj[t.id] == id) t.id,
+      ];
+      await d.deleteProject(id);
+      await d.saveTransactions(transactions);
+      await d.saveTombstone(tomb);
+      for (final tid in moved) {
+        final rm = _bumpRev(SyncType.txn, tid);
+        await d.saveRecordMeta(SyncType.txn, tid, rm.rev, rm.by);
+      }
+    });
     notifyListeners();
   }
 
@@ -1189,7 +1360,14 @@ class ExpenseStore extends ChangeNotifier {
 
   /// Applies [raw] snapshot JSON if it is newer than local data.
   /// Returns a short human-readable message for the UI.
-  Future<String> importSnapshotString(String raw, {bool force = false}) async {
+  ///
+  /// Sync metadata is re-keyed, never reset: existing revisions survive per
+  /// id, new ids baseline at 0. Tombstones: [force] (explicit restore) drops
+  /// them all; [dropTombstonesForPresent] (user-picked file) drops them for
+  /// imported ids; ambient sync keeps them so deletions stand. Restored-over
+  /// tombstone ids outrank the deletion they undo.
+  Future<String> importSnapshotString(String raw,
+      {bool force = false, bool dropTombstonesForPresent = false}) async {
     late Snapshot remote;
     try {
       remote = Snapshot.decode(raw);
@@ -1206,12 +1384,43 @@ class ExpenseStore extends ChangeNotifier {
     _pushBackup(exportJson());
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
+    final prevRevs = Map.of(_revs);
+    final prevTombs = Map.of(_tombs);
     categories = remote.categories.isEmpty
         ? defaultCategories()
         : remote.categories;
     transactions = remote.transactions;
     loans = remote.loans;
     projects = remote.projects;
+    final present = <String>{
+      for (final c in categories) _mkey(SyncType.cat, c.id),
+      for (final t in transactions) _mkey(SyncType.txn, t.id),
+      for (final p in projects) _mkey(SyncType.proj, p.id),
+      for (final l in loans) ...[
+        _mkey(SyncType.loan, l.id),
+        for (final t in l.topups) _mkey(SyncType.topup, t.id),
+        for (final r in l.repayments) _mkey(SyncType.repay, r.id),
+      ],
+    };
+    final dropped = <String, TombEntry>{};
+    if (force) {
+      dropped.addAll(_tombs);
+      _tombs.clear();
+    } else if (dropTombstonesForPresent) {
+      for (final k in _tombs.keys.toList()) {
+        if (present.contains(k)) dropped[k] = _tombs.remove(k)!;
+      }
+    }
+    for (final k in present) {
+      _revs.putIfAbsent(k, () => const RecordMeta(rev: 0, by: ''));
+    }
+    for (final e in dropped.entries) {
+      final cur = _revs[e.key];
+      final want = e.value.rev + 1;
+      if (cur == null || cur.rev < want) {
+        _revs[e.key] = RecordMeta(rev: want, by: deviceId);
+      }
+    }
     final d = _domain;
     if (d != null) {
       try {
@@ -1223,11 +1432,25 @@ class ExpenseStore extends ChangeNotifier {
             projects: List.of(projects),
           ),
         );
+        for (final e in dropped.entries) {
+          final m = _revs[e.key]!;
+          final sep = e.key.indexOf('/');
+          await d.saveRecordMeta(e.key.substring(0, sep),
+              e.key.substring(sep + 1), m.rev, m.by);
+          await d.deleteTombstone(
+              e.key.substring(0, sep), e.key.substring(sep + 1));
+        }
         lastPersistError = null;
       } catch (e) {
         // The import must not claim success while the database rejected it:
         // restore everything and say so through the message channel.
         _restoreDomain(before, prevUpdated);
+        _revs
+          ..clear()
+          ..addAll(prevRevs);
+        _tombs
+          ..clear()
+          ..addAll(prevTombs);
         lastPersistError = '$e';
         debugPrint('Dhadda: import persist failed, reverted ($e)');
         return 'Could not save the import. Nothing was changed.';
@@ -1246,5 +1469,406 @@ class ExpenseStore extends ChangeNotifier {
     final list = backups;
     if (index < 0 || index >= list.length) return 'Backup not found.';
     return importSnapshotString(list[index], force: true);
+  }
+
+  // ---------- Snapshot v2 (record-level sync) ----------
+
+  static Map<String, dynamic> _catContent(Category c, int order) => {
+        ...c.toJson(),
+        'sortOrder': order,
+      };
+
+  static Map<String, dynamic> _loanContent(Loan l) => {
+        'id': l.id,
+        'person': l.person,
+        'kind': l.kind,
+        'lent': l.lent,
+        'dateLent': l.dateLent,
+        'dueDate': l.dueDate,
+        'note': l.note,
+        'remindAt': l.remindAt,
+      };
+
+  /// This device's full state as v2 records (live + tombstones outsourced
+  /// to the caller for message counts).
+  List<SyncRecord> _localV2Records() {
+    final out = <SyncRecord>[];
+    for (var i = 0; i < categories.length; i++) {
+      final c = categories[i];
+      final m = _metaFor(SyncType.cat, c.id);
+      out.add(SyncRecord(
+          type: SyncType.cat,
+          id: c.id,
+          rev: m.rev,
+          by: m.by,
+          data: _catContent(c, i)));
+    }
+    for (final t in transactions) {
+      final m = _metaFor(SyncType.txn, t.id);
+      out.add(SyncRecord(
+          type: SyncType.txn,
+          id: t.id,
+          rev: m.rev,
+          by: m.by,
+          data: t.toJson()));
+    }
+    for (final p in projects) {
+      final m = _metaFor(SyncType.proj, p.id);
+      out.add(SyncRecord(
+          type: SyncType.proj,
+          id: p.id,
+          rev: m.rev,
+          by: m.by,
+          data: p.toJson()));
+    }
+    for (final l in loans) {
+      final m = _metaFor(SyncType.loan, l.id);
+      out.add(SyncRecord(
+          type: SyncType.loan,
+          id: l.id,
+          rev: m.rev,
+          by: m.by,
+          data: _loanContent(l)));
+      for (final t in l.topups) {
+        final cm = _metaFor(SyncType.topup, t.id);
+        out.add(SyncRecord(
+            type: SyncType.topup,
+            id: t.id,
+            rev: cm.rev,
+            by: cm.by,
+            parent: l.id,
+            data: t.toJson()));
+      }
+      for (final r in l.repayments) {
+        final cm = _metaFor(SyncType.repay, r.id);
+        out.add(SyncRecord(
+            type: SyncType.repay,
+            id: r.id,
+            rev: cm.rev,
+            by: cm.by,
+            parent: l.id,
+            data: r.toJson()));
+      }
+    }
+    return out;
+  }
+
+  String exportSnapshotV2() {
+    final records = _localV2Records();
+    for (final t in _tombs.values) {
+      records.add(SyncRecord(
+          type: t.type, id: t.id, rev: t.rev, by: t.by, dead: true));
+    }
+    return V2Snapshot(
+      deviceId: deviceId,
+      deviceName: deviceName,
+      exportedAt: DateTime.now().toUtc().toIso8601String(),
+      records: records,
+    ).encode();
+  }
+
+  /// Converts v1 content to baseline rev-0 records for compat merging.
+  /// Unknown history loses nothing: union by id, current revs win conflicts.
+  static List<SyncRecord> v1ToRev0Records(Snapshot snap) {
+    final out = <SyncRecord>[];
+    for (var i = 0; i < snap.categories.length; i++) {
+      final c = snap.categories[i];
+      out.add(SyncRecord(
+          type: SyncType.cat,
+          id: c.id,
+          rev: 0,
+          by: '',
+          data: _catContent(c, i)));
+    }
+    for (final t in snap.transactions) {
+      out.add(SyncRecord(
+          type: SyncType.txn, id: t.id, rev: 0, by: '', data: t.toJson()));
+    }
+    for (final p in snap.projects) {
+      out.add(SyncRecord(
+          type: SyncType.proj, id: p.id, rev: 0, by: '', data: p.toJson()));
+    }
+    for (final l in snap.loans) {
+      out.add(SyncRecord(
+          type: SyncType.loan,
+          id: l.id,
+          rev: 0,
+          by: '',
+          data: _loanContent(l)));
+      for (final t in l.topups) {
+        out.add(SyncRecord(
+            type: SyncType.topup,
+            id: t.id,
+            rev: 0,
+            by: '',
+            parent: l.id,
+            data: t.toJson()));
+      }
+      for (final r in l.repayments) {
+        out.add(SyncRecord(
+            type: SyncType.repay,
+            id: r.id,
+            rev: 0,
+            by: '',
+            parent: l.id,
+            data: r.toJson()));
+      }
+    }
+    return out;
+  }
+
+  /// Materializes a merge result into domain state with the invariant pass:
+  /// deterministic category order (`other` forced last, re-seeded if
+  /// missing), dangling category refs fall back to `other` (current display
+  /// behavior), dangling project refs are untagged (current delete behavior),
+  /// orphan loan children are dropped (counted, never crash).
+  ({DomainData data, Map<String, RecordMeta> meta, List<TombEntry> tombs}) _materializeMerge(
+      MergeResult result) {
+    var skippedOrphans = 0;
+    final catRecs = <SyncRecord>[];
+    for (final r in result.records.values) {
+      if (r.type == SyncType.cat && !r.dead) catRecs.add(r);
+    }
+    int sortOf(SyncRecord r) {
+      final v = r.data?['sortOrder'];
+      return v is int ? v : 1 << 30;
+    }
+
+    catRecs.sort((a, b) {
+      final s = sortOf(a).compareTo(sortOf(b));
+      return s != 0 ? s : a.id.compareTo(b.id);
+    });
+    final otherIdx = catRecs.indexWhere((r) => r.id == 'other');
+    SyncRecord? other;
+    if (otherIdx >= 0) {
+      other = catRecs.removeAt(otherIdx);
+    } else {
+      // The app invariant needs an Other: re-seed it rather than run broken.
+      other = const SyncRecord(
+          type: SyncType.cat,
+          id: 'other',
+          rev: 0,
+          by: '',
+          data: {
+            'id': 'other',
+            'name': 'Other',
+            'icon': 0xe148,
+            'color': 0xFF607D8B,
+            'budget': 0,
+          });
+    }
+    catRecs.add(other);
+    final catIds = {for (final r in catRecs) r.id};
+
+    final categories = <Category>[];
+    final meta = <String, RecordMeta>{};
+    for (final r in catRecs) {
+      categories.add(Category.fromJson(
+          Map<String, dynamic>.from(r.data ?? {'id': r.id})));
+      meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+    }
+
+    final projects = <Project>[];
+    for (final r in result.records.values) {
+      if (r.type != SyncType.proj || r.dead) continue;
+      projects.add(Project.fromJson(
+          Map<String, dynamic>.from(r.data ?? {'id': r.id})));
+      meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+    }
+    final projIds = {for (final p in projects) p.id};
+
+    final loans = <Loan>[];
+    final topupsByLoan = <String, List<Topup>>{};
+    final repaysByLoan = <String, List<Repayment>>{};
+    for (final r in result.records.values) {
+      if (r.type == SyncType.topup && !r.dead) {
+        if (!result.records.containsKey('loan/${r.parent}')) {
+          skippedOrphans++;
+          continue;
+        }
+        final t = Topup.fromJson(Map<String, dynamic>.from(r.data ?? {}));
+        (topupsByLoan[r.parent] ??= []).add(
+            Topup(id: r.id, amount: t.amount, date: t.date, note: t.note));
+        meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+      } else if (r.type == SyncType.repay && !r.dead) {
+        if (!result.records.containsKey('loan/${r.parent}')) {
+          skippedOrphans++;
+          continue;
+        }
+        final x = Repayment.fromJson(Map<String, dynamic>.from(r.data ?? {}));
+        (repaysByLoan[r.parent] ??= []).add(Repayment(
+            id: r.id, amount: x.amount, date: x.date, note: x.note));
+        meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+      }
+    }
+    // Loan rows whose parent lost (deleted) are dropped with the children.
+    for (final r in result.records.values) {
+      if (r.type != SyncType.loan || r.dead) continue;
+      final d = Map<String, dynamic>.from(r.data ?? {'id': r.id});
+      loans.add(Loan(
+        id: r.id,
+        person: '${d['person'] ?? ''}',
+        kind: d['kind'] == 'borrowed' ? 'borrowed' : 'lent',
+        lent: d['lent'] is num ? (d['lent'] as num).toDouble() : 0,
+        dateLent: d['dateLent'] is int
+            ? d['dateLent'] as int
+            : DateTime.now().millisecondsSinceEpoch,
+        dueDate: d['dueDate'] is int ? d['dueDate'] as int : null,
+        note: '${d['note'] ?? ''}',
+        remindAt: d['remindAt'] is int ? d['remindAt'] as int : 0,
+        topups: topupsByLoan[r.id] ?? const [],
+        repayments: repaysByLoan[r.id] ?? const [],
+      ));
+      meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+    }
+
+    final transactions = <Txn>[];
+    for (final r in result.records.values) {
+      if (r.type != SyncType.txn || r.dead) continue;
+      final d = Map<String, dynamic>.from(r.data ?? {'id': r.id});
+      final catId =
+          catIds.contains('${d['categoryId'] ?? ''}')
+              ? '${d['categoryId']}'
+              : 'other';
+      final projId =
+          projIds.contains('${d['projectId'] ?? ''}')
+              ? '${d['projectId']}'
+              : '';
+      transactions.add(Txn(
+        id: r.id,
+        type: d['type'] == 'income' ? 'income' : 'expense',
+        amount: d['amount'] is num ? (d['amount'] as num).toDouble() : 0,
+        categoryId: catId,
+        date: d['date'] is int
+            ? d['date'] as int
+            : DateTime.now().millisecondsSinceEpoch,
+        note: '${d['note'] ?? ''}',
+        mode: '${d['mode'] ?? 'cash'}',
+        projectId: projId,
+      ));
+      meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+    }
+
+    final tombs = <TombEntry>[];
+    for (final t in result.tombs.values) {
+      tombs.add(TombEntry(type: t.type, id: t.id, rev: t.rev, by: t.by));
+    }
+    if (skippedOrphans > 0) {
+      debugPrint('Dhadda: merge dropped $skippedOrphans orphan children.');
+    }
+    return (
+      data: DomainData(
+          categories: categories,
+          transactions: transactions,
+          loans: loans,
+          projects: projects),
+      meta: meta,
+      tombs: tombs,
+    );
+  }
+
+  /// Merges peer records and applies the result atomically (Phase 2 revert
+  /// discipline extended to rev/tomb maps). Never throws: failures restore
+  /// everything and surface through the returned error.
+  Future<({bool changed, int adopted, int tombs, String? error})>
+      _mergeAndApply(List<SyncRecord> remote) async {
+    final d = _domain;
+    if (d == null) {
+      return (changed: false, adopted: 0, tombs: 0, error: 'not ready');
+    }
+    final local = <String, SyncRecord>{};
+    for (final r in _localV2Records()) {
+      local[r.key] = r;
+    }
+    final localTombs = <String, SyncRecord>{
+      for (final t in _tombs.values)
+        t.key: SyncRecord(
+            type: t.type, id: t.id, rev: t.rev, by: t.by, dead: true),
+    };
+    final result = mergeRecords(
+        localRecords: local, localTombs: localTombs, remote: remote);
+    if (!result.changed) {
+      return (changed: false, adopted: 0, tombs: 0, error: null);
+    }
+    final mat = _materializeMerge(result);
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
+    final prevRevs = Map.of(_revs);
+    final prevTombs = Map.of(_tombs);
+    try {
+      await d.applyV2(data: mat.data, meta: mat.meta, tombs: mat.tombs);
+      categories = mat.data.categories;
+      transactions = mat.data.transactions;
+      loans = mat.data.loans;
+      projects = mat.data.projects;
+      _revs = mat.meta;
+      _tombs = {for (final t in mat.tombs) t.key: t};
+      _sortTxns();
+      updatedAt = DateTime.now().toUtc().toIso8601String();
+      _saveAll();
+      lastPersistError = null;
+      notifyListeners();
+      _loansChanged();
+      return (
+        changed: true,
+        adopted: result.adopted,
+        tombs: result.tombsChanged,
+        error: null,
+      );
+    } catch (e) {
+      _restoreDomain(before, prevUpdated);
+      _revs
+        ..clear()
+        ..addAll(prevRevs);
+      _tombs
+        ..clear()
+        ..addAll(prevTombs);
+      lastPersistError = '$e';
+      debugPrint('Dhadda: merge apply failed, reverted ($e)');
+      notifyListeners();
+      return (changed: false, adopted: 0, tombs: 0, error: '$e');
+    }
+  }
+
+  /// Applies a v2 peer snapshot with record-level merge. Human message for
+  /// snackbars; never throws into the UI.
+  Future<String> importSnapshotV2(String raw) async {
+    final snap = V2Snapshot.tryDecode(raw);
+    if (snap == null) return 'Could not read that sync data.';
+    if (!_v2ready) await _ensureV2Init(_prefs!);
+    final r = await _mergeAndApply(snap.records);
+    if (r.error != null) {
+      return 'Could not save the sync merge. Nothing was changed.';
+    }
+    if (!r.changed) return 'Already in sync.';
+    final n = r.adopted + r.tombs;
+    return 'Synced $n change${n == 1 ? '' : 's'} from ${snap.deviceName}.';
+  }
+
+  /// Uniform network ingest for every sync transport: v2 payloads merge by
+  /// revision; v1 payloads convert to baseline rev-0 records and merge the
+  /// same way (never whole-replace). Malformed payloads throw for the
+  /// existing friendly-error UX.
+  Future<String> ingestPeerSnapshot(String raw,
+      {String peerName = 'device'}) async {
+    final fmt = V2Snapshot.detectFormat(raw);
+    if (fmt == 2) return importSnapshotV2(raw);
+    if (fmt == 1) {
+      final Snapshot remote;
+      try {
+        remote = Snapshot.decode(raw);
+      } catch (_) {
+        throw FormatException('Could not read that snapshot.');
+      }
+      if (!_v2ready) await _ensureV2Init(_prefs!);
+      final r = await _mergeAndApply(v1ToRev0Records(remote));
+      if (r.error != null) {
+        return 'Could not save the sync merge. Nothing was changed.';
+      }
+      if (!r.changed) return 'Already in sync.';
+      final n = r.adopted + r.tombs;
+      return 'Synced $n change${n == 1 ? '' : 's'} from $peerName.';
+    }
+    throw FormatException('Could not read that snapshot.');
   }
 }
