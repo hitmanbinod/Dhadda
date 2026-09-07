@@ -171,7 +171,7 @@ class ExpenseStore extends ChangeNotifier {
       try {
         return await DriftDomainStore.open();
       } catch (e) {
-        debugPrint('Dhadda: SQLite unavailable ($e); prefs backend for now.');
+        debugPrint('Dhadda: SQLite unavailable (${e.runtimeType}); prefs backend for now.');
       }
     }
     return PrefsDomainStore(p);
@@ -200,7 +200,7 @@ class ExpenseStore extends ChangeNotifier {
       final tombs = await d.loadTombstones();
       _tombs = {for (final t in tombs) t.key: t};
     } catch (e) {
-      debugPrint('Dhadda: sync metadata unreadable ($e); baseline.');
+      debugPrint('Dhadda: sync metadata unreadable (${e.runtimeType}); baseline.');
       _revs = {};
       _tombs = {};
     }
@@ -218,7 +218,7 @@ class ExpenseStore extends ChangeNotifier {
       await p.setInt(_kSyncV2, 1);
       _v2ready = true;
     } catch (e) {
-      debugPrint('Dhadda: v2 marker unwritable ($e).');
+      debugPrint('Dhadda: v2 marker unwritable (${e.runtimeType}).');
       _v2ready = false;
     }
   }
@@ -322,7 +322,7 @@ class ExpenseStore extends ChangeNotifier {
       }
       await p.setInt(_kDbMigrated, 1);
     } catch (e) {
-      debugPrint('Dhadda: DB migration failed, staying on prefs ($e)');
+      debugPrint('Dhadda: DB migration failed, staying on prefs (${e.runtimeType})');
       _domain = PrefsDomainStore(p);
     }
   }
@@ -375,7 +375,7 @@ class ExpenseStore extends ChangeNotifier {
         ..clear()
         ..addAll(prevTombs);
       lastPersistError = '$e';
-      debugPrint('Dhadda: domain persist failed, reverted ($e)');
+      debugPrint('Dhadda: domain persist failed, reverted (${e.runtimeType})');
       notifyListeners();
     }
   }
@@ -1499,7 +1499,7 @@ class ExpenseStore extends ChangeNotifier {
           ..clear()
           ..addAll(prevTombs);
         lastPersistError = '$e';
-        debugPrint('Dhadda: import persist failed, reverted ($e)');
+        debugPrint('Dhadda: import persist failed, reverted (${e.runtimeType})');
         return 'Could not save the import. Nothing was changed.';
       }
     }
@@ -1940,7 +1940,7 @@ class ExpenseStore extends ChangeNotifier {
         ..clear()
         ..addAll(prevTombs);
       lastPersistError = '$e';
-      debugPrint('Dhadda: merge apply failed, reverted ($e)');
+      debugPrint('Dhadda: merge apply failed, reverted (${e.runtimeType})');
       notifyListeners();
       return (changed: false, adopted: 0, tombs: 0, error: '$e');
     }

@@ -9,6 +9,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models.dart';
 import '../store.dart';
 import '../widgets/page.dart';
+import '../widgets/backup_password.dart';
+import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
 import '../sync/link_sync.dart';
 import '../sync/mdns.dart';
@@ -411,7 +413,18 @@ class _SyncScreenState extends State<SyncScreen> {
     if (raw == null) return; // cancelled
     if (!mounted) return;
     final store = context.read<ExpenseStore>();
-    final msg = await store.importFilePayload(raw);
+    String payload = raw;
+    if (BackupCrypto.isEncrypted(raw)) {
+      final pw = await askBackupPassword(context, confirm: false);
+      if (pw == null || !mounted) return;
+      try {
+        payload = await BackupCrypto.decrypt(raw, pw);
+      } catch (e) {
+        _say(e is FormatException ? e.message : 'Could not decrypt.');
+        return;
+      }
+    }
+    final msg = await store.importFilePayload(payload);
     store.noteSynced();
     _say(msg);
   }

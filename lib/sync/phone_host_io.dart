@@ -87,7 +87,7 @@ Future<PhoneHostSession> startPhoneHost() async {
     try {
       hits.value++;
     } catch (e) {
-      debugPrint('phone-host hits bump failed: $e');
+      debugPrint('phone-host hits bump failed: ${e.runtimeType}');
     }
   }
 
@@ -222,10 +222,13 @@ Future<PhoneHostSession> startPhoneHost() async {
           Response res;
           try {
             res = await inner(req);
-          } catch (e, st) {
-            debugPrint('phone-host handler threw: $e\n$st');
-            return Response.internalServerError(body: 'Dhadda host error: $e');
-          }
+            } catch (e) {
+              // Error class only: messages/stacks could echo request bytes.
+              debugPrint('phone-host handler threw: ${e.runtimeType}');
+              return Response.internalServerError(
+                body: 'Dhadda host error (${e.runtimeType}).',
+              );
+            }
           try {
             return res.change(
               headers: {...res.headers, 'Access-Control-Allow-Origin': '*'},

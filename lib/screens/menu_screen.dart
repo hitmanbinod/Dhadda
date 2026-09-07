@@ -10,7 +10,9 @@ import '../sync/sms.dart';
 import '../version.dart';
 import '../format.dart';
 import '../widgets/page.dart';
+import '../widgets/backup_password.dart';
 import '../sync/link_sync.dart';
+import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
 import 'sync_screen.dart';
 
@@ -74,9 +76,44 @@ class _MenuScreenState extends State<MenuScreen> {
     final raw = await FileSync.importJson();
     if (raw == null) return; // cancelled
     if (!context.mounted) return;
-    final msg = await store.importFilePayload(raw);
+    final payload = await _maybeDecrypt(context, raw);
+    if (payload == null) return; // cancelled or wrong password (told)
+    final msg = await store.importFilePayload(payload);
     store.noteSynced();
     _say(msg);
+  }
+
+  /// Password-gated encrypted export (additive; plaintext Export untouched).
+  Future<void> _exportEncrypted(
+      BuildContext context, ExpenseStore store) async {
+    final pw = await askBackupPassword(context, confirm: true);
+    if (pw == null || !context.mounted) return;
+    try {
+      final enc = await BackupCrypto.encrypt(store.exportJson(), pw);
+      await FileSync.exportJson(
+        context,
+        enc,
+        FileSync.fileNameFor(DateTime.now())
+            .replaceFirst('.json', '.enc.json'),
+      );
+    } catch (_) {
+      _say('Could not encrypt the backup.');
+    }
+  }
+
+  /// Returns cleartext for the picked file: decrypts encrypted envelopes
+  /// (asking for the passphrase) and passes everything else through.
+  /// Returns null when the user cancels or decryption fails (already told).
+  Future<String?> _maybeDecrypt(BuildContext context, String raw) async {
+    if (!BackupCrypto.isEncrypted(raw)) return raw;
+    final pw = await askBackupPassword(context, confirm: false);
+    if (pw == null || !context.mounted) return null;
+    try {
+      return await BackupCrypto.decrypt(raw, pw);
+    } catch (e) {
+      _say(e is FormatException ? e.message : 'Could not decrypt.');
+      return null;
+    }
   }
 
   @override
@@ -158,6 +195,19 @@ class _MenuScreenState extends State<MenuScreen> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _exportEncrypted(context, store),
+                    icon: const Icon(Icons.lock_outline),
+                    label: const Text('Encrypted backup…'),
+                  ),
+                ),
+                const Text(
+                  'Encrypted backups need a passphrase (not the app PIN) to open. Import detects them automatically.',
+                  style: TextStyle(fontSize: 12),
                 ),
               ],
             ),
