@@ -96,6 +96,53 @@ class DomainSummary {
   }
 }
 
+/// Per-record sync revision: a logical counter plus the authoring device.
+/// No wall-clock time participates in merge decisions (clocks may skew).
+class RecordMeta {
+  final int rev;
+  final String by;
+  const RecordMeta({required this.rev, required this.by});
+
+  Map<String, dynamic> toJson() => {'rev': rev, 'by': by};
+
+  factory RecordMeta.fromJson(Map<String, dynamic> j) => RecordMeta(
+        rev: j['rev'] is int && (j['rev'] as int) >= 0
+            ? j['rev'] as int
+            : 0,
+        by: '${j['by'] ?? ''}',
+      );
+}
+
+/// A deletion record. Retained indefinitely in Phase 4 (no tombstone GC):
+/// it must outlive every peer that might still hold the deleted record.
+class TombEntry {
+  final String type;
+  final String id;
+  final int rev;
+  final String by;
+  const TombEntry({
+    required this.type,
+    required this.id,
+    required this.rev,
+    required this.by,
+  });
+
+  String get key => '$type/$id';
+
+  Map<String, dynamic> toJson() =>
+      {'t': type, 'id': id, 'rev': rev, 'by': by};
+
+  static TombEntry? tryParse(Object? v) {
+    if (v is! Map<String, dynamic>) return null;
+    final type = '${v['t'] ?? ''}';
+    final id = '${v['id'] ?? ''}';
+    final rev = v['rev'];
+    if (type.isEmpty || id.isEmpty) return null;
+    if (rev is! int || rev < 1) return null;
+    return TombEntry(type: type, id: id, rev: rev, by: '${v['by'] ?? ''}');
+  }
+}
+
 /// Backend contract. Multi-record writes must be atomic where the backend
 /// supports transactions (Drift); single-key backends apply them as one write.
 abstract class DomainStore {
@@ -103,14 +150,34 @@ abstract class DomainStore {
   Future<void> replaceAll(DomainData data);
   Future<void> saveCategories(List<Category> categories);
   Future<void> saveTransactions(List<Txn> transactions);
-  Future<void> upsertTransaction(Txn txn);
+  Future<void> upsertTransaction(Txn txn, {int? rev, String? by});
   Future<void> deleteTransaction(String id);
-  Future<void> upsertLoan(Loan loan);
+  Future<void> upsertLoan(Loan loan, {int? rev, String? by});
   Future<void> deleteLoan(String id);
-  Future<void> upsertProject(Project project);
+  Future<void> upsertProject(Project project, {int? rev, String? by});
   Future<void> deleteProject(String id);
   Future<Map<String, int>> counts();
   Future<void> close();
+
+  // ---- Phase 4 sync metadata (revisions + tombstones) ----
+
+  /// All per-record revisions, keyed "type/id". Missing entries mean rev 0.
+  Future<Map<String, RecordMeta>> loadRecordMeta();
+
+  /// Upserts one record's revision.
+  Future<void> saveRecordMeta(String type, String id, int rev, String by);
+
+  Future<List<TombEntry>> loadTombstones();
+  Future<void> saveTombstone(TombEntry tomb);
+  Future<void> deleteTombstone(String type, String id);
+
+  /// Atomic v2 apply: domain rows (with revisions) + tombstones in one
+  /// transaction where supported. Used by merge application.
+  Future<void> applyV2({
+    required DomainData data,
+    required Map<String, RecordMeta> meta,
+    required List<TombEntry> tombs,
+  });
 }
 
 List<T> _decodeList<T>(String? raw, T Function(Map<String, dynamic>) fromJson) {

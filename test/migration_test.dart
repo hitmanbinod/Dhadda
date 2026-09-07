@@ -129,6 +129,25 @@ class _ThrowingBackend implements DomainStore {
   }
 
   @override
+  Future<Map<String, RecordMeta>> loadRecordMeta() => inner.loadRecordMeta();
+  @override
+  Future<void> saveRecordMeta(String t, String id, int rev, String by) =>
+      inner.saveRecordMeta(t, id, rev, by);
+  @override
+  Future<List<TombEntry>> loadTombstones() => inner.loadTombstones();
+  @override
+  Future<void> saveTombstone(TombEntry t) => inner.saveTombstone(t);
+  @override
+  Future<void> deleteTombstone(String t, String id) =>
+      inner.deleteTombstone(t, id);
+  @override
+  Future<void> applyV2(
+          {required DomainData data,
+          required Map<String, RecordMeta> meta,
+          required List<TombEntry> tombs}) =>
+      inner.applyV2(data: data, meta: meta, tombs: tombs);
+
+  @override
   Future<Map<String, int>> counts() => inner.counts();
   @override
   Future<void> close() => inner.close();
@@ -145,11 +164,14 @@ class _ThrowingBackend implements DomainStore {
   @override
   Future<void> saveTransactions(List<Txn> t) => inner.saveTransactions(t);
   @override
-  Future<void> upsertLoan(Loan l) => inner.upsertLoan(l);
+  Future<void> upsertLoan(Loan l, {int? rev, String? by}) =>
+      inner.upsertLoan(l, rev: rev, by: by);
   @override
-  Future<void> upsertProject(Project p) => inner.upsertProject(p);
+  Future<void> upsertProject(Project p, {int? rev, String? by}) =>
+      inner.upsertProject(p, rev: rev, by: by);
   @override
-  Future<void> upsertTransaction(Txn t) => inner.upsertTransaction(t);
+  Future<void> upsertTransaction(Txn t, {int? rev, String? by}) =>
+      inner.upsertTransaction(t, rev: rev, by: by);
 }
 
 DomainData _synthetic(int n) => DomainData(
@@ -203,9 +225,9 @@ class _FailingBackend implements DomainStore {
   }
 
   @override
-  Future<void> upsertTransaction(Txn t) async {
+  Future<void> upsertTransaction(Txn t, {int? rev, String? by}) async {
     _maybe('upsertTransaction');
-    return inner.upsertTransaction(t);
+    return inner.upsertTransaction(t, rev: rev, by: by);
   }
 
   @override
@@ -215,9 +237,9 @@ class _FailingBackend implements DomainStore {
   }
 
   @override
-  Future<void> upsertLoan(Loan l) async {
+  Future<void> upsertLoan(Loan l, {int? rev, String? by}) async {
     _maybe('upsertLoan');
-    return inner.upsertLoan(l);
+    return inner.upsertLoan(l, rev: rev, by: by);
   }
 
   @override
@@ -227,9 +249,9 @@ class _FailingBackend implements DomainStore {
   }
 
   @override
-  Future<void> upsertProject(Project p) async {
+  Future<void> upsertProject(Project p, {int? rev, String? by}) async {
     _maybe('upsertProject');
-    return inner.upsertProject(p);
+    return inner.upsertProject(p, rev: rev, by: by);
   }
 
   @override
@@ -244,6 +266,24 @@ class _FailingBackend implements DomainStore {
   Future<DomainData> loadDomain() => inner.loadDomain();
   @override
   Future<void> close() => inner.close();
+  @override
+  Future<Map<String, RecordMeta>> loadRecordMeta() => inner.loadRecordMeta();
+  @override
+  Future<void> saveRecordMeta(String t, String id, int rev, String by) =>
+      inner.saveRecordMeta(t, id, rev, by);
+  @override
+  Future<List<TombEntry>> loadTombstones() => inner.loadTombstones();
+  @override
+  Future<void> saveTombstone(TombEntry t) => inner.saveTombstone(t);
+  @override
+  Future<void> deleteTombstone(String t, String id) =>
+      inner.deleteTombstone(t, id);
+  @override
+  Future<void> applyV2(
+          {required DomainData data,
+          required Map<String, RecordMeta> meta,
+          required List<TombEntry> tombs}) =>
+      inner.applyV2(data: data, meta: meta, tombs: tombs);
 }
 
 /// Seeds the populated fixture through a working backend; returns the temp

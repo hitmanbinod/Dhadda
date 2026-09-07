@@ -123,13 +123,10 @@ class V2Snapshot {
     if (m['format'] != kSnapshotV2Format) return null;
     final list = m['records'];
     if (list is! List) return null;
-    var skipped = 0;
     final records = <SyncRecord>[];
     for (final e in list) {
       final r = SyncRecord.tryParse(e);
-      if (r == null) {
-        skipped++;
-      } else {
+      if (r != null) {
         records.add(r);
       }
     }
@@ -194,8 +191,6 @@ class MergeResult {
     required this.changed,
   });
 }
-
-int _compareStrings(String a, String b) => a.compareTo(b);
 
 /// Deterministic total order over competing versions of one record.
 /// Higher rev wins; rev tie -> lexicographically SMALLER author wins

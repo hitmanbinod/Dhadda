@@ -65,6 +65,26 @@ class $CategoriesTable extends Categories
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -73,6 +93,8 @@ class $CategoriesTable extends Categories
     color,
     budget,
     sortOrder,
+    rev,
+    revBy,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -131,6 +153,18 @@ class $CategoriesTable extends Categories
     } else if (isInserting) {
       context.missing(_sortOrderMeta);
     }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
     return context;
   }
 
@@ -164,6 +198,14 @@ class $CategoriesTable extends Categories
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
     );
   }
 
@@ -180,6 +222,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
   final int color;
   final double budget;
   final int sortOrder;
+  final int rev;
+  final String revBy;
   const CategoryRow({
     required this.id,
     required this.name,
@@ -187,6 +231,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     required this.color,
     required this.budget,
     required this.sortOrder,
+    required this.rev,
+    required this.revBy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -197,6 +243,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     map['color'] = Variable<int>(color);
     map['budget'] = Variable<double>(budget);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
     return map;
   }
 
@@ -208,6 +256,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       color: Value(color),
       budget: Value(budget),
       sortOrder: Value(sortOrder),
+      rev: Value(rev),
+      revBy: Value(revBy),
     );
   }
 
@@ -223,6 +273,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       color: serializer.fromJson<int>(json['color']),
       budget: serializer.fromJson<double>(json['budget']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
     );
   }
   @override
@@ -235,6 +287,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       'color': serializer.toJson<int>(color),
       'budget': serializer.toJson<double>(budget),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
     };
   }
 
@@ -245,6 +299,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     int? color,
     double? budget,
     int? sortOrder,
+    int? rev,
+    String? revBy,
   }) => CategoryRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -252,6 +308,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
     color: color ?? this.color,
     budget: budget ?? this.budget,
     sortOrder: sortOrder ?? this.sortOrder,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
   );
   CategoryRow copyWithCompanion(CategoriesCompanion data) {
     return CategoryRow(
@@ -261,6 +319,8 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
       color: data.color.present ? data.color.value : this.color,
       budget: data.budget.present ? data.budget.value : this.budget,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
     );
   }
 
@@ -272,13 +332,16 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           ..write('icon: $icon, ')
           ..write('color: $color, ')
           ..write('budget: $budget, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, icon, color, budget, sortOrder);
+  int get hashCode =>
+      Object.hash(id, name, icon, color, budget, sortOrder, rev, revBy);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -288,7 +351,9 @@ class CategoryRow extends DataClass implements Insertable<CategoryRow> {
           other.icon == this.icon &&
           other.color == this.color &&
           other.budget == this.budget &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
 }
 
 class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
@@ -298,6 +363,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
   final Value<int> color;
   final Value<double> budget;
   final Value<int> sortOrder;
+  final Value<int> rev;
+  final Value<String> revBy;
   final Value<int> rowid;
   const CategoriesCompanion({
     this.id = const Value.absent(),
@@ -306,6 +373,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     this.color = const Value.absent(),
     this.budget = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CategoriesCompanion.insert({
@@ -315,6 +384,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     required int color,
     required double budget,
     required int sortOrder,
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -329,6 +400,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Expression<int>? color,
     Expression<double>? budget,
     Expression<int>? sortOrder,
+    Expression<int>? rev,
+    Expression<String>? revBy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -338,6 +411,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       if (color != null) 'color': color,
       if (budget != null) 'budget': budget,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -349,6 +424,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     Value<int>? color,
     Value<double>? budget,
     Value<int>? sortOrder,
+    Value<int>? rev,
+    Value<String>? revBy,
     Value<int>? rowid,
   }) {
     return CategoriesCompanion(
@@ -358,6 +435,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
       color: color ?? this.color,
       budget: budget ?? this.budget,
       sortOrder: sortOrder ?? this.sortOrder,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -383,6 +462,12 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -398,6 +483,8 @@ class CategoriesCompanion extends UpdateCompanion<CategoryRow> {
           ..write('color: $color, ')
           ..write('budget: $budget, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -489,6 +576,26 @@ class $TransactionsTable extends Transactions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -499,6 +606,8 @@ class $TransactionsTable extends Transactions
     note,
     mode,
     projectId,
+    rev,
+    revBy,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -573,6 +682,18 @@ class $TransactionsTable extends Transactions
     } else if (isInserting) {
       context.missing(_projectIdMeta);
     }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
     return context;
   }
 
@@ -614,6 +735,14 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}project_id'],
       )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
     );
   }
 
@@ -632,6 +761,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
   final String note;
   final String mode;
   final String projectId;
+  final int rev;
+  final String revBy;
   const TxnRow({
     required this.id,
     required this.type,
@@ -641,6 +772,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     required this.note,
     required this.mode,
     required this.projectId,
+    required this.rev,
+    required this.revBy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -653,6 +786,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     map['note'] = Variable<String>(note);
     map['mode'] = Variable<String>(mode);
     map['project_id'] = Variable<String>(projectId);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
     return map;
   }
 
@@ -666,6 +801,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       note: Value(note),
       mode: Value(mode),
       projectId: Value(projectId),
+      rev: Value(rev),
+      revBy: Value(revBy),
     );
   }
 
@@ -683,6 +820,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       note: serializer.fromJson<String>(json['note']),
       mode: serializer.fromJson<String>(json['mode']),
       projectId: serializer.fromJson<String>(json['projectId']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
     );
   }
   @override
@@ -697,6 +836,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       'note': serializer.toJson<String>(note),
       'mode': serializer.toJson<String>(mode),
       'projectId': serializer.toJson<String>(projectId),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
     };
   }
 
@@ -709,6 +850,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     String? note,
     String? mode,
     String? projectId,
+    int? rev,
+    String? revBy,
   }) => TxnRow(
     id: id ?? this.id,
     type: type ?? this.type,
@@ -718,6 +861,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     note: note ?? this.note,
     mode: mode ?? this.mode,
     projectId: projectId ?? this.projectId,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
   );
   TxnRow copyWithCompanion(TransactionsCompanion data) {
     return TxnRow(
@@ -731,6 +876,8 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       note: data.note.present ? data.note.value : this.note,
       mode: data.mode.present ? data.mode.value : this.mode,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
     );
   }
 
@@ -744,14 +891,26 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
           ..write('date: $date, ')
           ..write('note: $note, ')
           ..write('mode: $mode, ')
-          ..write('projectId: $projectId')
+          ..write('projectId: $projectId, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, type, amount, categoryId, date, note, mode, projectId);
+  int get hashCode => Object.hash(
+    id,
+    type,
+    amount,
+    categoryId,
+    date,
+    note,
+    mode,
+    projectId,
+    rev,
+    revBy,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -763,7 +922,9 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
           other.date == this.date &&
           other.note == this.note &&
           other.mode == this.mode &&
-          other.projectId == this.projectId);
+          other.projectId == this.projectId &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
 }
 
 class TransactionsCompanion extends UpdateCompanion<TxnRow> {
@@ -775,6 +936,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
   final Value<String> note;
   final Value<String> mode;
   final Value<String> projectId;
+  final Value<int> rev;
+  final Value<String> revBy;
   final Value<int> rowid;
   const TransactionsCompanion({
     this.id = const Value.absent(),
@@ -785,6 +948,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     this.note = const Value.absent(),
     this.mode = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   TransactionsCompanion.insert({
@@ -796,6 +961,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     required String note,
     required String mode,
     required String projectId,
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        type = Value(type),
@@ -814,6 +981,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     Expression<String>? note,
     Expression<String>? mode,
     Expression<String>? projectId,
+    Expression<int>? rev,
+    Expression<String>? revBy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -825,6 +994,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
       if (note != null) 'note': note,
       if (mode != null) 'mode': mode,
       if (projectId != null) 'project_id': projectId,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -838,6 +1009,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     Value<String>? note,
     Value<String>? mode,
     Value<String>? projectId,
+    Value<int>? rev,
+    Value<String>? revBy,
     Value<int>? rowid,
   }) {
     return TransactionsCompanion(
@@ -849,6 +1022,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
       note: note ?? this.note,
       mode: mode ?? this.mode,
       projectId: projectId ?? this.projectId,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -880,6 +1055,12 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     if (projectId.present) {
       map['project_id'] = Variable<String>(projectId.value);
     }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -897,6 +1078,8 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
           ..write('note: $note, ')
           ..write('mode: $mode, ')
           ..write('projectId: $projectId, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -965,8 +1148,37 @@ class $ProjectsTable extends Projects
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
   @override
-  List<GeneratedColumn> get $columns => [id, name, note, created, icon, color];
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    note,
+    created,
+    icon,
+    color,
+    rev,
+    revBy,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1024,6 +1236,18 @@ class $ProjectsTable extends Projects
     } else if (isInserting) {
       context.missing(_colorMeta);
     }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
     return context;
   }
 
@@ -1057,6 +1281,14 @@ class $ProjectsTable extends Projects
         DriftSqlType.int,
         data['${effectivePrefix}color'],
       )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
     );
   }
 
@@ -1073,6 +1305,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
   final int created;
   final int icon;
   final int color;
+  final int rev;
+  final String revBy;
   const ProjectRow({
     required this.id,
     required this.name,
@@ -1080,6 +1314,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     required this.created,
     required this.icon,
     required this.color,
+    required this.rev,
+    required this.revBy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1090,6 +1326,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     map['created'] = Variable<int>(created);
     map['icon'] = Variable<int>(icon);
     map['color'] = Variable<int>(color);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
     return map;
   }
 
@@ -1101,6 +1339,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       created: Value(created),
       icon: Value(icon),
       color: Value(color),
+      rev: Value(rev),
+      revBy: Value(revBy),
     );
   }
 
@@ -1116,6 +1356,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       created: serializer.fromJson<int>(json['created']),
       icon: serializer.fromJson<int>(json['icon']),
       color: serializer.fromJson<int>(json['color']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
     );
   }
   @override
@@ -1128,6 +1370,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       'created': serializer.toJson<int>(created),
       'icon': serializer.toJson<int>(icon),
       'color': serializer.toJson<int>(color),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
     };
   }
 
@@ -1138,6 +1382,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     int? created,
     int? icon,
     int? color,
+    int? rev,
+    String? revBy,
   }) => ProjectRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -1145,6 +1391,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
     created: created ?? this.created,
     icon: icon ?? this.icon,
     color: color ?? this.color,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
   );
   ProjectRow copyWithCompanion(ProjectsCompanion data) {
     return ProjectRow(
@@ -1154,6 +1402,8 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
       created: data.created.present ? data.created.value : this.created,
       icon: data.icon.present ? data.icon.value : this.icon,
       color: data.color.present ? data.color.value : this.color,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
     );
   }
 
@@ -1165,13 +1415,16 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           ..write('note: $note, ')
           ..write('created: $created, ')
           ..write('icon: $icon, ')
-          ..write('color: $color')
+          ..write('color: $color, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, note, created, icon, color);
+  int get hashCode =>
+      Object.hash(id, name, note, created, icon, color, rev, revBy);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1181,7 +1434,9 @@ class ProjectRow extends DataClass implements Insertable<ProjectRow> {
           other.note == this.note &&
           other.created == this.created &&
           other.icon == this.icon &&
-          other.color == this.color);
+          other.color == this.color &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
 }
 
 class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
@@ -1191,6 +1446,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
   final Value<int> created;
   final Value<int> icon;
   final Value<int> color;
+  final Value<int> rev;
+  final Value<String> revBy;
   final Value<int> rowid;
   const ProjectsCompanion({
     this.id = const Value.absent(),
@@ -1199,6 +1456,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     this.created = const Value.absent(),
     this.icon = const Value.absent(),
     this.color = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProjectsCompanion.insert({
@@ -1208,6 +1467,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     required int created,
     required int icon,
     required int color,
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -1222,6 +1483,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Expression<int>? created,
     Expression<int>? icon,
     Expression<int>? color,
+    Expression<int>? rev,
+    Expression<String>? revBy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1231,6 +1494,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       if (created != null) 'created': created,
       if (icon != null) 'icon': icon,
       if (color != null) 'color': color,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1242,6 +1507,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     Value<int>? created,
     Value<int>? icon,
     Value<int>? color,
+    Value<int>? rev,
+    Value<String>? revBy,
     Value<int>? rowid,
   }) {
     return ProjectsCompanion(
@@ -1251,6 +1518,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
       created: created ?? this.created,
       icon: icon ?? this.icon,
       color: color ?? this.color,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1276,6 +1545,12 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
     if (color.present) {
       map['color'] = Variable<int>(color.value);
     }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1291,6 +1566,8 @@ class ProjectsCompanion extends UpdateCompanion<ProjectRow> {
           ..write('created: $created, ')
           ..write('icon: $icon, ')
           ..write('color: $color, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1382,6 +1659,26 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, LoanRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1392,6 +1689,8 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, LoanRow> {
     dueDate,
     note,
     remindAt,
+    rev,
+    revBy,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1464,6 +1763,18 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, LoanRow> {
     } else if (isInserting) {
       context.missing(_remindAtMeta);
     }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
     return context;
   }
 
@@ -1505,6 +1816,14 @@ class $LoansTable extends Loans with TableInfo<$LoansTable, LoanRow> {
         DriftSqlType.int,
         data['${effectivePrefix}remind_at'],
       )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
     );
   }
 
@@ -1523,6 +1842,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
   final int? dueDate;
   final String note;
   final int remindAt;
+  final int rev;
+  final String revBy;
   const LoanRow({
     required this.id,
     required this.person,
@@ -1532,6 +1853,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
     this.dueDate,
     required this.note,
     required this.remindAt,
+    required this.rev,
+    required this.revBy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1546,6 +1869,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
     }
     map['note'] = Variable<String>(note);
     map['remind_at'] = Variable<int>(remindAt);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
     return map;
   }
 
@@ -1561,6 +1886,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
           : Value(dueDate),
       note: Value(note),
       remindAt: Value(remindAt),
+      rev: Value(rev),
+      revBy: Value(revBy),
     );
   }
 
@@ -1578,6 +1905,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
       dueDate: serializer.fromJson<int?>(json['dueDate']),
       note: serializer.fromJson<String>(json['note']),
       remindAt: serializer.fromJson<int>(json['remindAt']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
     );
   }
   @override
@@ -1592,6 +1921,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
       'dueDate': serializer.toJson<int?>(dueDate),
       'note': serializer.toJson<String>(note),
       'remindAt': serializer.toJson<int>(remindAt),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
     };
   }
 
@@ -1604,6 +1935,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
     Value<int?> dueDate = const Value.absent(),
     String? note,
     int? remindAt,
+    int? rev,
+    String? revBy,
   }) => LoanRow(
     id: id ?? this.id,
     person: person ?? this.person,
@@ -1613,6 +1946,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
     note: note ?? this.note,
     remindAt: remindAt ?? this.remindAt,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
   );
   LoanRow copyWithCompanion(LoansCompanion data) {
     return LoanRow(
@@ -1624,6 +1959,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       note: data.note.present ? data.note.value : this.note,
       remindAt: data.remindAt.present ? data.remindAt.value : this.remindAt,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
     );
   }
 
@@ -1637,7 +1974,9 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
           ..write('dateLent: $dateLent, ')
           ..write('dueDate: $dueDate, ')
           ..write('note: $note, ')
-          ..write('remindAt: $remindAt')
+          ..write('remindAt: $remindAt, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
           ..write(')'))
         .toString();
   }
@@ -1652,6 +1991,8 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
     dueDate,
     note,
     remindAt,
+    rev,
+    revBy,
   );
   @override
   bool operator ==(Object other) =>
@@ -1664,7 +2005,9 @@ class LoanRow extends DataClass implements Insertable<LoanRow> {
           other.dateLent == this.dateLent &&
           other.dueDate == this.dueDate &&
           other.note == this.note &&
-          other.remindAt == this.remindAt);
+          other.remindAt == this.remindAt &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
 }
 
 class LoansCompanion extends UpdateCompanion<LoanRow> {
@@ -1676,6 +2019,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
   final Value<int?> dueDate;
   final Value<String> note;
   final Value<int> remindAt;
+  final Value<int> rev;
+  final Value<String> revBy;
   final Value<int> rowid;
   const LoansCompanion({
     this.id = const Value.absent(),
@@ -1686,6 +2031,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
     this.dueDate = const Value.absent(),
     this.note = const Value.absent(),
     this.remindAt = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LoansCompanion.insert({
@@ -1697,6 +2044,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
     this.dueDate = const Value.absent(),
     required String note,
     required int remindAt,
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        person = Value(person),
@@ -1714,6 +2063,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
     Expression<int>? dueDate,
     Expression<String>? note,
     Expression<int>? remindAt,
+    Expression<int>? rev,
+    Expression<String>? revBy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1725,6 +2076,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
       if (dueDate != null) 'due_date': dueDate,
       if (note != null) 'note': note,
       if (remindAt != null) 'remind_at': remindAt,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1738,6 +2091,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
     Value<int?>? dueDate,
     Value<String>? note,
     Value<int>? remindAt,
+    Value<int>? rev,
+    Value<String>? revBy,
     Value<int>? rowid,
   }) {
     return LoansCompanion(
@@ -1749,6 +2104,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
       dueDate: dueDate ?? this.dueDate,
       note: note ?? this.note,
       remindAt: remindAt ?? this.remindAt,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1780,6 +2137,12 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
     if (remindAt.present) {
       map['remind_at'] = Variable<int>(remindAt.value);
     }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1797,6 +2160,8 @@ class LoansCompanion extends UpdateCompanion<LoanRow> {
           ..write('dueDate: $dueDate, ')
           ..write('note: $note, ')
           ..write('remindAt: $remindAt, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1857,8 +2222,36 @@ class $LoanTopupsTable extends LoanTopups
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
   @override
-  List<GeneratedColumn> get $columns => [id, loanId, amount, date, note];
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    loanId,
+    amount,
+    date,
+    note,
+    rev,
+    revBy,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1908,6 +2301,18 @@ class $LoanTopupsTable extends LoanTopups
     } else if (isInserting) {
       context.missing(_noteMeta);
     }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
     return context;
   }
 
@@ -1937,6 +2342,14 @@ class $LoanTopupsTable extends LoanTopups
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
     );
   }
 
@@ -1952,12 +2365,16 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
   final double amount;
   final int date;
   final String note;
+  final int rev;
+  final String revBy;
   const TopupRow({
     required this.id,
     required this.loanId,
     required this.amount,
     required this.date,
     required this.note,
+    required this.rev,
+    required this.revBy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1967,6 +2384,8 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
     map['amount'] = Variable<double>(amount);
     map['date'] = Variable<int>(date);
     map['note'] = Variable<String>(note);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
     return map;
   }
 
@@ -1977,6 +2396,8 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
       amount: Value(amount),
       date: Value(date),
       note: Value(note),
+      rev: Value(rev),
+      revBy: Value(revBy),
     );
   }
 
@@ -1991,6 +2412,8 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
       amount: serializer.fromJson<double>(json['amount']),
       date: serializer.fromJson<int>(json['date']),
       note: serializer.fromJson<String>(json['note']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
     );
   }
   @override
@@ -2002,6 +2425,8 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
       'amount': serializer.toJson<double>(amount),
       'date': serializer.toJson<int>(date),
       'note': serializer.toJson<String>(note),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
     };
   }
 
@@ -2011,12 +2436,16 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
     double? amount,
     int? date,
     String? note,
+    int? rev,
+    String? revBy,
   }) => TopupRow(
     id: id ?? this.id,
     loanId: loanId ?? this.loanId,
     amount: amount ?? this.amount,
     date: date ?? this.date,
     note: note ?? this.note,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
   );
   TopupRow copyWithCompanion(LoanTopupsCompanion data) {
     return TopupRow(
@@ -2025,6 +2454,8 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
       note: data.note.present ? data.note.value : this.note,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
     );
   }
 
@@ -2035,13 +2466,15 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
           ..write('loanId: $loanId, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, loanId, amount, date, note);
+  int get hashCode => Object.hash(id, loanId, amount, date, note, rev, revBy);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2050,7 +2483,9 @@ class TopupRow extends DataClass implements Insertable<TopupRow> {
           other.loanId == this.loanId &&
           other.amount == this.amount &&
           other.date == this.date &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
 }
 
 class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
@@ -2059,6 +2494,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
   final Value<double> amount;
   final Value<int> date;
   final Value<String> note;
+  final Value<int> rev;
+  final Value<String> revBy;
   final Value<int> rowid;
   const LoanTopupsCompanion({
     this.id = const Value.absent(),
@@ -2066,6 +2503,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
     this.note = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LoanTopupsCompanion.insert({
@@ -2074,6 +2513,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
     required double amount,
     required int date,
     required String note,
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        loanId = Value(loanId),
@@ -2086,6 +2527,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
     Expression<double>? amount,
     Expression<int>? date,
     Expression<String>? note,
+    Expression<int>? rev,
+    Expression<String>? revBy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2094,6 +2537,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
       if (note != null) 'note': note,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2104,6 +2549,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
     Value<double>? amount,
     Value<int>? date,
     Value<String>? note,
+    Value<int>? rev,
+    Value<String>? revBy,
     Value<int>? rowid,
   }) {
     return LoanTopupsCompanion(
@@ -2112,6 +2559,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       note: note ?? this.note,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2134,6 +2583,12 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2148,6 +2603,8 @@ class LoanTopupsCompanion extends UpdateCompanion<TopupRow> {
           ..write('amount: $amount, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2208,8 +2665,36 @@ class $LoanRepaymentsTable extends LoanRepayments
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
   @override
-  List<GeneratedColumn> get $columns => [id, loanId, amount, date, note];
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    loanId,
+    amount,
+    date,
+    note,
+    rev,
+    revBy,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2259,6 +2744,18 @@ class $LoanRepaymentsTable extends LoanRepayments
     } else if (isInserting) {
       context.missing(_noteMeta);
     }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
     return context;
   }
 
@@ -2288,6 +2785,14 @@ class $LoanRepaymentsTable extends LoanRepayments
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
     );
   }
 
@@ -2303,12 +2808,16 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
   final double amount;
   final int date;
   final String note;
+  final int rev;
+  final String revBy;
   const RepaymentRow({
     required this.id,
     required this.loanId,
     required this.amount,
     required this.date,
     required this.note,
+    required this.rev,
+    required this.revBy,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2318,6 +2827,8 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
     map['amount'] = Variable<double>(amount);
     map['date'] = Variable<int>(date);
     map['note'] = Variable<String>(note);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
     return map;
   }
 
@@ -2328,6 +2839,8 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
       amount: Value(amount),
       date: Value(date),
       note: Value(note),
+      rev: Value(rev),
+      revBy: Value(revBy),
     );
   }
 
@@ -2342,6 +2855,8 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
       amount: serializer.fromJson<double>(json['amount']),
       date: serializer.fromJson<int>(json['date']),
       note: serializer.fromJson<String>(json['note']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
     );
   }
   @override
@@ -2353,6 +2868,8 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
       'amount': serializer.toJson<double>(amount),
       'date': serializer.toJson<int>(date),
       'note': serializer.toJson<String>(note),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
     };
   }
 
@@ -2362,12 +2879,16 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
     double? amount,
     int? date,
     String? note,
+    int? rev,
+    String? revBy,
   }) => RepaymentRow(
     id: id ?? this.id,
     loanId: loanId ?? this.loanId,
     amount: amount ?? this.amount,
     date: date ?? this.date,
     note: note ?? this.note,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
   );
   RepaymentRow copyWithCompanion(LoanRepaymentsCompanion data) {
     return RepaymentRow(
@@ -2376,6 +2897,8 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
       note: data.note.present ? data.note.value : this.note,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
     );
   }
 
@@ -2386,13 +2909,15 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
           ..write('loanId: $loanId, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, loanId, amount, date, note);
+  int get hashCode => Object.hash(id, loanId, amount, date, note, rev, revBy);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2401,7 +2926,9 @@ class RepaymentRow extends DataClass implements Insertable<RepaymentRow> {
           other.loanId == this.loanId &&
           other.amount == this.amount &&
           other.date == this.date &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
 }
 
 class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
@@ -2410,6 +2937,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
   final Value<double> amount;
   final Value<int> date;
   final Value<String> note;
+  final Value<int> rev;
+  final Value<String> revBy;
   final Value<int> rowid;
   const LoanRepaymentsCompanion({
     this.id = const Value.absent(),
@@ -2417,6 +2946,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
     this.note = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   LoanRepaymentsCompanion.insert({
@@ -2425,6 +2956,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
     required double amount,
     required int date,
     required String note,
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        loanId = Value(loanId),
@@ -2437,6 +2970,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
     Expression<double>? amount,
     Expression<int>? date,
     Expression<String>? note,
+    Expression<int>? rev,
+    Expression<String>? revBy,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2445,6 +2980,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
       if (note != null) 'note': note,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2455,6 +2992,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
     Value<double>? amount,
     Value<int>? date,
     Value<String>? note,
+    Value<int>? rev,
+    Value<String>? revBy,
     Value<int>? rowid,
   }) {
     return LoanRepaymentsCompanion(
@@ -2463,6 +3002,8 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
       amount: amount ?? this.amount,
       date: date ?? this.date,
       note: note ?? this.note,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2485,6 +3026,12 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2499,6 +3046,317 @@ class LoanRepaymentsCompanion extends UpdateCompanion<RepaymentRow> {
           ..write('amount: $amount, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TombstonesTable extends Tombstones
+    with TableInfo<$TombstonesTable, TombstoneRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TombstonesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [type, recordId, rev, revBy];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'tombstones';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TombstoneRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revMeta);
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_revByMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {type, recordId};
+  @override
+  TombstoneRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TombstoneRow(
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
+    );
+  }
+
+  @override
+  $TombstonesTable createAlias(String alias) {
+    return $TombstonesTable(attachedDatabase, alias);
+  }
+}
+
+class TombstoneRow extends DataClass implements Insertable<TombstoneRow> {
+  final String type;
+  final String recordId;
+  final int rev;
+  final String revBy;
+  const TombstoneRow({
+    required this.type,
+    required this.recordId,
+    required this.rev,
+    required this.revBy,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['type'] = Variable<String>(type);
+    map['record_id'] = Variable<String>(recordId);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
+    return map;
+  }
+
+  TombstonesCompanion toCompanion(bool nullToAbsent) {
+    return TombstonesCompanion(
+      type: Value(type),
+      recordId: Value(recordId),
+      rev: Value(rev),
+      revBy: Value(revBy),
+    );
+  }
+
+  factory TombstoneRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TombstoneRow(
+      type: serializer.fromJson<String>(json['type']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'type': serializer.toJson<String>(type),
+      'recordId': serializer.toJson<String>(recordId),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
+    };
+  }
+
+  TombstoneRow copyWith({
+    String? type,
+    String? recordId,
+    int? rev,
+    String? revBy,
+  }) => TombstoneRow(
+    type: type ?? this.type,
+    recordId: recordId ?? this.recordId,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
+  );
+  TombstoneRow copyWithCompanion(TombstonesCompanion data) {
+    return TombstoneRow(
+      type: data.type.present ? data.type.value : this.type,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TombstoneRow(')
+          ..write('type: $type, ')
+          ..write('recordId: $recordId, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(type, recordId, rev, revBy);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TombstoneRow &&
+          other.type == this.type &&
+          other.recordId == this.recordId &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
+}
+
+class TombstonesCompanion extends UpdateCompanion<TombstoneRow> {
+  final Value<String> type;
+  final Value<String> recordId;
+  final Value<int> rev;
+  final Value<String> revBy;
+  final Value<int> rowid;
+  const TombstonesCompanion({
+    this.type = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TombstonesCompanion.insert({
+    required String type,
+    required String recordId,
+    required int rev,
+    required String revBy,
+    this.rowid = const Value.absent(),
+  }) : type = Value(type),
+       recordId = Value(recordId),
+       rev = Value(rev),
+       revBy = Value(revBy);
+  static Insertable<TombstoneRow> custom({
+    Expression<String>? type,
+    Expression<String>? recordId,
+    Expression<int>? rev,
+    Expression<String>? revBy,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (type != null) 'type': type,
+      if (recordId != null) 'record_id': recordId,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TombstonesCompanion copyWith({
+    Value<String>? type,
+    Value<String>? recordId,
+    Value<int>? rev,
+    Value<String>? revBy,
+    Value<int>? rowid,
+  }) {
+    return TombstonesCompanion(
+      type: type ?? this.type,
+      recordId: recordId ?? this.recordId,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TombstonesCompanion(')
+          ..write('type: $type, ')
+          ..write('recordId: $recordId, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2514,6 +3372,7 @@ abstract class _$AppDb extends GeneratedDatabase {
   late final $LoansTable loans = $LoansTable(this);
   late final $LoanTopupsTable loanTopups = $LoanTopupsTable(this);
   late final $LoanRepaymentsTable loanRepayments = $LoanRepaymentsTable(this);
+  late final $TombstonesTable tombstones = $TombstonesTable(this);
   late final Index idxTransactionsDate = Index(
     'idx_transactions_date',
     'CREATE INDEX idx_transactions_date ON transactions (date)',
@@ -2537,6 +3396,7 @@ abstract class _$AppDb extends GeneratedDatabase {
     loans,
     loanTopups,
     loanRepayments,
+    tombstones,
     idxTransactionsDate,
     idxTransactionsCategory,
     idxTransactionsProject,
@@ -2567,6 +3427,8 @@ typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required int color,
   required double budget,
   required int sortOrder,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
@@ -2576,6 +3438,8 @@ typedef $$CategoriesTableUpdateCompanionBuilder = CategoriesCompanion Function({
   Value<int> color,
   Value<double> budget,
   Value<int> sortOrder,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 
@@ -2638,6 +3502,16 @@ class $$CategoriesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2705,6 +3579,16 @@ class $$CategoriesTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CategoriesTableAnnotationComposer
@@ -2733,6 +3617,12 @@ class $$CategoriesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
 
   Expression<T> transactionsRefs<T extends Object>(
     Expression<T> Function($$TransactionsTableAnnotationComposer a) f,
@@ -2794,6 +3684,8 @@ class $$CategoriesTableTableManager
                 Value<int> color = const Value.absent(),
                 Value<double> budget = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CategoriesCompanion(
                 id: id,
@@ -2802,6 +3694,8 @@ class $$CategoriesTableTableManager
                 color: color,
                 budget: budget,
                 sortOrder: sortOrder,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2812,6 +3706,8 @@ class $$CategoriesTableTableManager
                 required int color,
                 required double budget,
                 required int sortOrder,
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CategoriesCompanion.insert(
                 id: id,
@@ -2820,6 +3716,8 @@ class $$CategoriesTableTableManager
                 color: color,
                 budget: budget,
                 sortOrder: sortOrder,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2888,6 +3786,8 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       required String note,
       required String mode,
       required String projectId,
+      Value<int> rev,
+      Value<String> revBy,
       Value<int> rowid,
     });
 typedef $$TransactionsTableUpdateCompanionBuilder =
@@ -2900,6 +3800,8 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String> note,
       Value<String> mode,
       Value<String> projectId,
+      Value<int> rev,
+      Value<String> revBy,
       Value<int> rowid,
     });
 
@@ -2966,6 +3868,16 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get projectId => $composableBuilder(
     column: $table.projectId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3037,6 +3949,16 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3090,6 +4012,12 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<String> get projectId =>
       $composableBuilder(column: $table.projectId, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
 
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
@@ -3151,6 +4079,8 @@ class $$TransactionsTableTableManager
                 Value<String> note = const Value.absent(),
                 Value<String> mode = const Value.absent(),
                 Value<String> projectId = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion(
                 id: id,
@@ -3161,6 +4091,8 @@ class $$TransactionsTableTableManager
                 note: note,
                 mode: mode,
                 projectId: projectId,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3173,6 +4105,8 @@ class $$TransactionsTableTableManager
                 required String note,
                 required String mode,
                 required String projectId,
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TransactionsCompanion.insert(
                 id: id,
@@ -3183,6 +4117,8 @@ class $$TransactionsTableTableManager
                 note: note,
                 mode: mode,
                 projectId: projectId,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -3257,6 +4193,8 @@ typedef $$ProjectsTableCreateCompanionBuilder = ProjectsCompanion Function({
   required int created,
   required int icon,
   required int color,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 typedef $$ProjectsTableUpdateCompanionBuilder = ProjectsCompanion Function({
@@ -3266,6 +4204,8 @@ typedef $$ProjectsTableUpdateCompanionBuilder = ProjectsCompanion Function({
   Value<int> created,
   Value<int> icon,
   Value<int> color,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 
@@ -3304,6 +4244,16 @@ class $$ProjectsTableFilterComposer extends Composer<_$AppDb, $ProjectsTable> {
 
   ColumnFilters<int> get color => $composableBuilder(
     column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3346,6 +4296,16 @@ class $$ProjectsTableOrderingComposer
     column: $table.color,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProjectsTableAnnotationComposer
@@ -3374,6 +4334,12 @@ class $$ProjectsTableAnnotationComposer
 
   GeneratedColumn<int> get color =>
       $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
 }
 
 class $$ProjectsTableTableManager
@@ -3410,6 +4376,8 @@ class $$ProjectsTableTableManager
                 Value<int> created = const Value.absent(),
                 Value<int> icon = const Value.absent(),
                 Value<int> color = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion(
                 id: id,
@@ -3418,6 +4386,8 @@ class $$ProjectsTableTableManager
                 created: created,
                 icon: icon,
                 color: color,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3428,6 +4398,8 @@ class $$ProjectsTableTableManager
                 required int created,
                 required int icon,
                 required int color,
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProjectsCompanion.insert(
                 id: id,
@@ -3436,6 +4408,8 @@ class $$ProjectsTableTableManager
                 created: created,
                 icon: icon,
                 color: color,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -3478,6 +4452,8 @@ typedef $$LoansTableCreateCompanionBuilder = LoansCompanion Function({
   Value<int?> dueDate,
   required String note,
   required int remindAt,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 typedef $$LoansTableUpdateCompanionBuilder = LoansCompanion Function({
@@ -3489,6 +4465,8 @@ typedef $$LoansTableUpdateCompanionBuilder = LoansCompanion Function({
   Value<int?> dueDate,
   Value<String> note,
   Value<int> remindAt,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 
@@ -3578,6 +4556,16 @@ class $$LoansTableFilterComposer extends Composer<_$AppDb, $LoansTable> {
 
   ColumnFilters<int> get remindAt => $composableBuilder(
     column: $table.remindAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3679,6 +4667,16 @@ class $$LoansTableOrderingComposer extends Composer<_$AppDb, $LoansTable> {
     column: $table.remindAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$LoansTableAnnotationComposer extends Composer<_$AppDb, $LoansTable> {
@@ -3712,6 +4710,12 @@ class $$LoansTableAnnotationComposer extends Composer<_$AppDb, $LoansTable> {
 
   GeneratedColumn<int> get remindAt =>
       $composableBuilder(column: $table.remindAt, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
 
   Expression<T> loanTopupsRefs<T extends Object>(
     Expression<T> Function($$LoanTopupsTableAnnotationComposer a) f,
@@ -3800,6 +4804,8 @@ class $$LoansTableTableManager
                 Value<int?> dueDate = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<int> remindAt = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoansCompanion(
                 id: id,
@@ -3810,6 +4816,8 @@ class $$LoansTableTableManager
                 dueDate: dueDate,
                 note: note,
                 remindAt: remindAt,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3822,6 +4830,8 @@ class $$LoansTableTableManager
                 Value<int?> dueDate = const Value.absent(),
                 required String note,
                 required int remindAt,
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoansCompanion.insert(
                 id: id,
@@ -3832,6 +4842,8 @@ class $$LoansTableTableManager
                 dueDate: dueDate,
                 note: note,
                 remindAt: remindAt,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -3923,6 +4935,8 @@ typedef $$LoanTopupsTableCreateCompanionBuilder = LoanTopupsCompanion Function({
   required double amount,
   required int date,
   required String note,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 typedef $$LoanTopupsTableUpdateCompanionBuilder = LoanTopupsCompanion Function({
@@ -3931,6 +4945,8 @@ typedef $$LoanTopupsTableUpdateCompanionBuilder = LoanTopupsCompanion Function({
   Value<double> amount,
   Value<int> date,
   Value<String> note,
+  Value<int> rev,
+  Value<String> revBy,
   Value<int> rowid,
 });
 
@@ -3982,6 +4998,16 @@ class $$LoanTopupsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4038,6 +5064,16 @@ class $$LoanTopupsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$LoansTableOrderingComposer get loanId {
     final $$LoansTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4082,6 +5118,12 @@ class $$LoanTopupsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
 
   $$LoansTableAnnotationComposer get loanId {
     final $$LoansTableAnnotationComposer composer = $composerBuilder(
@@ -4140,6 +5182,8 @@ class $$LoanTopupsTableTableManager
                 Value<double> amount = const Value.absent(),
                 Value<int> date = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoanTopupsCompanion(
                 id: id,
@@ -4147,6 +5191,8 @@ class $$LoanTopupsTableTableManager
                 amount: amount,
                 date: date,
                 note: note,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4156,6 +5202,8 @@ class $$LoanTopupsTableTableManager
                 required double amount,
                 required int date,
                 required String note,
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoanTopupsCompanion.insert(
                 id: id,
@@ -4163,6 +5211,8 @@ class $$LoanTopupsTableTableManager
                 amount: amount,
                 date: date,
                 note: note,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4237,6 +5287,8 @@ typedef $$LoanRepaymentsTableCreateCompanionBuilder =
       required double amount,
       required int date,
       required String note,
+      Value<int> rev,
+      Value<String> revBy,
       Value<int> rowid,
     });
 typedef $$LoanRepaymentsTableUpdateCompanionBuilder =
@@ -4246,6 +5298,8 @@ typedef $$LoanRepaymentsTableUpdateCompanionBuilder =
       Value<double> amount,
       Value<int> date,
       Value<String> note,
+      Value<int> rev,
+      Value<String> revBy,
       Value<int> rowid,
     });
 
@@ -4304,6 +5358,16 @@ class $$LoanRepaymentsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
   $$LoansTableFilterComposer get loanId {
     final $$LoansTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -4357,6 +5421,16 @@ class $$LoanRepaymentsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$LoansTableOrderingComposer get loanId {
     final $$LoansTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -4401,6 +5475,12 @@ class $$LoanRepaymentsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
 
   $$LoansTableAnnotationComposer get loanId {
     final $$LoansTableAnnotationComposer composer = $composerBuilder(
@@ -4459,6 +5539,8 @@ class $$LoanRepaymentsTableTableManager
                 Value<double> amount = const Value.absent(),
                 Value<int> date = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoanRepaymentsCompanion(
                 id: id,
@@ -4466,6 +5548,8 @@ class $$LoanRepaymentsTableTableManager
                 amount: amount,
                 date: date,
                 note: note,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4475,6 +5559,8 @@ class $$LoanRepaymentsTableTableManager
                 required double amount,
                 required int date,
                 required String note,
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => LoanRepaymentsCompanion.insert(
                 id: id,
@@ -4482,6 +5568,8 @@ class $$LoanRepaymentsTableTableManager
                 amount: amount,
                 date: date,
                 note: note,
+                rev: rev,
+                revBy: revBy,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -4549,6 +5637,191 @@ typedef $$LoanRepaymentsTableProcessedTableManager =
       RepaymentRow,
       PrefetchHooks Function({bool loanId})
     >;
+typedef $$TombstonesTableCreateCompanionBuilder = TombstonesCompanion Function({
+  required String type,
+  required String recordId,
+  required int rev,
+  required String revBy,
+  Value<int> rowid,
+});
+typedef $$TombstonesTableUpdateCompanionBuilder = TombstonesCompanion Function({
+  Value<String> type,
+  Value<String> recordId,
+  Value<int> rev,
+  Value<String> revBy,
+  Value<int> rowid,
+});
+
+class $$TombstonesTableFilterComposer
+    extends Composer<_$AppDb, $TombstonesTable> {
+  $$TombstonesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TombstonesTableOrderingComposer
+    extends Composer<_$AppDb, $TombstonesTable> {
+  $$TombstonesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TombstonesTableAnnotationComposer
+    extends Composer<_$AppDb, $TombstonesTable> {
+  $$TombstonesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
+}
+
+class $$TombstonesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $TombstonesTable,
+          TombstoneRow,
+          $$TombstonesTableFilterComposer,
+          $$TombstonesTableOrderingComposer,
+          $$TombstonesTableAnnotationComposer,
+          $$TombstonesTableCreateCompanionBuilder,
+          $$TombstonesTableUpdateCompanionBuilder,
+          (
+            TombstoneRow,
+            BaseReferences<_$AppDb, $TombstonesTable, TombstoneRow>,
+          ),
+          TombstoneRow,
+          PrefetchHooks Function()
+        > {
+  $$TombstonesTableTableManager(_$AppDb db, $TombstonesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TombstonesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TombstonesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TombstonesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> type = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TombstonesCompanion(
+                type: type,
+                recordId: recordId,
+                rev: rev,
+                revBy: revBy,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String type,
+                required String recordId,
+                required int rev,
+                required String revBy,
+                Value<int> rowid = const Value.absent(),
+              }) => TombstonesCompanion.insert(
+                type: type,
+                recordId: recordId,
+                rev: rev,
+                revBy: revBy,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$TombstonesTable, TombstoneRow>(table),
+                  BaseReferences<_$AppDb, $TombstonesTable, TombstoneRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TombstonesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $TombstonesTable,
+      TombstoneRow,
+      $$TombstonesTableFilterComposer,
+      $$TombstonesTableOrderingComposer,
+      $$TombstonesTableAnnotationComposer,
+      $$TombstonesTableCreateCompanionBuilder,
+      $$TombstonesTableUpdateCompanionBuilder,
+      (TombstoneRow, BaseReferences<_$AppDb, $TombstonesTable, TombstoneRow>),
+      TombstoneRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDbManager {
   final _$AppDb _db;
@@ -4565,4 +5838,6 @@ class $AppDbManager {
       $$LoanTopupsTableTableManager(_db, _db.loanTopups);
   $$LoanRepaymentsTableTableManager get loanRepayments =>
       $$LoanRepaymentsTableTableManager(_db, _db.loanRepayments);
+  $$TombstonesTableTableManager get tombstones =>
+      $$TombstonesTableTableManager(_db, _db.tombstones);
 }

@@ -1,12 +1,27 @@
 // SQLite backend via Drift, used on Android/desktop. Web never constructs
 // this (see db_connection.dart): it imports only drift core + the
 // conditional connection, never the sqlite3 native binding.
+//
+// Sync revisions travel in the same row write as the data (atomic); bulk
+// wholesale writes preserve each row's existing revision unless the caller
+// passes explicit metadata (used by merge application).
 import 'package:drift/drift.dart';
 
 import '../models.dart';
+import '../sync/sync_v2.dart' show SyncType;
 import 'app_db.dart';
 import 'db_connection.dart';
 import 'domain_store.dart';
+
+/// Raw SQL table names (verified against generated $name values).
+const _tables = {
+  SyncType.cat: 'categories',
+  SyncType.txn: 'transactions',
+  SyncType.proj: 'projects',
+  SyncType.loan: 'loans',
+  SyncType.topup: 'loan_topups',
+  SyncType.repay: 'loan_repayments',
+};
 
 class DriftDomainStore implements DomainStore {
   final AppDb db;
@@ -19,9 +34,20 @@ class DriftDomainStore implements DomainStore {
 
   Future<T> _tx<T>(Future<T> Function() work) => db.transaction(work);
 
+  Future<RecordMeta> _rowMeta(String table, String id) async {
+    final row = await db
+        .customSelect(
+          'SELECT rev, rev_by AS by FROM "$table" WHERE id = ?',
+          variables: [Variable.withString(id)],
+        )
+        .getSingleOrNull();
+    if (row == null) return const RecordMeta(rev: 0, by: '');
+    return RecordMeta(rev: row.read<int>('rev'), by: row.read<String>('by'));
+  }
+
   // ---------- mapping (model <-> row, field for field) ----------
 
-  CategoriesCompanion _catCompanion(Category c, int order) =>
+  CategoriesCompanion _catCompanion(Category c, int order, int rev, String by) =>
       CategoriesCompanion(
         id: Value(c.id),
         name: Value(c.name),
@@ -29,6 +55,8 @@ class DriftDomainStore implements DomainStore {
         color: Value(c.color),
         budget: Value(c.budget),
         sortOrder: Value(order),
+        rev: Value(rev),
+        revBy: Value(by),
       );
 
   Category _toCategory(CategoryRow r) => Category(
@@ -39,16 +67,19 @@ class DriftDomainStore implements DomainStore {
     budget: r.budget,
   );
 
-  TransactionsCompanion _txnCompanion(Txn t) => TransactionsCompanion(
-    id: Value(t.id),
-    type: Value(t.type),
-    amount: Value(t.amount),
-    categoryId: Value(t.categoryId),
-    date: Value(t.date),
-    note: Value(t.note),
-    mode: Value(t.mode),
-    projectId: Value(t.projectId),
-  );
+  TransactionsCompanion _txnCompanion(Txn t, int rev, String by) =>
+      TransactionsCompanion(
+        id: Value(t.id),
+        type: Value(t.type),
+        amount: Value(t.amount),
+        categoryId: Value(t.categoryId),
+        date: Value(t.date),
+        note: Value(t.note),
+        mode: Value(t.mode),
+        projectId: Value(t.projectId),
+        rev: Value(rev),
+        revBy: Value(by),
+      );
 
   Txn _toTxn(TxnRow r) => Txn(
     id: r.id,
@@ -61,14 +92,17 @@ class DriftDomainStore implements DomainStore {
     projectId: r.projectId,
   );
 
-  ProjectsCompanion _projectCompanion(Project p) => ProjectsCompanion(
-    id: Value(p.id),
-    name: Value(p.name),
-    note: Value(p.note),
-    created: Value(p.created),
-    icon: Value(p.icon),
-    color: Value(p.color),
-  );
+  ProjectsCompanion _projectCompanion(Project p, int rev, String by) =>
+      ProjectsCompanion(
+        id: Value(p.id),
+        name: Value(p.name),
+        note: Value(p.note),
+        created: Value(p.created),
+        icon: Value(p.icon),
+        color: Value(p.color),
+        rev: Value(rev),
+        revBy: Value(by),
+      );
 
   Project _toProject(ProjectRow r) => Project(
     id: r.id,
@@ -79,7 +113,7 @@ class DriftDomainStore implements DomainStore {
     color: r.color,
   );
 
-  LoansCompanion _loanCompanion(Loan l) => LoansCompanion(
+  LoansCompanion _loanCompanion(Loan l, int rev, String by) => LoansCompanion(
     id: Value(l.id),
     person: Value(l.person),
     kind: Value(l.kind),
@@ -88,14 +122,22 @@ class DriftDomainStore implements DomainStore {
     dueDate: Value(l.dueDate),
     note: Value(l.note),
     remindAt: Value(l.remindAt),
+    rev: Value(rev),
+    revBy: Value(by),
   );
 
-  Future<void> _writeLoanChildren(Loan l) async {
-    await (db.delete(db.loanTopups)..where((t) => t.loanId.equals(l.id))).go();
+  Future<void> _writeLoanChildren(
+    Loan l,
+    Future<RecordMeta> Function(String type, String id) metaOf,
+  ) async {
+    await (db.delete(
+      db.loanTopups,
+    )..where((t) => t.loanId.equals(l.id))).go();
     await (db.delete(
       db.loanRepayments,
     )..where((t) => t.loanId.equals(l.id))).go();
     for (final t in l.topups) {
+      final m = await metaOf(SyncType.topup, t.id);
       await db
           .into(db.loanTopups)
           .insert(
@@ -105,10 +147,13 @@ class DriftDomainStore implements DomainStore {
               amount: Value(t.amount),
               date: Value(t.date),
               note: Value(t.note),
+              rev: Value(m.rev),
+              revBy: Value(m.by),
             ),
           );
     }
     for (final r in l.repayments) {
+      final m = await metaOf(SyncType.repay, r.id);
       await db
           .into(db.loanRepayments)
           .insert(
@@ -118,6 +163,8 @@ class DriftDomainStore implements DomainStore {
               amount: Value(r.amount),
               date: Value(r.date),
               note: Value(r.note),
+              rev: Value(m.rev),
+              revBy: Value(m.by),
             ),
           );
     }
@@ -163,6 +210,8 @@ class DriftDomainStore implements DomainStore {
     return out;
   }
 
+  Future<Map<String, RecordMeta>> _currentMeta() => loadRecordMeta();
+
   // ---------- DomainStore ----------
 
   @override
@@ -184,6 +233,10 @@ class DriftDomainStore implements DomainStore {
   @override
   Future<void> replaceAll(DomainData data) => _tx(() async {
     // Child-first deletes, parent-first inserts: safe under FK checks.
+    // Revisions are preserved per id (fresh databases start at 0).
+    final meta = await _currentMeta();
+    RecordMeta at(String type, String id) =>
+        meta['$type/$id'] ?? const RecordMeta(rev: 0, by: '');
     await db.delete(db.loanRepayments).go();
     await db.delete(db.loanTopups).go();
     await db.delete(db.transactions).go();
@@ -191,40 +244,62 @@ class DriftDomainStore implements DomainStore {
     await db.delete(db.projects).go();
     await db.delete(db.categories).go();
     for (var i = 0; i < data.categories.length; i++) {
-      await db.into(db.categories).insert(_catCompanion(data.categories[i], i));
+      final c = data.categories[i];
+      final m = at(SyncType.cat, c.id);
+      await db
+          .into(db.categories)
+          .insert(_catCompanion(c, i, m.rev, m.by));
     }
     for (final p in data.projects) {
-      await db.into(db.projects).insert(_projectCompanion(p));
+      final m = at(SyncType.proj, p.id);
+      await db.into(db.projects).insert(_projectCompanion(p, m.rev, m.by));
     }
     for (final l in data.loans) {
-      await db.into(db.loans).insert(_loanCompanion(l));
-      await _writeLoanChildren(l);
+      final m = at(SyncType.loan, l.id);
+      await db.into(db.loans).insert(_loanCompanion(l, m.rev, m.by));
+      await _writeLoanChildren(l, (t, id) async => at(t, id));
     }
     for (final t in data.transactions) {
-      await db.into(db.transactions).insert(_txnCompanion(t));
+      final m = at(SyncType.txn, t.id);
+      await db.into(db.transactions).insert(_txnCompanion(t, m.rev, m.by));
     }
   });
 
   @override
   Future<void> saveCategories(List<Category> categories) => _tx(() async {
+    final meta = await _currentMeta();
     await db.delete(db.categories).go();
     for (var i = 0; i < categories.length; i++) {
-      await db.into(db.categories).insert(_catCompanion(categories[i], i));
+      final c = categories[i];
+      final m = meta['${SyncType.cat}/${c.id}'] ??
+          const RecordMeta(rev: 0, by: '');
+      await db
+          .into(db.categories)
+          .insert(_catCompanion(c, i, m.rev, m.by));
     }
   });
 
   @override
   Future<void> saveTransactions(List<Txn> transactions) => _tx(() async {
+    final meta = await _currentMeta();
     await db.delete(db.transactions).go();
     for (final t in transactions) {
-      await db.into(db.transactions).insert(_txnCompanion(t));
+      final m = meta['${SyncType.txn}/${t.id}'] ??
+          const RecordMeta(rev: 0, by: '');
+      await db.into(db.transactions).insert(_txnCompanion(t, m.rev, m.by));
     }
   });
 
   @override
-  Future<void> upsertTransaction(Txn txn) => _tx(() async {
-    await db.into(db.transactions).insertOnConflictUpdate(_txnCompanion(txn));
-  });
+  Future<void> upsertTransaction(Txn txn, {int? rev, String? by}) =>
+      _tx(() async {
+        final m = (rev == null)
+            ? await _rowMeta(_tables[SyncType.txn]!, txn.id)
+            : RecordMeta(rev: rev, by: by ?? '');
+        await db
+            .into(db.transactions)
+            .insertOnConflictUpdate(_txnCompanion(txn, m.rev, m.by));
+      });
 
   @override
   Future<void> deleteTransaction(String id) => _tx(() async {
@@ -232,9 +307,14 @@ class DriftDomainStore implements DomainStore {
   });
 
   @override
-  Future<void> upsertLoan(Loan loan) => _tx(() async {
-    await db.into(db.loans).insertOnConflictUpdate(_loanCompanion(loan));
-    await _writeLoanChildren(loan);
+  Future<void> upsertLoan(Loan loan, {int? rev, String? by}) => _tx(() async {
+    final m = (rev == null)
+        ? await _rowMeta(_tables[SyncType.loan]!, loan.id)
+        : RecordMeta(rev: rev, by: by ?? '');
+    await db.into(db.loans).insertOnConflictUpdate(_loanCompanion(loan, m.rev, m.by));
+    final meta = await _currentMeta();
+    await _writeLoanChildren(
+        loan, (t, id) async => meta['$t/$id'] ?? const RecordMeta(rev: 0, by: ''));
   });
 
   @override
@@ -248,11 +328,15 @@ class DriftDomainStore implements DomainStore {
   });
 
   @override
-  Future<void> upsertProject(Project project) => _tx(() async {
-    await db
-        .into(db.projects)
-        .insertOnConflictUpdate(_projectCompanion(project));
-  });
+  Future<void> upsertProject(Project project, {int? rev, String? by}) =>
+      _tx(() async {
+        final m = (rev == null)
+            ? await _rowMeta(_tables[SyncType.proj]!, project.id)
+            : RecordMeta(rev: rev, by: by ?? '');
+        await db
+            .into(db.projects)
+            .insertOnConflictUpdate(_projectCompanion(project, m.rev, m.by));
+      });
 
   @override
   Future<void> deleteProject(String id) => _tx(() async {
@@ -275,4 +359,117 @@ class DriftDomainStore implements DomainStore {
 
   @override
   Future<void> close() => db.close();
+
+  // ---------- sync metadata (revisions + tombstones) ----------
+
+  @override
+  Future<Map<String, RecordMeta>> loadRecordMeta() async {
+    final out = <String, RecordMeta>{};
+    Future<void> read(String table, String prefix) async {
+      final rows = await db
+          .customSelect('SELECT id, rev, rev_by AS by FROM "$table"')
+          .get();
+      for (final r in rows) {
+        out['$prefix/${r.read<String>('id')}'] = RecordMeta(
+            rev: r.read<int>('rev'), by: r.read<String>('by'));
+      }
+    }
+
+    await read('categories', SyncType.cat);
+    await read('transactions', SyncType.txn);
+    await read('projects', SyncType.proj);
+    await read('loans', SyncType.loan);
+    await read('loan_topups', SyncType.topup);
+    await read('loan_repayments', SyncType.repay);
+    return out;
+  }
+
+  @override
+  Future<void> saveRecordMeta(
+      String type, String id, int rev, String by) async {
+    final table = _tables[type];
+    if (table == null) return;
+    await db.customStatement(
+      'UPDATE "$table" SET rev = ?, rev_by = ? WHERE id = ?',
+      [rev, by, id],
+    );
+  }
+
+  @override
+  Future<List<TombEntry>> loadTombstones() async {
+    final rows = await db.select(db.tombstones).get();
+    return [
+      for (final r in rows)
+        TombEntry(type: r.type, id: r.recordId, rev: r.rev, by: r.revBy),
+    ];
+  }
+
+  @override
+  Future<void> saveTombstone(TombEntry tomb) => _tx(() async {
+    await db.into(db.tombstones).insertOnConflictUpdate(
+          TombstonesCompanion(
+            type: Value(tomb.type),
+            recordId: Value(tomb.id),
+            rev: Value(tomb.rev),
+            revBy: Value(tomb.by),
+          ),
+        );
+  });
+
+  @override
+  Future<void> deleteTombstone(String type, String id) => _tx(() async {
+    await (db.delete(db.tombstones)
+          ..where((t) => t.type.equals(type) & t.recordId.equals(id)))
+        .go();
+  });
+
+  @override
+  Future<void> applyV2({
+    required DomainData data,
+    required Map<String, RecordMeta> meta,
+    required List<TombEntry> tombs,
+  }) =>
+      _tx(() async {
+        RecordMeta at(String type, String id) =>
+            meta['$type/$id'] ?? const RecordMeta(rev: 0, by: '');
+        await db.delete(db.tombstones).go();
+        await db.delete(db.loanRepayments).go();
+        await db.delete(db.loanTopups).go();
+        await db.delete(db.transactions).go();
+        await db.delete(db.loans).go();
+        await db.delete(db.projects).go();
+        await db.delete(db.categories).go();
+        for (var i = 0; i < data.categories.length; i++) {
+          final c = data.categories[i];
+          final m = at(SyncType.cat, c.id);
+          await db
+              .into(db.categories)
+              .insert(_catCompanion(c, i, m.rev, m.by));
+        }
+        for (final p in data.projects) {
+          final m = at(SyncType.proj, p.id);
+          await db
+              .into(db.projects)
+              .insert(_projectCompanion(p, m.rev, m.by));
+        }
+        for (final l in data.loans) {
+          final m = at(SyncType.loan, l.id);
+          await db.into(db.loans).insert(_loanCompanion(l, m.rev, m.by));
+          await _writeLoanChildren(l, (t, id) async => at(t, id));
+        }
+        for (final t in data.transactions) {
+          final m = at(SyncType.txn, t.id);
+          await db
+              .into(db.transactions)
+              .insert(_txnCompanion(t, m.rev, m.by));
+        }
+        for (final tomb in tombs) {
+          await db.into(db.tombstones).insert(TombstonesCompanion(
+                type: Value(tomb.type),
+                recordId: Value(tomb.id),
+                rev: Value(tomb.rev),
+                revBy: Value(tomb.by),
+              ));
+        }
+      });
 }
