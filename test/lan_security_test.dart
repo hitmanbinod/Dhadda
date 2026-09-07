@@ -198,7 +198,7 @@ void main() {
   });
 
   group('phone-host link API', () {
-    Future<String> createBox(String base) async {
+    Future<String> createBox(String base, {String secret = ''}) async {
       final r = await http.post(
         Uri.parse('$base/api/sync/link'),
         headers: _json,
@@ -206,6 +206,7 @@ void main() {
           'pin': _pin,
           'deviceId': 'devA',
           'snapshot': '{"version":1}',
+          if (secret.isNotEmpty) 'secret': secret,
           'name': 'A',
           'time': '',
         }),
@@ -269,6 +270,95 @@ void main() {
           body: 'nope{{{',
         );
         expect(r.statusCode, 400);
+      } finally {
+        try {
+          await h.close();
+        } catch (_) {}
+      }
+    });
+
+    test('secret boxes: correct authorizes, PIN-only and wrong reject', () async {
+      late PhoneHostSession h;
+      try {
+        h = await startPhoneHost();
+        const secret = '0123456789abcdef0123456789abcdef';
+        final link = await createBox(h.url, secret: secret);
+        Future<int> pull({String pin = _pin, String sec = secret}) async {
+          final q = sec.isEmpty
+              ? 'link=$link&pin=$pin&deviceId=d'
+              : 'link=$link&pin=$pin&deviceId=d&secret=$sec';
+          final r = await http.get(Uri.parse('${h.url}/api/sync/pull?$q'));
+          return r.statusCode;
+        }
+
+        expect(await pull(), 200);
+        // Correct short PIN but no secret: distinct rejection, no downgrade.
+        var r = await http.get(
+          Uri.parse('${h.url}/api/sync/pull?link=$link&pin=$_pin&deviceId=d'),
+        );
+        expect(r.statusCode, 403);
+        expect(jsonDecode(r.body)['error'], contains('secret required'));
+        // Wrong secret: same rejection class.
+        expect(await pull(sec: 'ff' * 16), 403);
+        // Wrong PIN stays "wrong pin".
+        r = await http.get(
+          Uri.parse(
+            '${h.url}/api/sync/pull?link=$link&pin=000000&deviceId=d&secret=$secret',
+          ),
+        );
+        expect(r.statusCode, 403);
+        expect(jsonDecode(r.body)['error'], contains('wrong pin'));
+        // Push enforces identically.
+        Future<int> push({String sec = secret}) => http
+            .post(
+              Uri.parse('${h.url}/api/sync/push'),
+              headers: _json,
+              body: jsonEncode({
+                'link': link,
+                'pin': _pin,
+                'deviceId': 'devB',
+                'snapshot': '{"version":1}',
+                if (sec.isNotEmpty) 'secret': sec,
+                'name': 'B',
+                'time': '',
+              }),
+            )
+            .then((r) => r.statusCode);
+        expect(await push(), 200);
+        expect(await push(sec: ''), 403);
+        // Pull responses never carry the secret anywhere.
+        r = await http.get(
+          Uri.parse(
+            '${h.url}/api/sync/pull?link=$link&pin=$_pin&deviceId=devB&secret=$secret',
+          ),
+        );
+        expect(r.statusCode, 200);
+        expect(r.body, isNot(contains(secret)));
+        expect(r.body, isNot(contains('secret')));
+        // Unpair revokes: even the correct secret is gone with the box.
+        r = await http.post(
+          Uri.parse('${h.url}/api/sync/unlink'),
+          headers: _json,
+          body: jsonEncode({'link': link, 'pin': _pin}),
+        );
+        expect(r.statusCode, 200);
+        expect(await pull(), 404);
+      } finally {
+        try {
+          await h.close();
+        } catch (_) {}
+      }
+    });
+
+    test('legacy boxes without secrets stay PIN-only', () async {
+      late PhoneHostSession h;
+      try {
+        h = await startPhoneHost();
+        final link = await createBox(h.url);
+        final r = await http.get(
+          Uri.parse('${h.url}/api/sync/pull?link=$link&pin=$_pin&deviceId=d'),
+        );
+        expect(r.statusCode, 200);
       } finally {
         try {
           await h.close();
@@ -381,6 +471,41 @@ void main() {
           (jsonDecode(limited['body'] as String) as Map)['error'],
           isNot(contains('at ')),
         ); // no stack traces
+        // Secret boxes on the relay: correct authorizes, PIN-only and
+        // wrong secrets reject distinctly, unlink revokes.
+        const secret = '0123456789abcdef0123456789abcdef';
+        final created2 = await post('/api/sync/link', {
+          'pin': _pin,
+          'deviceId': 'devA',
+          'snapshot': '{"version":1}',
+          'secret': secret,
+          'name': 'A',
+          'time': '',
+        });
+        expect(created2['status'], 200);
+        final link2 = (jsonDecode(created2['body'] as String) as Map)['link'];
+        Future<int> pull2(String pin, String sec) async =>
+            (await get(
+                  '/api/sync/pull?link=$link2&pin=$pin&deviceId=d'
+                  '${sec.isEmpty ? '' : '&secret=$sec'}',
+                ))['status']
+                as int;
+        expect(await pull2(_pin, secret), 200);
+        final pinOnly = await get(
+          '/api/sync/pull?link=$link2&pin=$_pin&deviceId=d',
+        );
+        expect(pinOnly['status'], 403);
+        expect(
+          (jsonDecode(pinOnly['body'] as String) as Map)['error'],
+          contains('secret required'),
+        );
+        expect(await pull2(_pin, 'ff' * 16), 403);
+        final unlinked = await post('/api/sync/unlink', {
+          'link': link2,
+          'pin': _pin,
+        });
+        expect(unlinked['status'], 200);
+        expect(await pull2(_pin, secret), 404);
       } finally {
         client?.close(force: true);
         proc?.kill();

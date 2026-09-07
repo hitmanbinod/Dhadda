@@ -168,31 +168,48 @@ String friendlySyncError(Object e) {
 SyncDirection decideSync({required DateTime local, required DateTime remote}) =>
     remote.isAfter(local) ? SyncDirection.pull : SyncDirection.push;
 
-/// QR v2 payload: relay origin + session + pin. Origin is included so the
-/// phone works even if the PC's LAN address changes one day.
+/// QR v2 payload: relay origin + session + pin, plus the optional link
+/// secret as a 4th field. Origin is included so the phone works even if
+/// the PC's LAN address changes one day. Old clients accept exactly 3
+/// parts and reject 4-part codes as "not a sync code" (safe, explicit).
 class QrV2 {
   static const prefix = 'EXPENSESYNC2::';
   final String origin;
   final String session;
   final String pin;
-  const QrV2({required this.origin, required this.session, required this.pin});
 
-  static String build(String origin, String session, String pin) =>
-      '$prefix$origin::$session::$pin';
+  /// High-entropy link secret; empty for legacy (3-part) codes.
+  final String secret;
+  const QrV2({
+    required this.origin,
+    required this.session,
+    required this.pin,
+    this.secret = '',
+  });
+
+  static String build(
+    String origin,
+    String session,
+    String pin, [
+    String secret = '',
+  ]) => secret.isEmpty
+      ? '$prefix$origin::$session::$pin'
+      : '$prefix$origin::$session::$pin::$secret';
 
   static QrV2? parse(String raw) {
     final s = raw.trim();
     if (!s.startsWith(prefix)) return null;
     final parts = s.substring(prefix.length).split('::');
-    if (parts.length != 3) return null;
+    if (parts.length != 3 && parts.length != 4) return null;
     final origin = parts[0].trim();
     final session = parts[1].trim();
     final pin = parts[2].trim();
+    final secret = parts.length == 4 ? parts[3].trim() : '';
     if (origin.isEmpty || session.isEmpty || pin.isEmpty) return null;
     if (!origin.startsWith('http://') && !origin.startsWith('https://')) {
       return null;
     }
-    return QrV2(origin: origin, session: session, pin: pin);
+    return QrV2(origin: origin, session: session, pin: pin, secret: secret);
   }
 }
 
@@ -237,6 +254,18 @@ class LinkClient {
 
   Never _fail(http.Response res) {
     if (res.statusCode == 403) {
+      // A secret-box rejecting a PIN-only caller is a version mismatch,
+      // not a wrong PIN: saying "wrong PIN" would loop the user forever.
+      String error = '';
+      try {
+        final m = jsonDecode(res.body) as Map<String, dynamic>;
+        error = '${m['error'] ?? ''}';
+      } catch (_) {}
+      if (error.contains('secret required')) {
+        throw const FormatException(
+          'Link needs a newer app version on both devices.',
+        );
+      }
       throw const FormatException('Wrong PIN.');
     }
     if (res.statusCode == 404) {
@@ -260,6 +289,7 @@ class LinkClient {
     required String deviceId,
     required String snapshot,
     String snapshotV2 = '',
+    String secret = '',
     required String name,
     required String time,
   }) async {
@@ -272,6 +302,7 @@ class LinkClient {
             'deviceId': deviceId,
             'snapshot': snapshot,
             if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
+            if (secret.isNotEmpty) 'secret': secret,
             'name': name,
             'time': time,
           }),
@@ -289,6 +320,7 @@ class LinkClient {
     required String deviceId,
     required String snapshot,
     String snapshotV2 = '',
+    String secret = '',
     required String name,
     required String time,
   }) async {
@@ -302,6 +334,7 @@ class LinkClient {
             'deviceId': deviceId,
             'snapshot': snapshot,
             if (snapshotV2.isNotEmpty) 'snapshotV2': snapshotV2,
+            if (secret.isNotEmpty) 'secret': secret,
             'name': name,
             'time': time,
           }),
@@ -311,14 +344,17 @@ class LinkClient {
   }
 
   /// Read everyone else's latest snapshots (never your own slot).
+  /// [secret] is appended to the query only when non-empty (legacy boxes
+  /// and old relays never see the parameter).
   Future<List<LinkPeer>> pull({
     required String link,
     required String pin,
     required String deviceId,
+    String secret = '',
   }) async {
-    final res = await http
-        .get(_u('/api/sync/pull?link=$link&pin=$pin&deviceId=$deviceId'))
-        .timeout(_timeout);
+    var q = '/api/sync/pull?link=$link&pin=$pin&deviceId=$deviceId';
+    if (secret.isNotEmpty) q += '&secret=$secret';
+    final res = await http.get(_u(q)).timeout(_timeout);
     if (res.statusCode != 200) _fail(res);
     final list = (jsonDecode(res.body) as Map<String, dynamic>)['peers'];
     if (list is! List) return const [];

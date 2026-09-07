@@ -146,6 +146,7 @@ Future<PhoneHostSession> startPhoneHost() async {
       deviceId: '${b['deviceId'] ?? ''}',
       snapshot: '${b['snapshot'] ?? ''}',
       snapshotV2: b['snapshotV2'] is String ? b['snapshotV2'] as String : '',
+      secret: b['secret'] is String ? b['secret'] as String : '',
       name: '${b['name'] ?? 'device'}',
       time: '${b['time'] ?? ''}',
     );
@@ -168,6 +169,7 @@ Future<PhoneHostSession> startPhoneHost() async {
       deviceId: '${b['deviceId'] ?? ''}',
       snapshot: '${b['snapshot'] ?? ''}',
       snapshotV2: b['snapshotV2'] is String ? b['snapshotV2'] as String : '',
+      secret: b['secret'] is String ? b['secret'] as String : '',
       name: '${b['name'] ?? 'device'}',
       time: '${b['time'] ?? ''}',
     );
@@ -178,13 +180,19 @@ Future<PhoneHostSession> startPhoneHost() async {
       case LinkOutcome.gone:
         return _json(404, {'error': 'link gone - pair again'});
       case LinkOutcome.forbidden:
-        // Correct credentials always work (checked above by outcome);
-        // only failures throttle, so legit users never lock themselves out.
         if (!throttle.allowed(scope)) {
           return _rateLimited(throttle, scope);
         }
         throttle.failed(scope);
         return _json(403, {'error': 'wrong pin'});
+      case LinkOutcome.secretRequired:
+        // PIN-only attempt on a secret box: never downgrade, and say
+        // plainly that the other device needs updating.
+        if (!throttle.allowed(scope)) {
+          return _rateLimited(throttle, scope);
+        }
+        throttle.failed(scope);
+        return _json(403, {'error': 'link secret required - update app'});
       case LinkOutcome.badInput:
         return _json(400, {'error': 'bad input'});
     }
@@ -196,6 +204,7 @@ Future<PhoneHostSession> startPhoneHost() async {
       id: q['link'] ?? '',
       pin: q['pin'] ?? '',
       deviceId: q['deviceId'] ?? '',
+      secret: q['secret'] ?? '',
     );
     switch (r.outcome) {
       case LinkOutcome.ok:
@@ -220,6 +229,12 @@ Future<PhoneHostSession> startPhoneHost() async {
         }
         throttle.failed(scope);
         return _json(403, {'error': 'wrong pin'});
+      case LinkOutcome.secretRequired:
+        if (!throttle.allowed(scope)) {
+          return _rateLimited(throttle, scope);
+        }
+        throttle.failed(scope);
+        return _json(403, {'error': 'link secret required - update app'});
       case LinkOutcome.badInput:
         return _json(400, {'error': 'bad input'});
     }

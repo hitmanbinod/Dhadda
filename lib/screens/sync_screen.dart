@@ -13,6 +13,7 @@ import '../widgets/backup_password.dart';
 import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
 import '../sync/link_sync.dart';
+import '../sync/link_store.dart';
 import '../sync/mdns.dart';
 import '../sync/permissions.dart';
 import '../sync/phone_host.dart';
@@ -46,6 +47,7 @@ class _SyncScreenState extends State<SyncScreen> {
   Timer? _poll;
   String? _offerSession;
   String? _offerPin;
+  String _offerSecret = '';
   String _offerOrigin = '';
   final _quickCode = TextEditingController();
   final _srvCtrl = TextEditingController();
@@ -96,12 +98,16 @@ class _SyncScreenState extends State<SyncScreen> {
       return;
     }
     final pin = _makePin();
+    // High-entropy link secret for this box (client-generated, QR-carried).
+    // Old relays drop the field and the box stays legacy PIN-only.
+    final secret = newLinkSecret();
     try {
       final created = await LinkClient(origin).create(
         pin: pin,
         deviceId: store.deviceId,
         snapshot: store.exportJson(),
         snapshotV2: store.exportSnapshotV2(),
+        secret: secret,
         name: store.deviceName,
         time: store.updatedAt,
       );
@@ -116,6 +122,7 @@ class _SyncScreenState extends State<SyncScreen> {
       setState(() {
         _offerSession = created.link;
         _offerPin = pin;
+        _offerSecret = secret;
         _offerOrigin = showOrigin;
       });
       _poll?.cancel();
@@ -130,21 +137,29 @@ class _SyncScreenState extends State<SyncScreen> {
   Future<void> _pollLink() async {
     final link = _offerSession;
     final pin = _offerPin;
+    final secret = _offerSecret;
     if (link == null || pin == null) return;
     final store = context.read<ExpenseStore>();
     final origin = _relayOrigin;
     if (origin.isEmpty) return;
     try {
       final peers = await LinkClient(origin)
-          .pull(link: link, pin: pin, deviceId: store.deviceId);
+          .pull(link: link, pin: pin, deviceId: store.deviceId, secret: secret);
       if (peers.isEmpty) return; // nobody joined yet
       _poll?.cancel();
       _poll = null;
-      final msg = await _adoptPeers(LinkClient(origin), link, pin, peers);
+      final msg = await _adoptPeers(
+        LinkClient(origin),
+        link,
+        pin,
+        secret,
+        peers,
+      );
       if (!mounted) return;
       setState(() {
         _offerSession = null;
         _offerPin = null;
+        _offerSecret = '';
         _offerOrigin = '';
       });
       _say(msg);
@@ -155,6 +170,7 @@ class _SyncScreenState extends State<SyncScreen> {
       setState(() {
         _offerSession = null;
         _offerPin = null;
+        _offerSecret = '';
         _offerOrigin = '';
       });
       _say('Quick sync ended: ${friendlySyncError(e)}');
@@ -168,6 +184,7 @@ class _SyncScreenState extends State<SyncScreen> {
     LinkClient client,
     String link,
     String pin,
+    String secret,
     List<LinkPeer> peers,
   ) async {
     final store = context.read<ExpenseStore>();
@@ -194,11 +211,12 @@ class _SyncScreenState extends State<SyncScreen> {
       deviceId: store.deviceId,
       snapshot: store.exportJson(),
       snapshotV2: store.exportSnapshotV2(),
+      secret: secret,
       name: store.deviceName,
       time: store.updatedAt,
     );
     await store.setRelayOrigin(client.origin);
-    await store.setLink(id: link, pin: pin, peer: peerName);
+    await store.setLink(id: link, pin: pin, peer: peerName, secret: secret);
     store.noteSynced();
     _engine?.markAnnounced(store.updatedAt);
     return firstMsg ?? 'Paired - both will stay in sync now.';
@@ -224,6 +242,7 @@ class _SyncScreenState extends State<SyncScreen> {
       setState(() {
         _offerSession = null;
         _offerPin = null;
+        _offerSecret = '';
         _offerOrigin = '';
       });
     }
@@ -253,10 +272,13 @@ class _SyncScreenState extends State<SyncScreen> {
 
   /// Joining side: read the link box, converge, save the pairing.
   /// Accepts a full scanned code, or manual Server + Code + PIN below.
+  /// Manual entry carries no link secret (secrets only travel in QR codes),
+  /// so it joins legacy PIN-only boxes; strong boxes need a scan.
   Future<void> _quickAnswer({String? presetRaw}) async {
     String? server;
     String? code;
     String? pin;
+    var secret = '';
     final raw = (presetRaw ?? '').trim();
     if (raw.isNotEmpty) {
       final v2 = QrV2.parse(raw);
@@ -268,6 +290,7 @@ class _SyncScreenState extends State<SyncScreen> {
       server = v2.origin;
       code = v2.session;
       pin = v2.pin;
+      secret = v2.secret;
     } else {
       final store = context.read<ExpenseStore>();
       server = _srvCtrl.text.trim().isEmpty
@@ -295,8 +318,9 @@ class _SyncScreenState extends State<SyncScreen> {
         link: code,
         pin: pin,
         deviceId: store.deviceId,
+        secret: secret,
       );
-      final msg = await _adoptPeers(client, code, pin, peers);
+      final msg = await _adoptPeers(client, code, pin, secret, peers);
       _quickCode.clear();
       _srvCtrl.clear();
       _codeCtrl.clear();
@@ -711,6 +735,7 @@ class _SyncScreenState extends State<SyncScreen> {
                             _offerOrigin,
                             _offerSession!,
                             _offerPin!,
+                            _offerSecret,
                           ),
                           version: QrVersions.auto,
                           size: 240,

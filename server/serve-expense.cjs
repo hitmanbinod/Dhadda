@@ -172,10 +172,14 @@ async function api(req, res) {
     const id = lid();
     // snapshotV2 is opaque record-level state alongside the v1 snapshot.
     // Old clients omit it; old relays drop it; both degrade to v1 merge.
+    // secret is a client-generated 128-bit link credential (Phase 5
+    // closure): boxes carrying one require it alongside the PIN on every
+    // push/pull. Absent/legacy clients omit it and stay PIN-only.
     const v2 = typeof b.snapshotV2 === "string" ? b.snapshotV2 : "";
+    const sec = typeof b.secret === "string" ? b.secret : "";
     const slot = {snapshot: b.snapshot, snapshotV2: v2, name: String(b.name || "device"), time: String(b.time || "")};
     const now = Date.now();
-    links.set(id, {pin: b.pin, slots: {[b.deviceId]: slot}, created: now, touched: now});
+    links.set(id, {pin: b.pin, secret: sec, slots: {[b.deviceId]: slot}, created: now, touched: now});
     return apiSend(res, 200, {link: id, origin: lanOrigin(req)});
   }
   if (req.method === "POST" && u.pathname === "/api/sync/push") {
@@ -187,6 +191,12 @@ async function api(req, res) {
       if (!throttleAllowed(pushScope)) return throttleDeny(res, pushScope);
       throttleFailed(pushScope);
       return apiSend(res, 403, {error: "wrong pin"});
+    }
+    // No silent downgrade: secret boxes reject PIN-only callers outright.
+    if (l.secret && b.secret !== l.secret) {
+      if (!throttleAllowed(pushScope)) return throttleDeny(res, pushScope);
+      throttleFailed(pushScope);
+      return apiSend(res, 403, {error: "link secret required - update app"});
     }
     throttlePassed(pushScope);
     if (typeof b.deviceId !== "string" || !b.deviceId.length) return apiSend(res, 400, {error: "bad device"});
@@ -203,6 +213,11 @@ async function api(req, res) {
       if (!throttleAllowed(pullScope)) return throttleDeny(res, pullScope);
       throttleFailed(pullScope);
       return apiSend(res, 403, {error: "wrong pin"});
+    }
+    if (l.secret && u.searchParams.get("secret") !== l.secret) {
+      if (!throttleAllowed(pullScope)) return throttleDeny(res, pullScope);
+      throttleFailed(pullScope);
+      return apiSend(res, 403, {error: "link secret required - update app"});
     }
     throttlePassed(pullScope);
     l.touched = Date.now();

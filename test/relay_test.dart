@@ -6,12 +6,9 @@ void main() {
   test('decideSync: newer side always wins', () {
     final old = DateTime.utc(2026, 9, 1);
     final newerTime = DateTime.utc(2026, 9, 3);
-    expect(
-        decideSync(local: old, remote: newerTime), SyncDirection.pull);
-    expect(
-        decideSync(local: newerTime, remote: old), SyncDirection.push);
-    expect(
-        decideSync(local: old, remote: old), SyncDirection.push);
+    expect(decideSync(local: old, remote: newerTime), SyncDirection.pull);
+    expect(decideSync(local: newerTime, remote: old), SyncDirection.push);
+    expect(decideSync(local: old, remote: old), SyncDirection.push);
   });
 
   test('QR v2 builds and parses (origin travels in the code)', () {
@@ -25,6 +22,22 @@ void main() {
     expect(QrV2.parse('hello'), isNull);
     expect(QrV2.parse('EXPENSESYNC2::only-two::parts'), isNull);
     expect(QrV2.parse('EXPENSESYNC2::ftp://x::AB12CD::1'), isNull);
+  });
+
+  test('QR v2 carries the optional link secret as a 4th part', () {
+    const origin = 'http://192.168.1.75:8080';
+    const secret = '0123456789abcdef0123456789abcdef';
+    // New codes embed the secret; legacy 3-part codes parse with ''.
+    final withSecret = QrV2.build(origin, 'AB12CD', '123456', secret);
+    final t = QrV2.parse(withSecret);
+    expect(t, isNotNull);
+    expect(t!.secret, secret);
+    expect(t.session, 'AB12CD');
+    final legacy = QrV2.parse(QrV2.build(origin, 'AB12CD', '123456'));
+    expect(legacy, isNotNull);
+    expect(legacy!.secret, '');
+    // Five parts are rejected, like any malformed code.
+    expect(QrV2.parse('$withSecret::extra'), isNull);
   });
 
   test('relay view parses waiting and done stages', () {

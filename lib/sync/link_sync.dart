@@ -75,6 +75,7 @@ class LinkEngine {
         link: store.linkId,
         pin: store.linkPin,
         deviceId: store.deviceId,
+        secret: store.linkSecret,
       );
       String? firstMsg;
       for (final p in peers) {
@@ -126,6 +127,7 @@ class LinkEngine {
       deviceId: store.deviceId,
       snapshot: store.exportJson(),
       snapshotV2: store.exportSnapshotV2(),
+      secret: store.linkSecret,
       name: store.deviceName,
       time: store.updatedAt,
     );

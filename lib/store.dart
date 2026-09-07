@@ -77,6 +77,11 @@ class ExpenseStore extends ChangeNotifier {
   String linkId = '';
   String linkPin = '';
   String linkPeer = '';
+
+  /// High-entropy link secret for the live pairing (Phase 5 closure).
+  /// Empty means a legacy PIN-only pairing. Persisted with the other link
+  /// fields (app-private sandbox), cleared on unpair/erase.
+  String linkSecret = '';
   bool get linked => linkId.isNotEmpty && linkPin.isNotEmpty;
   // Runtime only: human-readable link state for the UI.
   String linkStatus = '';
@@ -171,7 +176,9 @@ class ExpenseStore extends ChangeNotifier {
       try {
         return await DriftDomainStore.open();
       } catch (e) {
-        debugPrint('Dhadda: SQLite unavailable (${e.runtimeType}); prefs backend for now.');
+        debugPrint(
+          'Dhadda: SQLite unavailable (${e.runtimeType}); prefs backend for now.',
+        );
       }
     }
     return PrefsDomainStore(p);
@@ -200,7 +207,9 @@ class ExpenseStore extends ChangeNotifier {
       final tombs = await d.loadTombstones();
       _tombs = {for (final t in tombs) t.key: t};
     } catch (e) {
-      debugPrint('Dhadda: sync metadata unreadable (${e.runtimeType}); baseline.');
+      debugPrint(
+        'Dhadda: sync metadata unreadable (${e.runtimeType}); baseline.',
+      );
       _revs = {};
       _tombs = {};
     }
@@ -322,7 +331,9 @@ class ExpenseStore extends ChangeNotifier {
       }
       await p.setInt(_kDbMigrated, 1);
     } catch (e) {
-      debugPrint('Dhadda: DB migration failed, staying on prefs (${e.runtimeType})');
+      debugPrint(
+        'Dhadda: DB migration failed, staying on prefs (${e.runtimeType})',
+      );
       _domain = PrefsDomainStore(p);
     }
   }
@@ -390,6 +401,7 @@ class ExpenseStore extends ChangeNotifier {
     linkId = '${meta['linkId'] ?? ''}';
     linkPin = '${meta['linkPin'] ?? ''}';
     linkPeer = '${meta['linkPeer'] ?? ''}';
+    linkSecret = '${meta['linkSecret'] ?? ''}';
     final cur = '${meta['currency'] ?? 'NPR'}';
     currency = currencySymbols.containsKey(cur) ? cur : 'NPR';
     setDisplaySymbol(currencySymbol);
@@ -494,6 +506,7 @@ class ExpenseStore extends ChangeNotifier {
         'linkId': linkId,
         'linkPin': linkPin,
         'linkPeer': linkPeer,
+        'linkSecret': linkSecret,
       }),
     );
   }
@@ -527,24 +540,30 @@ class ExpenseStore extends ChangeNotifier {
   }
 
   /// Saves a pairing. From now on the engine keeps this device synced.
+  /// [secret] is the high-entropy link credential (empty for legacy
+  /// PIN-only pairings); it is stored with the pairing and cleared with it.
   Future<void> setLink({
     required String id,
     required String pin,
     required String peer,
+    String secret = '',
   }) async {
     linkId = id;
     linkPin = pin;
     linkPeer = peer;
+    linkSecret = secret;
     linkStatus = 'Linked with $peer.';
     _saveAll();
     notifyListeners();
   }
 
-  /// Forgets a pairing (data stays, auto-sync stops).
+  /// Forgets a pairing (data stays, auto-sync stops). The link secret is
+  /// revoked here: a stopped pairing's credential never lingers.
   Future<void> clearLink([String why = '']) async {
     linkId = '';
     linkPin = '';
     linkPeer = '';
+    linkSecret = '';
     linkStatus = why;
     _saveAll();
     notifyListeners();
@@ -669,6 +688,7 @@ class ExpenseStore extends ChangeNotifier {
     linkId = '';
     linkPin = '';
     linkPeer = '';
+    linkSecret = '';
     linkStatus = '';
     currency = 'NPR';
     themeMode = 'system';
@@ -1499,7 +1519,9 @@ class ExpenseStore extends ChangeNotifier {
           ..clear()
           ..addAll(prevTombs);
         lastPersistError = '$e';
-        debugPrint('Dhadda: import persist failed, reverted (${e.runtimeType})');
+        debugPrint(
+          'Dhadda: import persist failed, reverted (${e.runtimeType})',
+        );
         return 'Could not save the import. Nothing was changed.';
       }
     }
