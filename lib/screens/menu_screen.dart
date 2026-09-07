@@ -85,16 +85,18 @@ class _MenuScreenState extends State<MenuScreen> {
 
   /// Password-gated encrypted export (additive; plaintext Export untouched).
   Future<void> _exportEncrypted(
-      BuildContext context, ExpenseStore store) async {
+    BuildContext context,
+    ExpenseStore store,
+  ) async {
     final pw = await askBackupPassword(context, confirm: true);
     if (pw == null || !context.mounted) return;
     try {
       final enc = await BackupCrypto.encrypt(store.exportJson(), pw);
+      if (!context.mounted) return;
       await FileSync.exportJson(
         context,
         enc,
-        FileSync.fileNameFor(DateTime.now())
-            .replaceFirst('.json', '.enc.json'),
+        FileSync.fileNameFor(DateTime.now()).replaceFirst('.json', '.enc.json'),
       );
     } catch (_) {
       _say('Could not encrypt the backup.');

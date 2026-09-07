@@ -52,8 +52,13 @@ void main() {
     final enc = await BackupCrypto.encrypt('{"a":1}', 'right');
     expect(
       () => BackupCrypto.decrypt(enc, 'wrong'),
-      throwsA(isA<FormatException>().having(
-          (e) => e.message, 'message', contains('Wrong password'))),
+      throwsA(
+        isA<FormatException>().having(
+          (e) => e.message,
+          'message',
+          contains('Wrong password'),
+        ),
+      ),
     );
   });
 
@@ -87,9 +92,11 @@ void main() {
     ];
     for (final raw in unmarked) {
       expect(BackupCrypto.isEncrypted(raw), isFalse, reason: raw);
-      expect(() => BackupCrypto.decrypt(raw, 'pw'),
-          throwsA(isA<FormatException>()),
-          reason: raw);
+      expect(
+        () => BackupCrypto.decrypt(raw, 'pw'),
+        throwsA(isA<FormatException>()),
+        reason: raw,
+      );
     }
     // Marked but broken: detected by the marker, rejected during parse
     // (before any KDF work) with clear errors.
@@ -105,14 +112,18 @@ void main() {
     ];
     for (final raw in markedBad) {
       expect(BackupCrypto.isEncrypted(raw), isTrue, reason: raw);
-      expect(() => BackupCrypto.decrypt(raw, 'pw'),
-          throwsA(isA<FormatException>()),
-          reason: raw);
+      expect(
+        () => BackupCrypto.decrypt(raw, 'pw'),
+        throwsA(isA<FormatException>()),
+        reason: raw,
+      );
     }
   });
 
   test('empty password is rejected for encryption', () async {
-    expect(() => BackupCrypto.encrypt('{"a":1}', ''),
-        throwsA(isA<ArgumentError>()));
+    expect(
+      () => BackupCrypto.encrypt('{"a":1}', ''),
+      throwsA(isA<ArgumentError>()),
+    );
   });
 }

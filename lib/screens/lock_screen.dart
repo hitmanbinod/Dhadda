@@ -11,8 +11,12 @@ class LockScreen extends StatefulWidget {
 
   /// Injected for tests (fake clock). Defaults to a prefs-backed instance.
   final PinThrottle? throttle;
-  const LockScreen(
-      {super.key, required this.vault, required this.onUnlock, this.throttle});
+  const LockScreen({
+    super.key,
+    required this.vault,
+    required this.onUnlock,
+    this.throttle,
+  });
 
   @override
   State<LockScreen> createState() => _LockScreenState();
@@ -91,24 +95,22 @@ class _LockScreenState extends State<LockScreen> {
           children: [
             CircleAvatar(
               radius: 34,
-              backgroundColor:
-                  scheme.primaryContainer.withValues(alpha: 0.5),
-              child: Icon(Icons.lock,
-                  size: 32, color: scheme.primary),
+              backgroundColor: scheme.primaryContainer.withValues(alpha: 0.5),
+              child: Icon(Icons.lock, size: 32, color: scheme.primary),
             ),
             const SizedBox(height: 16),
-            Text('Enter your 4-digit PIN',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Enter your 4-digit PIN',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 for (var i = 0; i < 4; i++)
                   AnimatedContainer(
-                    duration:
-                        const Duration(milliseconds: 120),
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 10),
+                    duration: const Duration(milliseconds: 120),
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
                     width: 18,
                     height: 18,
                     decoration: BoxDecoration(
@@ -116,8 +118,7 @@ class _LockScreenState extends State<LockScreen> {
                       color: i < _pin.length
                           ? scheme.primary
                           : scheme.surfaceContainerHighest,
-                      border: Border.all(
-                          color: scheme.primary, width: 1.5),
+                      border: Border.all(color: scheme.primary, width: 1.5),
                     ),
                   ),
               ],
@@ -127,10 +128,13 @@ class _LockScreenState extends State<LockScreen> {
               child: _error == null
                   ? null
                   : Center(
-                      child: Text(_error!,
-                          style: TextStyle(
-                              color: scheme.error,
-                              fontWeight: FontWeight.bold)),
+                      child: Text(
+                        _error!,
+                        style: TextStyle(
+                          color: scheme.error,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
             ),
             for (final row in const [
@@ -139,21 +143,16 @@ class _LockScreenState extends State<LockScreen> {
               ['7', '8', '9'],
             ])
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 5),
+                padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceEvenly,
-                  children: [
-                    for (final d in row) _key(context, d),
-                  ],
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [for (final d in row) _key(context, d)],
                 ),
               ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 5),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   const SizedBox(width: 72),
                   _key(context, '0'),
@@ -171,10 +170,10 @@ class _LockScreenState extends State<LockScreen> {
               const Padding(
                 padding: EdgeInsets.only(top: 8),
                 child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2)),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
           ],
         ),
@@ -193,9 +192,10 @@ class _LockScreenState extends State<LockScreen> {
           shape: const CircleBorder(),
           side: BorderSide(color: scheme.outlineVariant),
         ),
-        child: Text(d,
-            style: const TextStyle(
-                fontSize: 24, fontWeight: FontWeight.w500)),
+        child: Text(
+          d,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w500),
+        ),
       ),
     );
   }

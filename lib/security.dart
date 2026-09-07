@@ -22,8 +22,7 @@ class PinVault {
   static String hashOf(String pin) =>
       sha256.convert(utf8.encode('$_salt::$pin')).toString();
 
-  Future<void> setPin(String pin) =>
-      prefs.setString(storageKey, hashOf(pin));
+  Future<void> setPin(String pin) => prefs.setString(storageKey, hashOf(pin));
 
   bool verify(String pin) => prefs.getString(storageKey) == hashOf(pin);
 
@@ -31,8 +30,7 @@ class PinVault {
 
   bool get biometric => prefs.getBool(biometricKey) ?? false;
 
-  Future<void> setBiometric(bool v) =>
-      prefs.setBool(biometricKey, v);
+  Future<void> setBiometric(bool v) => prefs.setBool(biometricKey, v);
 }
 
 /// Progressive-delay guard for the 4-digit app lock.
@@ -52,7 +50,7 @@ class PinThrottle {
   final SharedPreferences prefs;
   final DateTime Function() now;
   PinThrottle(this.prefs, {DateTime Function()? now})
-      : now = now ?? DateTime.now;
+    : now = now ?? DateTime.now;
 
   int get failures {
     try {
@@ -76,8 +74,7 @@ class PinThrottle {
     } catch (_) {
       return Duration.zero;
     }
-    final elapsed =
-        now().millisecondsSinceEpoch - (last < 0 ? 0 : last);
+    final elapsed = now().millisecondsSinceEpoch - (last < 0 ? 0 : last);
     final remainMs = wait.inMilliseconds - elapsed;
     return remainMs <= 0 ? Duration.zero : Duration(milliseconds: remainMs);
   }

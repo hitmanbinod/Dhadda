@@ -27,6 +27,9 @@ safe to upload implicitly.
 - The intentional mechanism is the in-app **Export/Import** (share-sheet JSON /
   file picker, `lib/sync/file_sync.dart`) — user-initiated, user-routed,
   restorable via `restoreBackup`.
+- Phase 3 adds an **optional encrypted variant** (password-based
+  `dhadda-enc-backup` envelope, `.enc.json` files): same flows, readable only
+  with the passphrase. Plaintext export remains available and unchanged.
 
 ## Impact the maintainer accepts
 

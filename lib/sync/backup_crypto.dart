@@ -57,8 +57,13 @@ class BackupCrypto {
     final rand = Random.secure();
     final salt = List<int>.generate(16, (_) => rand.nextInt(256));
     final nonce = List<int>.generate(24, (_) => rand.nextInt(256));
-    final key = await _derive(password, salt,
-        m: kdfMemory, t: kdfIterations, p: kdfParallelism);
+    final key = await _derive(
+      password,
+      salt,
+      m: kdfMemory,
+      t: kdfIterations,
+      p: kdfParallelism,
+    );
     final box = await Xchacha20.poly1305Aead().encrypt(
       utf8.encode(plaintext),
       secretKey: key,
@@ -89,8 +94,7 @@ class BackupCrypto {
     final tag = _b64(m, 'tag', 16, 16);
     final kdf = _kdfParams(m);
     try {
-      final key = await _derive(password, salt,
-          m: kdf.m, t: kdf.t, p: kdf.p);
+      final key = await _derive(password, salt, m: kdf.m, t: kdf.t, p: kdf.p);
       final clear = await Xchacha20.poly1305Aead().decrypt(
         SecretBox(cipher, nonce: nonce, mac: Mac(tag)),
         secretKey: key,
@@ -144,8 +148,7 @@ class BackupCrypto {
     return (m: m, t: t, p: p);
   }
 
-  static List<int> _b64(
-      Map<String, dynamic> e, String k, int min, int max) {
+  static List<int> _b64(Map<String, dynamic> e, String k, int min, int max) {
     try {
       final bytes = base64Decode('${e[k]}');
       if (bytes.length < min || bytes.length > max) {
@@ -158,11 +161,22 @@ class BackupCrypto {
     }
   }
 
-  static Future<SecretKey> _derive(String password, List<int> salt,
-      {required int m, required int t, required int p}) async {
+  static Future<SecretKey> _derive(
+    String password,
+    List<int> salt, {
+    required int m,
+    required int t,
+    required int p,
+  }) async {
     final kdf = Argon2id(
-        parallelism: p, memory: m, iterations: t, hashLength: 32);
+      parallelism: p,
+      memory: m,
+      iterations: t,
+      hashLength: 32,
+    );
     return kdf.deriveKey(
-        secretKey: SecretKey(utf8.encode(password)), nonce: salt);
+      secretKey: SecretKey(utf8.encode(password)),
+      nonce: salt,
+    );
   }
 }

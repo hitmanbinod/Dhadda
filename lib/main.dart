@@ -31,8 +31,7 @@ class ExpenseApp extends StatelessWidget {
       create: (_) => ExpenseStore()..load(),
       child: Consumer<ExpenseStore>(
         builder: (_, store, _) {
-          final seed = (store.materialYou &&
-                  store.dynamicSeedArgb != null)
+          final seed = (store.materialYou && store.dynamicSeedArgb != null)
               ? Color(store.dynamicSeedArgb!)
               : Color(store.accent);
           final mode = switch (store.themeMode) {
@@ -49,7 +48,9 @@ class ExpenseApp extends StatelessWidget {
             ),
             darkTheme: ThemeData(
               colorScheme: ColorScheme.fromSeed(
-                  seedColor: seed, brightness: Brightness.dark),
+                seedColor: seed,
+                brightness: Brightness.dark,
+              ),
               useMaterial3: true,
             ),
             themeMode: mode,
@@ -68,8 +69,7 @@ class RootShell extends StatefulWidget {
   State<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell>
-    with WidgetsBindingObserver {
+class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
   late final LinkEngine _link;
   bool _smsBootDone = false;
@@ -81,21 +81,25 @@ class _RootShellState extends State<RootShell>
 
   static const _destinations = [
     NavigationDestination(
-        icon: Icon(Icons.home_outlined),
-        selectedIcon: Icon(Icons.home),
-        label: 'Home'),
+      icon: Icon(Icons.home_outlined),
+      selectedIcon: Icon(Icons.home),
+      label: 'Home',
+    ),
     NavigationDestination(
-        icon: Icon(Icons.receipt_long_outlined),
-        selectedIcon: Icon(Icons.receipt_long),
-        label: 'History'),
+      icon: Icon(Icons.receipt_long_outlined),
+      selectedIcon: Icon(Icons.receipt_long),
+      label: 'History',
+    ),
     NavigationDestination(
-        icon: Icon(Icons.handshake_outlined),
-        selectedIcon: Icon(Icons.handshake),
-        label: 'Lent'),
+      icon: Icon(Icons.handshake_outlined),
+      selectedIcon: Icon(Icons.handshake),
+      label: 'Lent',
+    ),
     NavigationDestination(
-        icon: Icon(Icons.menu_outlined),
-        selectedIcon: Icon(Icons.menu),
-        label: 'Menu'),
+      icon: Icon(Icons.menu_outlined),
+      selectedIcon: Icon(Icons.menu),
+      label: 'Menu',
+    ),
   ];
 
   @override
@@ -147,9 +151,10 @@ class _RootShellState extends State<RootShell>
           type: c.isIncome ? 'income' : 'expense',
           amount: c.amount,
           categoryId: categorizeSms(
-              merchant: c.merchant,
-              body: c.body,
-              candidates: store.categories),
+            merchant: c.merchant,
+            body: c.body,
+            candidates: store.categories,
+          ),
           date: c.date,
           note: c.merchant.isEmpty ? c.sender : c.merchant,
           mode: c.mode,
@@ -161,9 +166,13 @@ class _RootShellState extends State<RootShell>
         await SmsReader.markImported(fresh);
       }
       if (added > 0 && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text(
-                'Added $added entr${added == 1 ? 'y' : 'ies'} from SMS automatically.')));
+              'Added $added entr${added == 1 ? 'y' : 'ies'} from SMS automatically.',
+            ),
+          ),
+        );
       }
     } catch (_) {}
   }
@@ -222,32 +231,31 @@ class _RootShellState extends State<RootShell>
   void _go(int i) => setState(() => _index = i);
 
   void _openAdd() {
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => AddScreen(
-            onSaved: () => Navigator.of(context).pop())));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AddScreen(onSaved: () => Navigator.of(context).pop()),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     if (!_lockChecked) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final vault = _vault;
     if (_locked && vault != null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Dhadda - Locked')),
         body: LockScreen(
-            vault: vault,
-            onUnlock: () => setState(() => _locked = false)),
+          vault: vault,
+          onUnlock: () => setState(() => _locked = false),
+        ),
       );
     }
 
     final pages = [
-      HomeScreen(
-        onAdd: _openAdd,
-        onSync: () => _link.syncNow(),
-      ),
+      HomeScreen(onAdd: _openAdd, onSync: () => _link.syncNow()),
       const HistoryScreen(),
       const LentScreen(),
       MenuScreen(engine: _link),
@@ -268,8 +276,9 @@ class _RootShellState extends State<RootShell>
             tooltip: 'Sync',
             icon: const Icon(Icons.sync),
             onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => SyncScreen(engine: _link)));
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => SyncScreen(engine: _link)),
+              );
             },
           ),
         ],
@@ -284,9 +293,10 @@ class _RootShellState extends State<RootShell>
               destinations: [
                 for (final d in _destinations)
                   NavigationRailDestination(
-                      icon: d.icon,
-                      selectedIcon: d.selectedIcon,
-                      label: Text(d.label)),
+                    icon: d.icon,
+                    selectedIcon: d.selectedIcon,
+                    label: Text(d.label),
+                  ),
               ],
             ),
           Expanded(

@@ -7,8 +7,10 @@ import 'package:flutter/material.dart';
 /// and only enables the action on a non-empty match. Returns the password,
 /// or null when cancelled/invalid. Shows no strength meter on purpose: any
 /// memorable passphrase beats the 4-digit app PIN by orders of magnitude.
-Future<String?> askBackupPassword(BuildContext context,
-    {required bool confirm}) async {
+Future<String?> askBackupPassword(
+  BuildContext context, {
+  required bool confirm,
+}) async {
   final first = TextEditingController();
   final second = TextEditingController();
   var mismatch = false;
@@ -16,8 +18,8 @@ Future<String?> askBackupPassword(BuildContext context,
     context: context,
     builder: (ctx) => StatefulBuilder(
       builder: (ctx, setD) {
-        final ok = first.text.isNotEmpty &&
-            (!confirm || first.text == second.text);
+        final ok =
+            first.text.isNotEmpty && (!confirm || first.text == second.text);
         return AlertDialog(
           title: Text(confirm ? 'Encrypt backup' : 'Decrypt backup'),
           content: Column(

@@ -40,9 +40,11 @@ void main() {
     final t = await _throttle(clock);
     final expected = [0, 0, 0, 0, 0, 5, 10, 20, 40, 80, 160, 300, 300];
     for (var i = 0; i < expected.length; i++) {
-      expect(PinThrottle.delayForFailures(i),
-          Duration(seconds: expected[i]),
-          reason: 'fails=$i');
+      expect(
+        PinThrottle.delayForFailures(i),
+        Duration(seconds: expected[i]),
+        reason: 'fails=$i',
+      );
     }
     for (var i = 0; i < 12; i++) {
       await t.recordFailure();
