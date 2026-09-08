@@ -136,10 +136,14 @@ jobs:
         with:
           name: expense-apk
           path: dist
-      - run: cd dist && sha256sum app-release.apk > SHA256SUMS && cat SHA256SUMS
+      - run: |
+          cd dist
+          mv app-release.apk "dhadda-${{ github.ref_name }}.apk"
+          sha256sum "dhadda-${{ github.ref_name }}.apk" > SHA256SUMS
+          cat SHA256SUMS
       - name: GitHub Release (signed APK + checksums only)
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/app-release.apk
+            dist/dhadda-${{ github.ref_name }}.apk
             dist/SHA256SUMS
