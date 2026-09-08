@@ -1,7 +1,34 @@
-# Dhadda Reproducible-Build Notes (Phase 1 investigation)
+# Dhadda Reproducible-Build Notes (Phase 1 investigation, Phase 8 evidence)
 
-Status: **investigated and documented, NOT demonstrated.** No two-environment
-comparison has been run. Do not claim reproducibility.
+Status (2026-09-08, Phase 8): **functionally reproducible, binary differs
+only in the signature block** — demonstrated locally, not yet across
+independent environments. Do not claim byte-for-byte reproducibility.
+
+## Demonstrated (same machine, Flutter 3.47.2, JDK 17, two full
+`flutter build apk --release` runs after `flutter clean`)
+
+- Both APKs: 512 ZIP entries, identical names/order/sizes/timestamps.
+- All 512 entry contents byte-identical (per-entry SHA256 compared):
+  Dart AOT, engine, resources, manifest, native libs
+  (`libsqlite3.so` from drift build hooks, `libflutter_zxing.so`
+  from source), META-INF.
+- Total byte differences: 7,759 in one 7.8KB span inside the APK
+  signing-block region (before the central directory) — consistent
+  with per-run signature-block nondeterminism under debug signing.
+  No code/resource/manifest byte differs.
+- Same-state incremental rebuilds were bit-identical (weak datapoint:
+  shared build cache, honestly labeled as such).
+
+## Caveats
+
+- Clean rebuilds on stock Windows need symlink privilege (Developer
+  Mode); without it the first post-clean build fails creating plugin
+  symlinks and the retry succeeds. F-Droid/CI containers differ —
+  this status covers same-machine content determinism only.
+- Signing differs by distributor by design (GitHub maintainer key vs
+  F-Droid key): the honest target remains source-to-binary
+  traceability (tag + lockfile + toolchain + SHA256SUMS), for which
+  content-identity is the meaningful property.
 
 ## What pins determinism today (improvements landed in Phase 1)
 
