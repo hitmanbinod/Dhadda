@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../format.dart';
 import '../store.dart';
+import '../sync/reminders.dart';
 import '../widgets/page.dart';
 
 /// Lent-money ledger: who owes you, partial repayments, settled history.
@@ -547,7 +548,29 @@ class _LentScreenState extends State<LentScreen> {
           content: Text(!enabled || picked == null
               ? 'Reminder off.'
               : 'Will remind once · ${_remindLabel(picked!.millisecondsSinceEpoch)}')));
+      if (enabled && picked != null) {
+        await _maybePromptExactAlarms(messenger);
+      }
     }
+  }
+
+  /// In-context exact-alarm explanation, shown once when a reminder is
+  /// saved without the system "Alarms & reminders" access (not
+  /// pre-granted on Android 14+). The reminder is still scheduled via
+  /// the inexact fallback, so nothing is lost if the user declines.
+  Future<void> _maybePromptExactAlarms(
+      ScaffoldMessengerState messenger) async {
+    if (await Reminders.canUseExactAlarms()) return;
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(
+      content: const Text(
+          'For on-time reminders, allow “Alarms & reminders” for Dhadda in system settings. Without it, reminders may arrive late.'),
+      action: SnackBarAction(
+        label: 'Open settings',
+        onPressed: () => Reminders.requestExactAlarmAccess(),
+      ),
+      duration: const Duration(seconds: 8),
+    ));
   }
 
   String _remindLabel(int ms) {
