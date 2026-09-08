@@ -206,3 +206,5 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   `dhadda.local` from stock Windows BLOCKED-environmental as
   documented (no Bonjour; IP is the supported path); Stop →
   connection refused, disappearance PASS.
+- 2026-09-08 Biometric/PIN on device: PASS (biometric unlock and PIN
+  both verified working on the Xiaomi phone).
