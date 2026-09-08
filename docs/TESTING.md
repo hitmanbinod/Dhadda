@@ -208,3 +208,10 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   connection refused, disappearance PASS.
 - 2026-09-08 Biometric/PIN on device: PASS (biometric unlock and PIN
   both verified working on the Xiaomi phone).
+- 2026-09-08 Link/relay transport phone→PC (one phone + Node relay
+  on same WiFi): PASS. Phone joined a PC-created PIN box
+  (Server/Code/PIN manual entry), reported synced; PC pull showed the
+  phone's full snapshot incl. the `Phase7Sync` tracer txn, the Test
+  loan, and a live Snapshot v2 record set. True two-device
+  convergence (two writers) stays BLOCKED — single phone; merge
+  logic covered by host `sync_v2` tests.
