@@ -116,3 +116,29 @@ no secrets/fixtures with real data committed.
 - `integration_test/` executes only on a connected device (verified by
   `analyze`; host mirror in `test/app_journey_test.dart` runs in CI).
 - Performance: observation-only bounds, no benchmarks (Phase 6 territory).
+
+## 11. Validation log (2026-09-08, Phase 7 WIP cleanup)
+
+Host (this machine, Flutter 3.47.2 / Dart 3.13.2):
+
+- `flutter analyze --no-fatal-infos`: clean.
+- `flutter test`: 176/176 pass (Drift multi-`AppDb` debug warnings
+  retained, not a defect).
+- `flutter test test/app_journey_test.dart`: 2/2 pass (host mirror of
+  the device app-flow journey).
+
+Device `integration_test/` (NOT run — honestly blocked, not passed):
+
+- `flutter test integration_test/app_flow_test.dart -d <device>`:
+  BLOCKED. `dhadda-p7` emulator exists but won't boot: x86_64
+  emulation requires hardware acceleration, hypervisor driver not
+  installed. Windows fallback also blocked: plugin symlinks need
+  Developer Mode plus VS toolchain (absent).
+- `flutter test integration_test/sync_two_device_test.dart`:
+  BLOCKED for the same reason (needs a real device/emulator plus
+  `--dart-define` relay choreography; host localhost/Node-relay
+  equivalents in `test/` stay green but are not a substitute).
+- SMS real-inbox, notification delivery, mDNS discovery, Show-on-PC
+  browser, biometric, two-device convergence: BLOCKED / NOT RUN on
+  real hardware this session. Prior manual-gated procedures in
+  §§4–7 stand; no pass claimed here.
