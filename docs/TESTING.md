@@ -201,3 +201,8 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   (exact+fallback is strictly better on stock Android), delivery
   validation closed on this device. Maintainer chose to move on to
   remaining Phase 7 checks (mDNS, Show-on-PC, biometric, sync).
+- 2026-09-08 Show-on-PC/mDNS (Xiaomi phone + Windows PC, same WiFi):
+  IP path PASS (`/api/ping` → `{"ok":true,…}`, `/` → 200);
+  `dhadda.local` from stock Windows BLOCKED-environmental as
+  documented (no Bonjour; IP is the supported path); Stop →
+  connection refused, disappearance PASS.
