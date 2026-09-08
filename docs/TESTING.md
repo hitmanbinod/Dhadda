@@ -191,3 +191,13 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   snackbar. Regression: 3 new `reminders_test` cases
   (exact-when-granted, inexact-fallback-kept, helpers-never-throw).
   Host suite 179/179, analyze clean. Device retest pending.
+- 2026-09-08 exact retest: new build verified on device (manifest
+  permission present, `scheduleMode:exactAllowWhileIdle` in plugin
+  cache for a 09:43 reminder, no grant snackbar because the OS
+  reported access allowed). Exact alarm FIRED on time (receiver wake
+  at ~09:43), yet no notification displayed, no channel/history
+  trace, no crash. Display suppressed by HyperOS past the
+  app-controlled path. Status: BLOCKED-environmental; fix retained
+  (exact+fallback is strictly better on stock Android), delivery
+  validation closed on this device. Maintainer chose to move on to
+  remaining Phase 7 checks (mDNS, Show-on-PC, biometric, sync).
