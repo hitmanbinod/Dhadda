@@ -47,6 +47,34 @@ class Reminders {
         priority: Priority.high,
       );
 
+  /// Whether the OS currently grants exact-alarm access. Never throws;
+  /// false means scheduling falls back to inexact (may arrive late).
+  /// Android 14+ does not pre-grant this on fresh installs: the user
+  /// must enable "Alarms & reminders" special access for Dhadda.
+  static Future<bool> canUseExactAlarms() async {
+    try {
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await android?.canScheduleExactNotifications() ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Opens the system "Alarms & reminders" access screen so the user can
+  /// grant exact-alarm access in context. Never throws.
+  static Future<void> requestExactAlarmAccess() async {
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.requestExactAlarmsPermission();
+    } catch (_) {}
+  }
+
   static String _title(Loan l) =>
       l.isBorrowed ? 'Return money' : 'Ask for money';
   static String _body(ExpenseStore store, Loan l) {
@@ -56,29 +84,42 @@ class Reminders {
         : '${l.person} still owes you $amount - time to ask.';
   }
 
-  static Future<void> _scheduleOne(
-      ExpenseStore store, Loan l) async {
+  static Future<void> _scheduleOne(ExpenseStore store, Loan l) async {
     if (l.settled || l.remindAt <= 0) {
       await _plugin.cancel(id: idFor(l.id));
       return;
     }
-    final when =
-        tz.TZDateTime.fromMillisecondsSinceEpoch(tz.local, l.remindAt);
+    final when = tz.TZDateTime.fromMillisecondsSinceEpoch(tz.local, l.remindAt);
     if (!when.isAfter(tz.TZDateTime.now(tz.local))) {
       // Moment already passed: nothing to fire, clear any stale entry.
       await _plugin.cancel(id: idFor(l.id));
       return;
     }
-    await _plugin.zonedSchedule(
+    Future<void> schedule(AndroidScheduleMode mode) => _plugin.zonedSchedule(
       id: idFor(l.id),
       title: _title(l),
       body: _body(store, l),
       scheduledDate: when,
-      androidScheduleMode:
-          AndroidScheduleMode.inexactAllowWhileIdle,
-      notificationDetails:
-          NotificationDetails(android: _details()),
+      androidScheduleMode: mode,
+      notificationDetails: NotificationDetails(android: _details()),
     );
+    // Exact alarms for explicit user reminders; inexact fallback keeps
+    // the reminder (possibly late) instead of losing it when access is
+    // denied, unavailable, or revoked between check and schedule.
+    final exact = await canUseExactAlarms();
+    try {
+      await schedule(
+        exact
+            ? AndroidScheduleMode.exactAllowWhileIdle
+            : AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    } catch (_) {
+      if (exact) {
+        try {
+          await schedule(AndroidScheduleMode.inexactAllowWhileIdle);
+        } catch (_) {}
+      }
+    }
   }
 
   /// Rebuilds every reminder from current data: call on boot, on
@@ -91,7 +132,8 @@ class Reminders {
       try {
         await _plugin
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
+              AndroidFlutterLocalNotificationsPlugin
+            >()
             ?.requestNotificationsPermission();
       } catch (_) {}
       await _plugin.cancelAll();

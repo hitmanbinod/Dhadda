@@ -6,6 +6,15 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Exact alarms for explicit user-created loan reminders only.
+         Android 12-13 grant at install; Android 14+ does NOT pre-grant
+         on fresh installs - the user must enable "Alarms & reminders"
+         special access (requested in context when a reminder is saved).
+         Without it, reminders fall back to inexact scheduling and may
+         arrive late. USE_EXACT_ALARM is deliberately not used: it is
+         reserved for clock/calendar apps and would risk F-Droid/Play
+         policy trouble; SCHEDULE_EXACT_ALARM is user-revocable. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <!-- Optional expense import: user taps "Import from SMS", nothing auto-read. -->
     <uses-permission android:name="android.permission.READ_SMS" />
