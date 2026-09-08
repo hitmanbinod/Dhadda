@@ -3,12 +3,11 @@
 Target: GitHub + F-Droid only. No Google Play. This doc records the Phase 1
 dependency audit and metadata state. It does NOT claim F-Droid acceptance.
 
-## 1. Open-source license: ABSENT (flagged, not chosen)
+## 1. Open-source license: Apache-2.0 (LICENSE, SPDX `Apache-2.0`)
 
-The repo has **no LICENSE file**. F-Droid requires a FOSS license; the
-maintainer must choose one (roadmap §8.1 lists GPL-3.0-or-later, AGPL-3.0,
-Apache-2.0, MIT as candidates). No license was added in Phase 1 — choosing one
-is a maintainer decision, not an automation default.
+`LICENSE` carries the full Apache License 2.0 text. No GPL-incompatible
+or proprietary dependency was found in the audits below, so the
+permissive license applies cleanly to the whole tree.
 
 ## 2. Direct-dependency FOSS audit (method + result)
 
@@ -74,6 +73,35 @@ dependency replaced for this audit. License snapshot: everything permissive.
 Present under `fastlane/metadata/android/en-US/`: `title.txt` (Dhadda),
 `short_description.txt`, `full_description.txt` (both already accurate —
 offline-first, no account/cloud/fees), `images/icon.png` (from
-`assets/icon/app_icon.png`), `changelogs/<versionCode>.txt` (started at `2.txt`).
+`assets/icon/app_icon.png`), `changelogs/<versionCode>.txt` (`2.txt` for
+1.3.1, `3.txt` for 1.4.0).
 F-Droid build metadata (package ID `com.dhadda.expense`, source ref, build
 recipe) still belongs in the F-Droid data repo / later phase — not invented here.
+
+## 6. Phase 8 submission reference (for the fdroiddata entry)
+
+Upstream facts an F-Droid submission needs (verified this phase):
+
+```text
+Application ID: com.dhadda.expense
+Current version: 1.4.0 / versionCode 3
+License (SPDX): Apache-2.0
+Source: <upstream git URL> at tag v1.4.0 (tag naming: v<version>)
+Category: Money (F-Droid category choice at submission)
+Flutter: 3.47.2 (see .fvmrc; CI pins flutter-version 3.47.2)
+JDK: 17; AGP/Kotlin per android/settings.gradle.kts
+Build flavor: default; build command: flutter build apk --release
+  WITHOUT maintainer key material (F-Droid signs its own builds;
+  android/key.properties is git-ignored and absent upstream, and the
+  Gradle fail-closed check must be satisfied by the F-Droid build
+  recipe — e.g. an explicit unsigned/dev path — never by weakening it)
+Pre-build: flutter pub get --enforce-lockfile;
+  dart run build_runner build --delete-conflicting-outputs
+Anti-features: none apply (no network services, no ads, no tracking,
+  no non-free dependencies; local-network sync is user-initiated on a
+  trusted LAN and documented in docs/SECURITY_LAN.md)
+```
+
+This is metadata readiness, not acceptance: F-Droid review and
+inclusion remain an external process. Reproducibility status is in
+`docs/REPRODUCIBILITY.md`.

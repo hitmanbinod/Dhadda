@@ -1,0 +1,1 @@
+Dhadda 1.4.0: first open release line — SQLite storage with safe migration, record-level sync merge, optional encrypted backups, PIN throttling, exact reminders with fallback, faster dashboard.
