@@ -142,3 +142,30 @@ Device `integration_test/` (NOT run — honestly blocked, not passed):
   browser, biometric, two-device convergence: BLOCKED / NOT RUN on
   real hardware this session. Prior manual-gated procedures in
   §§4–7 stand; no pass claimed here.
+
+## 12. Device validation actuals (2026-09-08, Xiaomi 23129RAA4G, Android 15 API 35)
+
+Install notes: HyperOS needs per-install approval (`INSTALL_FAILED_USER_RESTRICTED`
+until tapped). `flutter install --debug` once installed a stale
+`flutter test` harness APK (black screen, engine alive, no frames);
+fixed by deleting the stale `app-debug.apk` and rebuilding plain
+(no repo change; build output only).
+
+- App render on device: PASS (Home dashboard screenshot-verified).
+- `integration_test/app_flow_test.dart` (inbox-free subset via `--name`):
+  2/2 PASS on device (`fresh boot`, `add-expense journey`). Note:
+  `--plain-name` is substring match; use `--name` for alternations.
+- Real-inbox SMS tests: NOT RUN (needs explicit consent; inbox unscanned).
+- Notification delivery: FAIL (see below). Permission granted, channel
+  `loan_reminders` (MAX), alarm registered with the OS carrying the
+  correct time/content/timezone — verified via `dumpsys alarm`,
+  plugin cache, and `appops`. The inexact alarm sat overdue 4+ min
+  (later 18+ min) with no `NotificationReceiver` trace and no active
+  notification, while the app sat in standby bucket RARE (fresh
+  sideloaded install, backgrounded). App-side schedule path
+  (`Reminders.refresh`: `cancelAll` + per-loan `zonedSchedule`,
+  stable ids, past/settled cancellation) reviewed correct; no code
+  fix made. Retest path: HyperOS battery No-restrictions + Autostart,
+  fresh reminder, Home-backgrounded (never swipe-killed), longer soak.
+  Exact-alarm escalation (`SCHEDULE_EXACT_ALARM`) is a
+  product/permission decision, NOT taken unilaterally here.
