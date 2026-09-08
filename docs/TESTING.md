@@ -230,3 +230,15 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   proven app data loss. Denied path (revoke → rescan) NOT RUN.
   Open item: rerun rescan assertion with tap-target logging or a
   manual rescan confirm.
+- 2026-09-08 Manual SMS close-out (same phone, consent, counts only):
+  45 candidates imported in one tap; immediate rescan showed `No
+  new bank/wallet SMS found.` → dedup PASS on a real inbox (the
+  earlier harness rescan-flake was test-side). Revoke → rescan shows
+  the graceful `SMS permission needed` notice, no crash/access/import
+  → denied-path PASS.
+- Device-process notes: `flutter test` and `flutter install --debug`
+  share `build/app/outputs/flutter-apk/app-debug.apk`; a stale
+  harness build installs as a black screen (engine alive, no
+  frames) — always `flutter build apk --debug` fresh before a manual
+  install. Fresh-install cold start on this phone takes 60–90s of
+  black before first frame (dexopt + DB + shaders); not an app bug.
