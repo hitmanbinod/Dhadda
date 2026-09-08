@@ -20,6 +20,21 @@ import 'package:integration_test/integration_test.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  /// scrollUntilVisible with an explicit Scrollable: the default lookup
+  /// (find.byType(Scrollable)) throws "Too many elements" on screens that
+  /// legitimately contain several scrollables.
+  Future<void> scrollToVisible(
+    WidgetTester tester,
+    Finder finder,
+    double delta,
+  ) async {
+    await tester.scrollUntilVisible(
+      finder,
+      delta,
+      scrollable: find.byType(Scrollable).first,
+    );
+  }
+
   testWidgets('two-device link sync via manual code entry', (tester) async {
     const relay = String.fromEnvironment('RELAY_URL');
     const link = String.fromEnvironment('LINK_ID');
@@ -36,17 +51,19 @@ void main() {
 
     app.main();
     await tester.pumpAndSettle();
-    // Sync screen via Menu -> Open sync.
+    // Sync screen via Menu -> Open sync (single deterministic tap).
     await tester.tap(find.byType(NavigationDestination).at(3));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-        find.widgetWithText(FilledButton, 'Open sync'), 500);
-    await tester.tap(find.widgetWithText(FilledButton, 'Open sync'));
+    final openSync = find.widgetWithText(FilledButton, 'Open sync');
+    await scrollToVisible(tester, openSync, 500);
+    await tester.tap(openSync);
     await tester.pumpAndSettle();
+    // Sync screen reached: manual link form must be visible.
+    expect(find.widgetWithText(FilledButton, 'Sync now'), findsOneWidget);
 
     Future<void> enterLabeled(String label, String value) async {
       final field = find.widgetWithText(TextField, label);
-      await tester.scrollUntilVisible(field, 500);
+      await scrollToVisible(tester, field, 500);
       await tester.enterText(field, value);
       await tester.pump(const Duration(milliseconds: 300));
     }
@@ -54,8 +71,11 @@ void main() {
     await enterLabeled('Server', relay);
     await enterLabeled('Code', link);
     await enterLabeled('PIN', pin);
-    await tester.scrollUntilVisible(
-        find.widgetWithText(FilledButton, 'Sync now'), 500);
+    await scrollToVisible(
+      tester,
+      find.widgetWithText(FilledButton, 'Sync now'),
+      500,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Sync now'));
     // Real network round-trips: allow generous real time.
     await tester.pump(const Duration(seconds: 15));
@@ -64,8 +84,11 @@ void main() {
     if (expectNote.isNotEmpty) {
       await tester.tap(find.byType(NavigationDestination).at(1));
       await tester.pumpAndSettle();
-      expect(find.textContaining(expectNote), findsWidgets,
-          reason: 'host-seeded record must arrive via link sync');
+      expect(
+        find.textContaining(expectNote),
+        findsWidgets,
+        reason: 'host-seeded record must arrive via link sync',
+      );
       // ignore: avoid_print
       print('TWO-DEVICE: converged on "$expectNote"');
     }
@@ -82,7 +105,7 @@ void main() {
       await tester.tap(find.text('Food').first);
       await tester.pump(const Duration(milliseconds: 200));
       await tester.enterText(find.byType(TextField).last, addNote);
-      await tester.scrollUntilVisible(find.text('Save'), 500);
+      await scrollToVisible(tester, find.text('Save'), 500);
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pump(const Duration(seconds: 2));
       // ignore: avoid_print

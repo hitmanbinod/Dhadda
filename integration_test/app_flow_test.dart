@@ -1,4 +1,4 @@
-// Phase 7: device integration foundation — full app boot plus the core
+// Phase 7: device integration foundation - full app boot plus the core
 // add-expense journey through real UI, store, and on-device persistence.
 //
 // Run on Android emulator/device:
@@ -14,6 +14,21 @@ import 'package:integration_test/integration_test.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  /// scrollUntilVisible with an explicit Scrollable: the default lookup
+  /// (find.byType(Scrollable)) throws "Too many elements" on screens that
+  /// legitimately contain several scrollables (e.g. Menu).
+  Future<void> scrollToVisible(
+    WidgetTester tester,
+    Finder finder,
+    double delta,
+  ) async {
+    await tester.scrollUntilVisible(
+      finder,
+      delta,
+      scrollable: find.byType(Scrollable).first,
+    );
+  }
 
   testWidgets('fresh boot reaches Home with bottom navigation', (tester) async {
     app.main();
@@ -46,14 +61,18 @@ void main() {
   /// Either outcome is correct behavior: a candidates dialog when parseable
   /// messages exist, or the empty-inbox snackbar otherwise. Prints which
   /// branch ran so the report is honest.
-  testWidgets('SMS import flow handles inbox or empty gracefully',
-      (tester) async {
+  testWidgets('SMS import flow handles inbox or empty gracefully', (
+    tester,
+  ) async {
     app.main();
     await tester.pumpAndSettle();
     await tester.tap(find.byType(NavigationDestination).at(3));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-        find.widgetWithText(FilledButton, 'Scan SMS now'), 500);
+    await scrollToVisible(
+      tester,
+      find.widgetWithText(FilledButton, 'Scan SMS now'),
+      500,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Scan SMS now'));
     await tester.pumpAndSettle(const Duration(seconds: 5));
     final dialog = find.textContaining('from SMS?');
@@ -67,22 +86,26 @@ void main() {
       reason: 'expected candidates dialog, empty notice, or permission notice',
     );
     // ignore: avoid_print
-    print('SMS FLOW: dialog=${dialog.evaluate().isNotEmpty} '
-        'empty=${empty.evaluate().isNotEmpty} '
-        'needPerm=${needPerm.evaluate().isNotEmpty}');
+    print(
+      'SMS FLOW: dialog=${dialog.evaluate().isNotEmpty} '
+      'empty=${empty.evaluate().isNotEmpty} '
+      'needPerm=${needPerm.evaluate().isNotEmpty}',
+    );
   });
 
   /// Device-only SMS tap-through: imports candidates, then proves
   /// duplicate suppression on re-scan. Skips honestly when the inbox has
   /// nothing parseable (empty branch covered above).
-  testWidgets('SMS import tap-through deduplicates on rescan',
-      (tester) async {
+  testWidgets('SMS import tap-through deduplicates on rescan', (tester) async {
     app.main();
     await tester.pumpAndSettle();
     await tester.tap(find.byType(NavigationDestination).at(3));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-        find.widgetWithText(FilledButton, 'Scan SMS now'), 500);
+    await scrollToVisible(
+      tester,
+      find.widgetWithText(FilledButton, 'Scan SMS now'),
+      500,
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Scan SMS now'));
     await tester.pumpAndSettle(const Duration(seconds: 5));
     final dialog = find.textContaining('from SMS?');
