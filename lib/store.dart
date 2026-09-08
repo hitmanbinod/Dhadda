@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'format.dart';
+import 'analytics.dart';
 import 'data/domain_store.dart';
 import 'data/drift_domain_store.dart';
 import 'data/prefs_domain_store.dart';
@@ -1219,35 +1220,35 @@ class ExpenseStore extends ChangeNotifier {
 
   // ---------- aggregates ----------
 
-  List<Txn> monthTxns(DateTime month) => transactions.where((t) {
-    final d = t.dateTime;
-    return d.year == month.year && d.month == month.month;
-  }).toList();
+  // Memoized monthly analytics (Phase 6): the dashboard calls all three
+  // aggregates on every build, and the historical triple-scan rebuilt
+  // DateTimes per transaction per call (~1.4s at 50k). Keyed on
+  // updatedAt, which every data mutation touches, so settings-only
+  // rebuilds (theme, navigation) reuse the cached summary for free.
+  String _analyticsKey = '';
+  MonthlyAnalytics? _analyticsCache;
 
-  double monthSpend(DateTime month) {
-    var sum = 0.0;
-    for (final t in monthTxns(month)) {
-      if (t.isExpense) sum += t.amount;
-    }
-    return sum;
+  MonthlyAnalytics monthly(DateTime month) {
+    final key = '$updatedAt|${month.year}|${month.month}';
+    final hit = _analyticsCache;
+    if (hit != null && _analyticsKey == key) return hit;
+    final fresh = computeMonthlyAnalytics(transactions, month);
+    _analyticsKey = key;
+    _analyticsCache = fresh;
+    return fresh;
   }
 
-  double monthIncome(DateTime month) {
-    var sum = 0.0;
-    for (final t in monthTxns(month)) {
-      if (!t.isExpense) sum += t.amount;
-    }
-    return sum;
+  List<Txn> monthTxns(DateTime month) {
+    final (start, end) = monthBounds(month);
+    return transactions.where((t) => t.date >= start && t.date < end).toList();
   }
 
-  Map<String, double> spendByCategory(DateTime month) {
-    final map = <String, double>{};
-    for (final t in monthTxns(month)) {
-      if (!t.isExpense) continue;
-      map[t.categoryId] = (map[t.categoryId] ?? 0) + t.amount;
-    }
-    return map;
-  }
+  double monthSpend(DateTime month) => monthly(month).spend;
+
+  double monthIncome(DateTime month) => monthly(month).income;
+
+  Map<String, double> spendByCategory(DateTime month) =>
+      Map.of(monthly(month).byCategory);
 
   // ---------- event projects ----------
 
