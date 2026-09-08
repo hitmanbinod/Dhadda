@@ -21,11 +21,24 @@ class FakeAndroidNotifications extends AndroidFlutterLocalNotificationsPlugin
   final scheduled = <Map<String, Object?>>[];
   final cancelledIds = <int>[];
   var cancelAllCount = 0;
+  var exactAllowed = true;
+  var exactAccessRequests = 0;
 
   void reset() {
     scheduled.clear();
     cancelledIds.clear();
     cancelAllCount = 0;
+    exactAllowed = true;
+    exactAccessRequests = 0;
+  }
+
+  @override
+  Future<bool?> canScheduleExactNotifications() async => exactAllowed;
+
+  @override
+  Future<bool?> requestExactAlarmsPermission() async {
+    exactAccessRequests++;
+    return exactAllowed;
   }
 
   @override
@@ -44,6 +57,7 @@ class FakeAndroidNotifications extends AndroidFlutterLocalNotificationsPlugin
       'title': title,
       'body': body,
       'scheduledDate': scheduledDate,
+      'mode': scheduleMode,
     });
   }
 
@@ -178,6 +192,48 @@ void main() {
     final second = '${scheduled().single['body']}';
     expect(second == first, isFalse); // pending dropped 5000 -> 3000
     expect(second, contains('Asha'));
+  });
+
+  test('exact mode used when exact-alarm access granted', () async {
+    fake.exactAllowed = true;
+    final s = await loanStore();
+    await s.addLoan(person: 'Asha', amount: 5000, date: DateTime(2026, 1, 1));
+    await s.setReminderAt(
+      s.loans.single.id,
+      DateTime.now().add(const Duration(days: 2)),
+    );
+    await Reminders.refresh(s);
+    expect(scheduled(), hasLength(1));
+    expect(scheduled().single['mode'], AndroidScheduleMode.exactAllowWhileIdle);
+  });
+
+  test(
+    'denied exact-alarm access falls back to inexact, kept reminder',
+    () async {
+      fake.exactAllowed = false;
+      final s = await loanStore();
+      await s.addLoan(person: 'Asha', amount: 5000, date: DateTime(2026, 1, 1));
+      await s.setReminderAt(
+        s.loans.single.id,
+        DateTime.now().add(const Duration(days: 2)),
+      );
+      await Reminders.refresh(s); // must not throw
+      expect(scheduled(), hasLength(1));
+      expect(
+        scheduled().single['mode'],
+        AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+      expect('${scheduled().single['body']}', contains('Asha'));
+    },
+  );
+
+  test('exact-alarm access helpers never throw and report state', () async {
+    fake.exactAllowed = true;
+    expect(await Reminders.canUseExactAlarms(), isTrue);
+    fake.exactAllowed = false;
+    expect(await Reminders.canUseExactAlarms(), isFalse);
+    await Reminders.requestExactAlarmAccess(); // must not throw
+    expect(fake.exactAccessRequests, 1);
   });
 
   test('plugin failure never escapes refresh', () async {
