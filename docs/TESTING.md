@@ -215,3 +215,18 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   loan, and a live Snapshot v2 record set. True two-device
   convergence (two writers) stays BLOCKED — single phone; merge
   logic covered by host `sync_v2` tests.
+- 2026-09-08 Real-inbox SMS (Xiaomi phone, explicit consent,
+  counts/status only, no contents recorded): native MethodChannel
+  inbox access PASS; scan completes without crash PASS; candidates
+  dialog displayed PASS (parseable bank/wallet rows exist);
+  permission request→Allow observed PASS; import-tap reached the
+  `Added` confirmation, but the automated rescan-empty assertion
+  flaked on device (empty notice not visible at check time across
+  repeats, incl. a 12s-settle retry that was reverted as ineffective).
+  App-side dedup path (`SmsReader` same-key awaited prefs
+  round-trip) reviewed sound and host `sms_channel_test` dedup stays
+  green; prime suspects are test-side (rescan tap landing while the
+  snackbar overlay covers the button, snackbar-queue timing), NOT
+  proven app data loss. Denied path (revoke → rescan) NOT RUN.
+  Open item: rerun rescan assertion with tap-target logging or a
+  manual rescan confirm.
