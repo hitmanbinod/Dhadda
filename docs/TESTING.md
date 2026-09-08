@@ -75,8 +75,17 @@ VPN on either side breaks discovery (documented, not a bug).
 Synthetic loan → reminder 2–3 minutes out → background the app → wait →
 verify the notification appears with the right title/amount → tap (opens
 app, if wired) → repay in full → verify cancellation (no re-fire).
-Reboot persistence and exact-timing guarantees are explicitly NOT promised
-(schedules use `inexactAllowWhileIdle`).
+Reboot persistence is explicitly NOT promised (one-time alarms do not
+survive reboot; schedules use exact-while-idle only when granted).
+
+Exact-alarm access (Android 12+): reminders schedule with
+`exactAllowWhileIdle` when the OS grants `SCHEDULE_EXACT_ALARM`, else
+fall back to inexact (may arrive late). Android 14+ does NOT pre-grant
+this on fresh installs: when a reminder is saved without access, the
+app shows an in-context snackbar ("Alarms & reminders" → Open
+settings). Without the grant, late delivery on restrictive OEM skins
+(HyperOS verified) is expected OS behavior, not an app bug.
+`USE_EXACT_ALARM` is deliberately not used.
 
 ## 7. Biometric, two-device sync, Show-on-PC procedures
 
@@ -169,3 +178,16 @@ fixed by deleting the stale `app-debug.apk` and rebuilding plain
   fresh reminder, Home-backgrounded (never swipe-killed), longer soak.
   Exact-alarm escalation (`SCHEDULE_EXACT_ALARM`) is a
   product/permission decision, NOT taken unilaterally here.
+- 2026-09-08 follow-up: Autostart enabled + battery unrestricted
+  retests still silent (fresh TestNotify2 reminder, bucket improved
+  to EXEMPTED, alarm still queued overdue, receiver never observably
+  ran). Status: BLOCKED-environmental (HyperOS inexact-alarm
+  suppression). Exact-alarm decision parked with maintainer.
+- 2026-09-08 fix: maintainer approved exact alarms. `Reminders` now
+  schedules `exactAllowWhileIdle` when `canScheduleExactNotifications()`
+  is true, with inexact fallback (plus retry-on-revoke) otherwise;
+  manifest declares `SCHEDULE_EXACT_ALARM` (never `USE_EXACT_ALARM`);
+  saving a reminder without access shows the in-context grant
+  snackbar. Regression: 3 new `reminders_test` cases
+  (exact-when-granted, inexact-fallback-kept, helpers-never-throw).
+  Host suite 179/179, analyze clean. Device retest pending.
