@@ -1,23 +1,42 @@
 # Dhadda Reproducible-Build Notes (Phase 1 investigation, Phase 8 evidence)
 
-Status (2026-09-08, Phase 8): **functionally reproducible, binary differs
-only in the signature block** — demonstrated locally, not yet across
-independent environments. Do not claim byte-for-byte reproducibility.
+Status (2026-09-08, Phase 8): **byte-for-byte reproducible for genuinely
+unsigned release builds on the same machine.** Debug-signed builds are
+NOT byte-identical (per-run signature-block nondeterminism) and must
+never be mistaken for release artifacts — see §"Three artifact
+identities". Cross-environment demonstration (e.g. F-Droid infra) is
+still external.
 
-## Demonstrated (same machine, Flutter 3.47.2, JDK 17, two full
-`flutter build apk --release` runs after `flutter clean`)
+## Demonstrated: two full unsigned rebuilds are bit-identical
 
-- Both APKs: 512 ZIP entries, identical names/order/sizes/timestamps.
-- All 512 entry contents byte-identical (per-entry SHA256 compared):
-  Dart AOT, engine, resources, manifest, native libs
-  (`libsqlite3.so` from drift build hooks, `libflutter_zxing.so`
-  from source), META-INF.
-- Total byte differences: 7,759 in one 7.8KB span inside the APK
-  signing-block region (before the central directory) — consistent
-  with per-run signature-block nondeterminism under debug signing.
-  No code/resource/manifest byte differs.
-- Same-state incremental rebuilds were bit-identical (weak datapoint:
-  shared build cache, honestly labeled as such).
+`DHADDA_ALLOW_UNSIGNED_RELEASE=1 flutter build apk --release`, twice,
+each after `flutter clean` (Flutter 3.47.2, JDK 17, same machine):
+
+- Unsigned build 1 SHA256:
+  `14E3118BE9F3562F001972B6C9935EA2A91A826C7194B293729A64202C8E0A45`
+- Unsigned build 2 SHA256: identical (`14E3118B…E0A45`).
+- `apksigner verify` fails on both (`Missing META-INF/MANIFEST.MF`),
+  proving no certificate — debug or otherwise — is present.
+
+This supersedes the earlier debug-signed comparison (512/512 entries
+identical, ~8KB signing-block diff): that diff was signature
+nondeterminism, eliminated at the source by building genuinely
+unsigned. An earlier incremental same-state rebuild also matched
+bit-for-bit (weak datapoint: shared cache, labeled as such).
+
+## Three artifact identities (do not conflate)
+
+1. **Debug APK** (`flutter build apk --debug`): debug-signed,
+   debuggable, local development/testing only.
+2. **Unsigned release APK** (`DHADDA_ALLOW_UNSIGNED_RELEASE=1
+   flutter build apk --release`): release/non-debuggable, NO
+   certificate (`signingConfig = null` in `build.gradle.kts`). This is
+   the F-Droid/source-build shape: F-Droid signs its own builds. Never
+   publish an unsigned artifact as a GitHub release.
+3. **GitHub production APK** (tag + maintainer keystore via CI
+   secrets): release/non-debuggable, maintainer-signed. Cannot be
+   produced locally without the keystore; the build fails closed
+   without it (verified: `Release signing keys missing` hard error).
 
 ## Caveats
 

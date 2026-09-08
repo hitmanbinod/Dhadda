@@ -37,8 +37,11 @@ Previous state: `release` builds silently used debug keys. That is gone.
   instructions (fail-closed, never debug-signed). Debug builds, `flutter run`,
   and `flutter test` never need keys.
 - Explicitly-unsigned dev releases (never publish): set
-  `DHADDA_ALLOW_UNSIGNED_RELEASE=1`. The build logs a warning; artifacts from such
-  builds must not be attached to releases.
+  `DHADDA_ALLOW_UNSIGNED_RELEASE=1`. The result is genuinely unsigned
+  (`signingConfig = null` — no debug certificate fallback) and the
+  build logs a warning; artifacts from such builds must not be attached
+  to releases. This is the F-Droid/source-build shape: F-Droid signs
+  its own builds from source.
 - Verify a published APK: `apksigner verify --print-certs <apk>` and compare the
   SHA-256 fingerprint against the maintainer-published fingerprint (kept outside
   this repo). CI attaches `SHA256SUMS` to every tagged release.

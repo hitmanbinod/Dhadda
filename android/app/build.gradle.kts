@@ -65,6 +65,15 @@ android {
         release {
             if (hasReleaseKeys) {
                 signingConfig = signingConfigs.getByName("release")
+            } else if (allowUnsignedRelease) {
+                // Explicit F-Droid/development path: genuinely unsigned
+                // (no certificate at all — NOT debug-signed). Production
+                // GitHub releases never take this branch: without keys and
+                // without the flag, the taskGraph guard below fails closed.
+                signingConfig = null
+                logger.warn(
+                    "Building UNSIGNED release (no signing certificate). " +
+                        "Never publish this artifact.")
             } else {
                 // Placeholder so configuration succeeds for non-release tasks
                 // (debug builds, tests). A real release task without keys or
