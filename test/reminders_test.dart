@@ -170,9 +170,11 @@ void main() {
     final settled = s.loans.last;
     await s.addRepayment(settled.id, 100, DateTime(2026, 1, 2), 'done');
     await Reminders.refresh(s);
-    // Nothing scheduled; stale entries cancelled (cancelAll first).
+    // Nothing scheduled; stale entries cancelled per id (refresh no
+    // longer blanket-cancelAll()s: a partial failure must not wipe
+    // unrelated reminders).
     expect(scheduled(), isEmpty);
-    expect(fake.cancelAllCount, greaterThan(0));
+    expect(fake.cancelAllCount, 0);
     expect(
       fake.cancelledIds,
       containsAll([Reminders.idFor(pastId), Reminders.idFor(settled.id)]),

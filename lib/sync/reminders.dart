@@ -14,6 +14,11 @@ class Reminders {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _ready = false;
 
+  /// Notification ids currently believed to be scheduled (per process).
+  /// Lets refresh() cancel only stale entries instead of cancelAll(),
+  /// so a mid-refresh failure can no longer wipe every reminder.
+  static final Set<int> _active = <int>{};
+
   static const _channelId = 'loan_reminders';
   static const _channelName = 'Loan reminders';
 
@@ -124,7 +129,10 @@ class Reminders {
 
   /// Rebuilds every reminder from current data: call on boot, on
   /// resume, and after any loan change (wired via store.onLoansChanged).
-  /// Stale entries (deleted/settled/disabled) are cancelled first.
+  /// Diff-based: only stale ids (deleted/settled/disabled/past) are
+  /// cancelled, each loan is rescheduled independently, and the active
+  /// set is only updated with what actually scheduled — a failure part
+  /// way through leaves every other reminder untouched.
   static Future<void> refresh(ExpenseStore store) async {
     if (kIsWeb) return;
     try {
@@ -136,12 +144,33 @@ class Reminders {
             >()
             ?.requestNotificationsPermission();
       } catch (_) {}
-      await _plugin.cancelAll();
+      final wanted = <int>{};
+      final scheduled = <int>{};
       for (final l in store.loans) {
+        final id = idFor(l.id);
+        final active = !l.settled && l.remindAt > 0;
+        if (active) {
+          final when =
+              tz.TZDateTime.fromMillisecondsSinceEpoch(tz.local, l.remindAt);
+          if (when.isAfter(tz.TZDateTime.now(tz.local))) wanted.add(id);
+        }
         try {
           await _scheduleOne(store, l);
+          if (wanted.contains(id)) scheduled.add(id);
+        } catch (_) {
+          // Keep the old id in _active (if it was there) so a later
+          // refresh still knows the OS may hold this reminder.
+        }
+      }
+      // Cancel only ids no longer wanted — never a blanket cancelAll.
+      for (final id in _active.difference(wanted)) {
+        try {
+          await _plugin.cancel(id: id);
         } catch (_) {}
       }
+      _active
+        ..clear()
+        ..addAll(scheduled);
     } catch (_) {}
   }
 }
