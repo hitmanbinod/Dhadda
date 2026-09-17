@@ -48,7 +48,11 @@ class SmsReader {
       final p = await SharedPreferences.getInstance();
       final cur = (p.getStringList(_idsKey) ?? []).toList();
       cur.addAll(ids);
-      while (cur.length > 500) {
+      // Cap exists so prefs can't grow without bound. 2000 bank SMS is
+      // years of heavy use; eviction stays oldest-first, which can only
+      // re-import a message older than the whole window (dedup relies on
+      // ids surviving, so fresh installs aside this is belt-and-braces).
+      while (cur.length > 2000) {
         cur.removeAt(0);
       }
       await p.setStringList(_idsKey, cur);

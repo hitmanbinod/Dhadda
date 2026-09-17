@@ -126,10 +126,10 @@ void main() {
     expect(store.transactions.length, before + 2);
   });
 
-  test('imported-ids list caps at 500', () async {
+  test('imported-ids list caps at 2000', () async {
     SharedPreferences.setMockInitialValues({});
-    await SmsReader.markImported([for (var i = 0; i < 600; i++) 'id-$i']);
+    await SmsReader.markImported([for (var i = 0; i < 2100; i++) 'id-$i']);
     final ids = await SmsReader.importedIds();
-    expect(ids.length, lessThanOrEqualTo(500));
+    expect(ids.length, lessThanOrEqualTo(2000));
   });
 }

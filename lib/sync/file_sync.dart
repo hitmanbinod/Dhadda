@@ -72,12 +72,22 @@ class FileSync {
     }
   }
 
+  /// RFC-4180 field escaping: quote when needed, double embedded quotes,
+  /// keep commas/newlines intact (lossy comma-mangling is gone).
+  static String _csvField(Object v) {
+    final s = '$v';
+    if (s.contains('"') || s.contains(',') || s.contains('\n')) {
+      return '"${s.replaceAll('"', '""')}"';
+    }
+    return s;
+  }
+
   static String buildCsv(
       String Function(String categoryId) categoryName, List<dynamic> txns) {
     final buf = StringBuffer('date,type,amount,category,mode,note\n');
     for (final t in txns) {
       buf.writeln(
-          '${t.dateTime.toIso8601String()},${t.type},${t.amount},${categoryName(t.categoryId)},${t.mode},${t.note.replaceAll(',', ';').replaceAll('\n', ' ')}');
+          '${_csvField(t.dateTime.toIso8601String())},${_csvField(t.type)},${_csvField(t.amount)},${_csvField(categoryName(t.categoryId))},${_csvField(t.mode)},${_csvField(t.note)}');
     }
     return buf.toString();
   }
