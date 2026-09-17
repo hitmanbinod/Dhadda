@@ -108,8 +108,12 @@ jobs:
           DHADDA_KEY_PASSWORD: ${{ secrets.DHADDA_KEY_PASSWORD }}
         run: |
           test -n "$DHADDA_KEYSTORE_BASE64" || { echo "::error::Tag build without signing secrets. Add DHADDA_KEYSTORE_* secrets per docs/RELEASE.md."; exit 1; }
+          # storeFile resolves relative to android/app/ (build.gradle.kts),
+          # so the keystore written to android/ must be ../-relative —
+          # same shape as the docs/RELEASE.md template.
           echo "$DHADDA_KEYSTORE_BASE64" | base64 -d > android/dhadda-release.jks
-          printf 'storeFile=dhadda-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+          test -f android/dhadda-release.jks
+          printf 'storeFile=../dhadda-release.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
             "$DHADDA_KEYSTORE_PASSWORD" "$DHADDA_KEY_ALIAS" "$DHADDA_KEY_PASSWORD" \
             > android/key.properties
       # Non-tag builds are explicitly-marked dev artifacts for testing only.
