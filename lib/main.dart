@@ -194,6 +194,17 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       final store = context.read<ExpenseStore>();
       Reminders.refresh(store);
       _autoSms(store);
+    } else if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      // Re-lock when the app leaves the foreground. Without this, the
+      // lock only guarded process death: background -> recents -> return
+      // skipped the PIN/biometric entirely. Any lock screen showing a
+      // moment later (e.g. lock-only-on-boot behavior in tests) is the
+      // same contract: lock state re-derives from the vault.
+      final vault = _vault;
+      if (vault != null && vault.isEnabled) {
+        setState(() => _locked = true);
+      }
     }
   }
 
