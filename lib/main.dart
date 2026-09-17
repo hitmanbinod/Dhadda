@@ -73,6 +73,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
   late final LinkEngine _link;
   bool _smsBootDone = false;
+  bool _smsBusy = false;
   bool _lockChecked = false;
   bool _locked = false;
   PinVault? _vault;
@@ -126,8 +127,22 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
 
   /// Auto mode: silently add new allow-listed SMS (already-imported
   /// ids never repeat). Needs no UI; manual mode never calls this.
+  /// Single-flight: boot and resume can both fire this; overlapping runs
+  /// would parse the same inbox rows before either marks them imported
+  /// and double-import. Later calls while one is in flight are dropped
+  /// (the next lifecycle event retries).
   Future<void> _autoSms(ExpenseStore store) async {
     if (store.smsMode != 'auto') return;
+    if (_smsBusy) return;
+    _smsBusy = true;
+    try {
+      await _runAutoSms(store);
+    } finally {
+      _smsBusy = false;
+    }
+  }
+
+  Future<void> _runAutoSms(ExpenseStore store) async {
     try {
       final rows = await SmsReader.readInbox(limit: 60);
       if (!mounted) return;

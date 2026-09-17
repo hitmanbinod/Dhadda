@@ -51,10 +51,12 @@ Future<void> showEntryActions(
                     date.day, time.hour, time.minute),
                 projectId: projectId);
             if (!ok) {
-              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                  content: Text(
-                      'Could not save — storage failed. '
-                      'Your edit was not applied. Please try again.')));
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                    content: Text(
+                        'Could not save — storage failed. '
+                        'Your edit was not applied. Please try again.')));
+              }
               return;
             }
             if (ctx.mounted) Navigator.of(ctx).pop(true);
