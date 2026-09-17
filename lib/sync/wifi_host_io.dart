@@ -304,7 +304,10 @@ Future<HostSession> startSendServer({
 }
 
 /// 6-digit numeric PIN shown next to the QR code.
+/// CSPRNG (unlike the old time-seeded variant): the PIN protects a
+/// live 5-minute session, so predictability was a real (if LAN-scoped)
+/// weakness.
 String newPin() {
-  final ms = DateTime.now().millisecondsSinceEpoch;
-  return '${100000 + (ms % 900000)}';
+  final rand = Random.secure();
+  return '${100000 + rand.nextInt(900000)}';
 }
