@@ -1004,7 +1004,13 @@ class _SyncScreenState extends State<SyncScreen> {
                                 ),
                               )
                             : const Icon(Icons.sync),
-                        label: const Text('Receive / sync now'),
+                        label: const Text('Receive / exchange now'),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Merges their data in and sends yours back so both '
+                        'sides end up with the same entries.',
+                        style: TextStyle(fontSize: 12),
                       ),
                     ],
                   ),
