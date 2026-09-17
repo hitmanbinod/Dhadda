@@ -31,6 +31,19 @@ void main() {
     final stored = prefs.getString(PinVault.storageKey) ?? '';
     expect(stored, isNotEmpty);
     expect(stored.contains('1234'), isFalse);
-    expect(stored, PinVault.hashOf('1234'));
+    // PBKDF2 scheme: random per-user salt means two hashes of the same
+    // PIN differ; verification is scheme-aware, not string equality.
+    expect(stored.startsWith('pbkdf2\$'), isTrue);
+    expect(PinVault.matches(stored, '1234'), isTrue);
+    expect(PinVault.matches(stored, '0000'), isFalse);
+  });
+
+  test('legacy sha256 entries still verify (upgrade path)', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final vault = PinVault(prefs);
+    await prefs.setString(PinVault.storageKey, PinVault.legacyHashOf('1234'));
+    expect(vault.verify('1234'), isTrue);
+    expect(vault.verify('0000'), isFalse);
   });
 }
