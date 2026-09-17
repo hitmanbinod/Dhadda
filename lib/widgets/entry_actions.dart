@@ -42,7 +42,7 @@ Future<void> showEntryActions(
                           'Enter a valid amount (numbers only)')));
               return;
             }
-            await store.updateTransaction(txn.id,
+            final ok = await store.updateTransaction(txn.id,
                 amount: v,
                 note: note.text.trim(),
                 categoryId: categoryId,
@@ -50,6 +50,13 @@ Future<void> showEntryActions(
                 date: DateTime(date.year, date.month,
                     date.day, time.hour, time.minute),
                 projectId: projectId);
+            if (!ok) {
+              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
+                  content: Text(
+                      'Could not save — storage failed. '
+                      'Your edit was not applied. Please try again.')));
+              return;
+            }
             if (ctx.mounted) Navigator.of(ctx).pop(true);
           }
 

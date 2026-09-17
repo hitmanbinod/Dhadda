@@ -324,7 +324,7 @@ class _AddScreenState extends State<AddScreen>
           const SnackBar(content: Text('Pick a category')));
       return;
     }
-    await context.read<ExpenseStore>().addTransaction(
+    final ok = await context.read<ExpenseStore>().addTransaction(
           type: _isExpense ? 'expense' : 'income',
           amount: amount,
           categoryId: _categoryId!,
@@ -334,6 +334,14 @@ class _AddScreenState extends State<AddScreen>
           mode: _mode,
           projectId: _projectId,
         );
+    if (!ok) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text(
+              'Could not save — storage failed. Your entry was not added. '
+              'Please try again.')));
+      return;
+    }
     _amount.clear();
     _note.clear();
     if (!mounted) return;

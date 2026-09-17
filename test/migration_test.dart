@@ -608,6 +608,25 @@ void main() {
       expect(s.transactions, hasLength(8));
       expect(s.updatedAt, stamp);
       expect(s.lastPersistError, isNotNull);
+      // H1 contract: mutations report failure instead of letting the
+      // UI claim success over reverted state.
+      final okAgain = await s.addTransaction(
+        type: 'expense',
+        amount: 50,
+        categoryId: 'food',
+        date: DateTime(2026, 9, 6),
+      );
+      expect(okAgain, isFalse);
+      expect(s.transactions, hasLength(8));
+      final okEdit = await s.updateTransaction(
+        'txn-0001',
+        amount: 123,
+      );
+      expect(okEdit, isFalse);
+      expect(
+        s.transactions.firstWhere((t) => t.id == 'txn-0001').amount,
+        isNot(123),
+      );
       // Reopening is consistent; prior data undamaged.
       final s2 = ExpenseStore(domainOverride: tempDb.backend);
       await s2.load();

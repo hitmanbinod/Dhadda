@@ -369,19 +369,22 @@ class ExpenseStore extends ChangeNotifier {
   /// are snapshotted here (mutations bump them before calling). On database
   /// failure everything rolls back, the error is recorded, and listeners are
   /// notified — the UI never shows phantom-saved state. Failures are never
-  /// thrown into the UI and never only logged.
-  Future<void> _persistDomain(
+  /// thrown into the UI and never only logged. Returns false when the
+  /// operation failed and was reverted, true on success (or when no
+  /// database backend exists).
+  Future<bool> _persistDomain(
     DomainData before,
     String prevUpdatedAt,
     Future<void> Function(DomainStore) op,
   ) async {
     final d = _domain;
-    if (d == null) return;
+    if (d == null) return true;
     final prevRevs = Map.of(_revs);
     final prevTombs = Map.of(_tombs);
     try {
       await op(d);
       lastPersistError = null;
+      return true;
     } catch (e) {
       _restoreDomain(before, prevUpdatedAt);
       _revs
@@ -393,6 +396,7 @@ class ExpenseStore extends ChangeNotifier {
       lastPersistError = '$e';
       debugPrint('Dhadda: domain persist failed, reverted (${e.runtimeType})');
       notifyListeners();
+      return false;
     }
   }
 
@@ -720,7 +724,9 @@ class ExpenseStore extends ChangeNotifier {
 
   // ---------- transactions ----------
 
-  Future<void> addTransaction({
+  /// Adds a transaction. Returns false when persisting failed and the
+  /// in-memory state was reverted — callers must not claim success.
+  Future<bool> addTransaction({
     required String type,
     required double amount,
     required String categoryId,
@@ -744,15 +750,17 @@ class ExpenseStore extends ChangeNotifier {
     transactions.add(txn);
     _sortTxns();
     _touch();
-    await _persistDomain(before, prevUpdated, (d) {
+    final ok = await _persistDomain(before, prevUpdated, (d) {
       final rm = _bumpRev(SyncType.txn, txn.id);
       return d.upsertTransaction(txn, rev: rm.rev, by: rm.by);
     });
     notifyListeners();
+    return ok;
   }
 
   /// Edits an entry in place. Only non-null fields change.
-  /// Returns false when the id is unknown.
+  /// Returns false when the id is unknown or persisting failed
+  /// (state reverted) — callers must not claim success.
   Future<bool> updateTransaction(
     String id, {
     double? amount,
@@ -780,12 +788,12 @@ class ExpenseStore extends ChangeNotifier {
     transactions[i] = updated;
     _sortTxns();
     _touch();
-    await _persistDomain(before, prevUpdated, (d) {
+    final ok = await _persistDomain(before, prevUpdated, (d) {
       final rm = _bumpRev(SyncType.txn, id);
       return d.upsertTransaction(updated, rev: rm.rev, by: rm.by);
     });
     notifyListeners();
-    return true;
+    return ok;
   }
 
   Future<void> deleteTransaction(String id) async {
