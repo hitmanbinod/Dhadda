@@ -883,7 +883,9 @@ class _MenuScreenState extends State<MenuScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Last chance'),
-        content: const Text('There is no undo. Really erase?'),
+        content: const Text(
+            'There is no undo. This also removes the app lock (PIN/biometric) '
+            'and all settings. Really erase?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
