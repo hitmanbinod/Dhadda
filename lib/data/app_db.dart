@@ -3,7 +3,9 @@
 // Tables mirror lib/models.dart 1:1 — same fields, same semantics, same IDs.
 // Money stays REAL (Dart double round-trips bit-exact; see docs/PERSISTENCE.md).
 // Category list order is preserved via an explicit sort_order column.
-// Schema version: 1. No upgrade path yet (first version).
+// Schema version 1 was the Phase 2 baseline; version 2 (Phase 4) added the
+// per-record rev/rev_by columns and the tombstones table. The upgrade step is
+// written to be resumable — see [_ensureColumns] and onUpgrade below.
 import 'package:drift/drift.dart';
 
 part 'app_db.g.dart';
@@ -115,6 +117,41 @@ class Tombstones extends Table {
   Set<Column> get primaryKey => {type, recordId};
 }
 
+/// Tables that exist in the database right now, lowercased as SQLite
+/// stores them.
+Future<Set<String>> _existingTables(Migrator m) async {
+  final rows = await m.database
+      .customSelect(
+        "SELECT name FROM sqlite_master WHERE type = 'table'",
+      )
+      .get();
+  return rows.map((r) => r.read<String>('name').toLowerCase()).toSet();
+}
+
+/// Adds [columns] to [table], skipping any that are already present.
+///
+/// Drift writes `user_version` only after onUpgrade returns, so an upgrade
+/// interrupted part-way (process killed, crash, battery pull) leaves the
+/// database still claiming the old version with half of the new columns
+/// applied. A bare `addColumn` would then throw "duplicate column name" on
+/// every launch and drift caches that error, leaving the file permanently
+/// unreadable. Checking first makes the step idempotent, so the retry simply
+/// finishes whatever the interrupted run had not applied yet.
+Future<void> _ensureColumns(
+  Migrator m,
+  TableInfo<Table, Object?> table,
+  List<GeneratedColumn> columns,
+) async {
+  final info = await m.database
+      .customSelect('PRAGMA table_info(${table.actualTableName})')
+      .get();
+  final present = info.map((r) => r.read<String>('name').toLowerCase()).toSet();
+  for (final column in columns) {
+    if (present.contains(column.name.toLowerCase())) continue;
+    await m.addColumn(table, column);
+  }
+}
+
 @DriftDatabase(
   tables: [
     Categories,
@@ -142,19 +179,24 @@ class AppDb extends _$AppDb {
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         // NOT NULL WITH DEFAULT: pre-v2 rows stay valid (rev 0 baseline).
-        await m.addColumn(categories, categories.rev);
-        await m.addColumn(categories, categories.revBy);
-        await m.addColumn(transactions, transactions.rev);
-        await m.addColumn(transactions, transactions.revBy);
-        await m.addColumn(projects, projects.rev);
-        await m.addColumn(projects, projects.revBy);
-        await m.addColumn(loans, loans.rev);
-        await m.addColumn(loans, loans.revBy);
-        await m.addColumn(loanTopups, loanTopups.rev);
-        await m.addColumn(loanTopups, loanTopups.revBy);
-        await m.addColumn(loanRepayments, loanRepayments.rev);
-        await m.addColumn(loanRepayments, loanRepayments.revBy);
-        await m.createTable(tombstones);
+        // Every step is guarded so an interrupted upgrade resumes instead of
+        // failing forever — see [_ensureColumns].
+        await _ensureColumns(m, categories, [categories.rev, categories.revBy]);
+        await _ensureColumns(
+          m,
+          transactions,
+          [transactions.rev, transactions.revBy],
+        );
+        await _ensureColumns(m, projects, [projects.rev, projects.revBy]);
+        await _ensureColumns(m, loans, [loans.rev, loans.revBy]);
+        await _ensureColumns(m, loanTopups, [loanTopups.rev, loanTopups.revBy]);
+        await _ensureColumns(m, loanRepayments, [
+          loanRepayments.rev,
+          loanRepayments.revBy,
+        ]);
+        if (!(await _existingTables(m)).contains('tombstones')) {
+          await m.createTable(tombstones);
+        }
         // @TableIndex entries only build in onCreate; upgraded databases
         // need them explicitly (IF NOT EXISTS for idempotence).
         for (final stmt in [

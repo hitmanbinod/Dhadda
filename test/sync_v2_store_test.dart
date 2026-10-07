@@ -607,6 +607,108 @@ void main() {
     }
   });
 
+  test('interrupted schema upgrade resumes instead of failing forever', () async {
+    // A crash between the addColumn statements of onUpgrade leaves user_version
+    // at 1 with only some of the rev columns applied. A bare addColumn would
+    // then throw "duplicate column name" on every later launch, and drift
+    // caches that error — the file becomes permanently unreadable. The
+    // guarded upgrade must instead skip what is already there and finish.
+    final file = File(
+      '${Directory.systemTemp.path}/dhadda_p4_partial_${DateTime.now().microsecondsSinceEpoch}.sqlite',
+    );
+    for (final s in ['', '-journal', '-wal', '-shm']) {
+      final f = s.isEmpty ? file : File('${file.path}$s');
+      if (await f.exists()) {
+        try {
+          await f.delete();
+        } catch (_) {}
+      }
+    }
+    final raw = sqlite3.sqlite3.open(file.path);
+    // Same v1 schema the test above builds, then apply only the FIRST pair of
+    // the twelve addColumn calls — exactly the mid-upgrade crash state.
+    raw.execute(
+      'CREATE TABLE categories (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, icon INTEGER NOT NULL, color INTEGER NOT NULL, budget REAL NOT NULL, sort_order INTEGER NOT NULL)',
+    );
+    raw.execute(
+      'ALTER TABLE categories ADD COLUMN rev INTEGER NOT NULL DEFAULT 0',
+    );
+    raw.execute(
+      "ALTER TABLE categories ADD COLUMN rev_by TEXT NOT NULL DEFAULT ''",
+    );
+    raw.execute(
+      'CREATE TABLE transactions (id TEXT NOT NULL PRIMARY KEY, type TEXT NOT NULL, amount REAL NOT NULL, category_id TEXT NOT NULL, date INTEGER NOT NULL, note TEXT NOT NULL, mode TEXT NOT NULL, project_id TEXT NOT NULL)',
+    );
+    raw.execute(
+      'CREATE TABLE projects (id TEXT NOT NULL PRIMARY KEY, name TEXT NOT NULL, note TEXT NOT NULL, created INTEGER NOT NULL, icon INTEGER NOT NULL, color INTEGER NOT NULL)',
+    );
+    raw.execute(
+      'CREATE TABLE loans (id TEXT NOT NULL PRIMARY KEY, person TEXT NOT NULL, kind TEXT NOT NULL, principal REAL NOT NULL, date_lent INTEGER NOT NULL, due_date INTEGER, note TEXT NOT NULL, remind_at INTEGER NOT NULL)',
+    );
+    raw.execute(
+      'CREATE TABLE loan_topups (id TEXT NOT NULL PRIMARY KEY, loan_id TEXT NOT NULL, amount REAL NOT NULL, date INTEGER NOT NULL, note TEXT NOT NULL)',
+    );
+    raw.execute(
+      'CREATE TABLE loan_repayments (id TEXT NOT NULL PRIMARY KEY, loan_id TEXT NOT NULL, amount REAL NOT NULL, date INTEGER NOT NULL, note TEXT NOT NULL)',
+    );
+    raw.execute(
+      "INSERT INTO categories VALUES ('food','Food',0,0,15000.0,0,0,'')",
+    );
+    raw.execute(
+      "INSERT INTO transactions VALUES ('t1','expense',250.0,'food',1788220800000,'lunch','cash','')",
+    );
+    raw.execute('PRAGMA user_version = 1');
+    raw.close();
+
+    DriftDomainStore? backend;
+    try {
+      // Before the fix this threw "duplicate column name: rev" here.
+      backend = DriftDomainStore(AppDb(NativeDatabase(file)));
+      final data = await backend.loadDomain();
+      expect(data.categories.map((c) => c.id), ['food']);
+      expect(data.categories.single.budget, 15000);
+      expect(data.transactions.single.amount, 250);
+
+      // Every table now carries both revision columns, not just the ones the
+      // interrupted run happened to reach.
+      for (final table in [
+        'categories',
+        'transactions',
+        'projects',
+        'loans',
+        'loan_topups',
+        'loan_repayments',
+      ]) {
+        final cols = await backend.db
+            .customSelect('PRAGMA table_info($table)')
+            .get();
+        final names = cols.map((r) => r.read<String>('name')).toSet();
+        expect(names, containsAll(['rev', 'rev_by']), reason: table);
+      }
+      // Pre-v2 rows kept their rev-0 baseline through the resumed upgrade.
+      final meta = await backend.loadRecordMeta();
+      expect(meta['txn/t1']!.rev, 0);
+      expect(meta['cat/food']!.rev, 0);
+      // And the tombstones table was created despite being absent before.
+      expect(await backend.loadTombstones(), isEmpty);
+
+      await backend.close();
+      backend = null;
+    } finally {
+      try {
+        await backend?.close();
+      } catch (_) {}
+      for (final s in ['', '-journal', '-wal', '-shm']) {
+        final f = s.isEmpty ? file : File('${file.path}$s');
+        if (await f.exists()) {
+          try {
+            await f.delete();
+          } catch (_) {}
+        }
+      }
+    }
+  });
+
   test('merge-apply failure leaves memory and DB consistent', () async {
     final dba = await _Db.open('failapply');
     try {
