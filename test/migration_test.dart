@@ -700,6 +700,38 @@ void main() {
     }
   });
 
+  test('failed delete still leaves a durable tombstone (tombstone-first order)', () async {
+    final (tempDb, before) = await _seedPopulated('fail-tomb-first');
+    expect(before.transactionIds, contains('txn-0001'), reason: 'precondition');
+    try {
+      // The row delete fails after the tombstone has already been written.
+      // That is the safe half-order: the merge converges to deleted either
+      // way, whereas the old delete-then-tombstone order left the row gone
+      // with nothing recording it, so the next merge re-adopted the record
+      // from any peer still holding it and the deletion un-did itself.
+      final s = ExpenseStore(
+        domainOverride: _FailingBackend(tempDb.backend, {'deleteTransaction'}),
+      );
+      await s.load();
+      await s.deleteTransaction('txn-0001');
+
+      // Memory reverted: the entry is still on screen and lastPersistError
+      // is set, so the user is told the save failed.
+      expect(s.transactions.any((t) => t.id == 'txn-0001'), isTrue);
+      expect(s.lastPersistError, isNotNull);
+
+      // But the deletion itself is durably recorded, which is the whole
+      // point: a crash here converges to deleted instead of resurrecting.
+      final tombs = await tempDb.backend.loadTombstones();
+      expect(tombs.any((t) => t.type == 'txn' && t.id == 'txn-0001'), isTrue);
+      // And the row it refers to is still there, so nothing was lost yet.
+      final after = await tempDb.backend.loadDomain();
+      expect(after.transactions.any((t) => t.id == 'txn-0001'), isTrue);
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
   test('failed import restores state and says so', () async {
     final (tempDb, before) = await _seedPopulated('fail-import');
     try {

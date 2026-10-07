@@ -813,8 +813,13 @@ class ExpenseStore extends ChangeNotifier {
     _touch();
     await _persistDomain(before, prevUpdated, (d) async {
       final tomb = _makeTomb(SyncType.txn, id);
-      await d.deleteTransaction(id);
+      // Tombstone BEFORE the row delete. If the process dies between the two,
+      // the merge still converges to deleted (the tombstone wins on rev).
+      // Delete-first would leave the row gone with no tombstone, and the next
+      // merge re-adopts it from any peer still holding it -- the deletion
+      // silently un-does itself.
       await d.saveTombstone(tomb);
+      await d.deleteTransaction(id);
     });
     notifyListeners();
   }
@@ -948,9 +953,12 @@ class ExpenseStore extends ChangeNotifier {
         for (final t in transactions)
           if (t.categoryId == 'other' && oldCat[t.id] != 'other') t.id,
       ];
+      // Tombstone first: saveCategories deletes the category row wholesale, so
+      // a crash after it would otherwise leave the category gone with nothing
+      // recording the deletion. See deleteTransaction.
+      await d.saveTombstone(tomb);
       await d.saveCategories(categories);
       await d.saveTransactions(transactions);
-      await d.saveTombstone(tomb);
       for (final tid in moved) {
         final rm = _bumpRev(SyncType.txn, tid);
         await d.saveRecordMeta(SyncType.txn, tid, rm.rev, rm.by);
@@ -1202,8 +1210,9 @@ class ExpenseStore extends ChangeNotifier {
     _touch();
     await _persistDomain(before, prevUpdated, (d) async {
       final tomb = _makeTomb(SyncType.loan, id);
-      await d.deleteLoan(id);
+      // Tombstone first, then the row -- see deleteTransaction.
       await d.saveTombstone(tomb);
+      await d.deleteLoan(id);
     });
     notifyListeners();
     _loansChanged();
@@ -1362,9 +1371,11 @@ class ExpenseStore extends ChangeNotifier {
         for (final t in transactions)
           if (t.projectId.isEmpty && oldProj[t.id] == id) t.id,
       ];
+      // Tombstone first: a crash after deleteProject would otherwise leave the
+      // project gone with nothing recording the deletion. See deleteTransaction.
+      await d.saveTombstone(tomb);
       await d.deleteProject(id);
       await d.saveTransactions(transactions);
-      await d.saveTombstone(tomb);
       for (final tid in moved) {
         final rm = _bumpRev(SyncType.txn, tid);
         await d.saveRecordMeta(SyncType.txn, tid, rm.rev, rm.by);
