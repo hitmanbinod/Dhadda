@@ -4,6 +4,7 @@
 //
 // Device identity is assigned per store after load (public field) so two
 // stores in one test converge deterministically with distinct authors.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -90,6 +91,96 @@ class _NoApply extends DriftDomainStore {
     required Map<String, RecordMeta> meta,
     required List<TombEntry> tombs,
   }) => throw StateError('disk gone');
+}
+
+/// Backend whose merge-apply pauses mid-write until a concurrent mutator
+/// tries to write (or a short grace period expires). Models the exact window
+/// where Dart's await-yield used to let a just-saved entry be overwritten by a
+/// wholesale replace computed from older state.
+class _RacingBackend implements DomainStore {
+  _RacingBackend(this.inner);
+
+  final DomainStore inner;
+  final applyV2Entered = Completer<void>();
+  final concurrentWrite = Completer<void>();
+  bool blockApplies = true;
+
+  @override
+  Future<void> applyV2({
+    required DomainData data,
+    required Map<String, RecordMeta> meta,
+    required List<TombEntry> tombs,
+  }) async {
+    if (!applyV2Entered.isCompleted) applyV2Entered.complete();
+    if (blockApplies) {
+      await Future.any<Object?>([
+        concurrentWrite.future,
+        Future<Object?>.delayed(const Duration(seconds: 3)),
+      ]);
+    }
+    return inner.applyV2(data: data, meta: meta, tombs: tombs);
+  }
+
+  @override
+  Future<void> upsertTransaction(Txn txn, {int? rev, String? by}) {
+    if (!concurrentWrite.isCompleted) concurrentWrite.complete();
+    return inner.upsertTransaction(txn, rev: rev, by: by);
+  }
+
+  @override
+  Future<DomainData> loadDomain() => inner.loadDomain();
+
+  @override
+  Future<void> replaceAll(DomainData d) => inner.replaceAll(d);
+
+  @override
+  Future<void> saveCategories(List<Category> c) => inner.saveCategories(c);
+
+  @override
+  Future<void> saveTransactions(List<Txn> t) => inner.saveTransactions(t);
+
+  @override
+  Future<void> deleteTransaction(String id) => inner.deleteTransaction(id);
+
+  @override
+  Future<void> upsertLoan(Loan l, {int? rev, String? by}) =>
+      inner.upsertLoan(l, rev: rev, by: by);
+
+  @override
+  Future<void> deleteLoan(String id) => inner.deleteLoan(id);
+
+  @override
+  Future<void> upsertProject(Project p, {int? rev, String? by}) =>
+      inner.upsertProject(p, rev: rev, by: by);
+
+  @override
+  Future<void> deleteProject(String id) => inner.deleteProject(id);
+
+  @override
+  Future<Map<String, int>> counts() => inner.counts();
+
+  @override
+  Future<void> close() => inner.close();
+
+  @override
+  Future<Map<String, RecordMeta>> loadRecordMeta() => inner.loadRecordMeta();
+
+  @override
+  Future<void> saveRecordMeta(String type, String id, int rev, String by) =>
+      inner.saveRecordMeta(type, id, rev, by);
+
+  @override
+  Future<List<TombEntry>> loadTombstones() => inner.loadTombstones();
+
+  @override
+  Future<void> saveTombstone(TombEntry tomb) => inner.saveTombstone(tomb);
+
+  @override
+  Future<void> deleteTombstone(String type, String id) =>
+      inner.deleteTombstone(type, id);
+
+  @override
+  Future<void> resetSyncMeta() => inner.resetSyncMeta();
 }
 
 void main() {
@@ -706,6 +797,52 @@ void main() {
           } catch (_) {}
         }
       }
+    }
+  });
+
+  test('a merge in flight cannot erase an entry saved concurrently', () async {
+    // Dart yields at every await, and _mergeAndApply computes its merge from
+    // memory before replacing all seven tables wholesale. Without the domain
+    // write lock the concurrent addTransaction commits its row, and the merge
+    // -- built from the older snapshot -- then deletes it. No error surfaces:
+    // the entry is simply gone.
+    final dba = await _Db.open('race-a');
+    final dbb = await _Db.open('race-b');
+    try {
+      final peer = await _store(dbb.backend, 'devPeer');
+      await _addTxn(peer, 'FromPeer', 500);
+
+      final racing = _RacingBackend(dba.backend);
+      final a = await _store(racing, 'devA');
+
+      // Start the merge; it parks inside applyV2.
+      final merge = a.importSnapshotV2(peer.exportSnapshotV2());
+      await racing.applyV2Entered.future;
+
+      // Now save an entry locally while the merge is mid-write.
+      final save = _addTxn(a, 'SavedDuringMerge', 123);
+
+      await Future.wait([merge, save]);
+
+      // The entry the user just saved must still be there, on disk and in
+      // memory, alongside the record the merge adopted.
+      final onDisk = await dba.backend.loadDomain();
+      expect(
+        onDisk.transactions.any((t) => t.note == 'SavedDuringMerge'),
+        isTrue,
+        reason: 'concurrently saved entry survived the merge',
+      );
+      expect(
+        onDisk.transactions.any((t) => t.note == 'FromPeer'),
+        isTrue,
+        reason: 'merge still adopted the peer record',
+      );
+      expect(a.transactions.any((t) => t.note == 'SavedDuringMerge'), isTrue);
+      expect(a.transactions.any((t) => t.note == 'FromPeer'), isTrue);
+      expect(a.lastPersistError, isNull);
+    } finally {
+      await dba.dispose();
+      await dbb.dispose();
     }
   });
 

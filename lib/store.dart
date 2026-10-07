@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:dynamic_color/dynamic_color.dart';
@@ -364,6 +365,58 @@ class ExpenseStore extends ChangeNotifier {
     _saveAll(); // re-save the restored stamp so prefs meta matches memory
   }
 
+  /// Set when a merge replaces the in-memory lists from a wholesale apply,
+  /// so the next write knows the copy it is looking at is not the one it was
+  /// built against. Consumed by [_persistDomain].
+  bool _mergeOverwroteMemory = false;
+
+  /// Re-reads domain state after a merge raced a queued write. Best effort:
+  /// the write itself already succeeded, so a failure here must not be
+  /// reported as a failed save.
+  Future<void> _rereadFromBackend(DomainStore d) async {
+    try {
+      final fresh = await d.loadDomain();
+      categories = fresh.categories;
+      transactions = fresh.transactions;
+      loans = fresh.loans;
+      projects = fresh.projects;
+      _sortTxns();
+      _revs = await d.loadRecordMeta();
+      _tombs = {for (final t in await d.loadTombstones()) t.key: t};
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Dhadda: post-merge reread failed (${e.runtimeType})');
+    }
+  }
+
+  /// Tail of the domain-write chain. Every write goes through [_serialized],
+  /// so at most one writer touches the backend at a time.
+  Future<void> _writeTail = Future<void>.value();
+
+  /// Runs [op] with exclusive access to the domain backend.
+  ///
+  /// This exists because [_mergeAndApply] computes its merge from in-memory
+  /// state and then replaces all seven tables wholesale. Dart yields at every
+  /// await, so without a lock a mutator could commit a row after the merge
+  /// computed but before it wrote -- and the wholesale replace, built from the
+  /// older state, would delete a just-saved entry with no error anywhere.
+  ///
+  /// Memory mutations deliberately stay outside the lock: every mutator edits
+  /// the in-memory lists *before* calling [_persistDomain], so a merge that
+  /// reads memory after a write has completed also observes that mutation.
+  /// Serializing compute-and-write is therefore sufficient.
+  Future<T> _serialized<T>(Future<T> Function() op) async {
+    final previous = _writeTail;
+    final gate = Completer<void>();
+    _writeTail = gate.future;
+    await previous;
+    try {
+      return await op();
+    } finally {
+      gate.complete();
+    }
+  }
+
   /// Awaited write-through with revert. [before]/[prevUpdatedAt] must be
   /// captured by the caller BEFORE mutating memory. Revision/tombstone maps
   /// are snapshotted here (mutations bump them before calling). On database
@@ -382,7 +435,18 @@ class ExpenseStore extends ChangeNotifier {
     final prevRevs = Map.of(_revs);
     final prevTombs = Map.of(_tombs);
     try {
-      await op(d);
+      await _serialized(() async {
+        await op(d);
+        // A merge that applied while this mutator waited for the lock has
+        // already replaced the in-memory lists with its own (older) copy.
+        // This write is the later one, so re-read rather than trust it --
+        // otherwise the entry just saved stays missing from the UI until the
+        // next cold start.
+        if (_mergeOverwroteMemory) {
+          _mergeOverwroteMemory = false;
+          await _rereadFromBackend(d);
+        }
+      });
       lastPersistError = null;
       return true;
     } catch (e) {
@@ -1934,8 +1998,16 @@ class ExpenseStore extends ChangeNotifier {
   /// Merges peer records and applies the result atomically (Phase 2 revert
   /// discipline extended to rev/tomb maps). Never throws: failures restore
   /// everything and surface through the returned error.
+  ///
+  /// Held under the write lock: the merge is computed from in-memory state
+  /// and then written as a wholesale replace, so it must not interleave with
+  /// another writer (see [_serialized]).
   Future<({bool changed, int adopted, int tombs, String? error})>
-  _mergeAndApply(List<SyncRecord> remote) async {
+  _mergeAndApply(List<SyncRecord> remote) =>
+      _serialized(() => _mergeAndApplyLocked(remote));
+
+  Future<({bool changed, int adopted, int tombs, String? error})>
+  _mergeAndApplyLocked(List<SyncRecord> remote) async {
     final d = _domain;
     if (d == null) {
       return (changed: false, adopted: 0, tombs: 0, error: 'not ready');
@@ -1976,6 +2048,8 @@ class ExpenseStore extends ChangeNotifier {
       _revs = mat.meta;
       _tombs = {for (final t in mat.tombs) t.key: t};
       _sortTxns();
+      // Tell the next write that the copy it built its edit against is stale.
+      _mergeOverwroteMemory = true;
       updatedAt = DateTime.now().toUtc().toIso8601String();
       _saveAll();
       lastPersistError = null;
