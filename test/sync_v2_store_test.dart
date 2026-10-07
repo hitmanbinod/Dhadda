@@ -709,6 +709,50 @@ void main() {
     }
   });
 
+  test('eraseAll drops tombstones and revisions so a wipe cannot delete peers records', () async {
+    // prefs.clear() removes the migration marker, so load() re-migrates into the
+    // same SQLite file. replaceAll never touched the tombstones table, so before
+    // this fix a freshly wiped device re-published every pre-wipe deletion to
+    // peers on its next sync -- deleting records the user believed erased.
+    final dba = await _Db.open('eraseall');
+    try {
+      final a = await _store(dba.backend, 'devA');
+      await _addTxn(a, 'Doomed', 42);
+      await a.deleteTransaction(a.transactions.single.id);
+      expect(a.tombstoneCount, 1, reason: 'precondition: one tombstone');
+      expect(
+        await dba.backend.loadTombstones().then((t) => t.length),
+        1,
+        reason: 'precondition: tombstone persisted',
+      );
+      // Bump a revision so we can prove the reset reaches the row too.
+      await _addTxn(a, 'Second', 7);
+      expect(
+        (await dba.backend.loadRecordMeta())['txn/${a.transactions.last.id}']!.rev,
+        greaterThan(0),
+      );
+
+      await a.eraseAll();
+
+      expect(a.tombstoneCount, 0, reason: 'memory tombstones cleared');
+      expect(
+        await dba.backend.loadTombstones(),
+        isEmpty,
+        reason: 'tombstones table cleared on disk',
+      );
+      expect(a.transactions, isEmpty);
+      // Reseeded defaults rejoin at the rev-0 baseline rather than inheriting
+      // the pre-wipe revision, so a peer holding the old history cannot
+      // outrank them forever.
+      expect(
+        (await dba.backend.loadRecordMeta()).values.every((m) => m.rev == 0),
+        isTrue,
+      );
+    } finally {
+      await dba.dispose();
+    }
+  });
+
   test('merge-apply failure leaves memory and DB consistent', () async {
     final dba = await _Db.open('failapply');
     try {

@@ -141,6 +141,8 @@ class _ThrowingBackend implements DomainStore {
   Future<void> deleteTombstone(String t, String id) =>
       inner.deleteTombstone(t, id);
   @override
+  Future<void> resetSyncMeta() => inner.resetSyncMeta();
+  @override
   Future<void> applyV2({
     required DomainData data,
     required Map<String, RecordMeta> meta,
@@ -278,6 +280,8 @@ class _FailingBackend implements DomainStore {
   @override
   Future<void> deleteTombstone(String t, String id) =>
       inner.deleteTombstone(t, id);
+  @override
+  Future<void> resetSyncMeta() => inner.resetSyncMeta();
   @override
   Future<void> applyV2({
     required DomainData data,

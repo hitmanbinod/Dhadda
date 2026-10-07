@@ -434,6 +434,21 @@ class DriftDomainStore implements DomainStore {
   });
 
   @override
+  Future<void> resetSyncMeta() => _tx(() async {
+    await db.delete(db.tombstones).go();
+    for (final stmt in [
+      'UPDATE categories SET rev = 0, rev_by = \'\'',
+      'UPDATE transactions SET rev = 0, rev_by = \'\'',
+      'UPDATE projects SET rev = 0, rev_by = \'\'',
+      'UPDATE loans SET rev = 0, rev_by = \'\'',
+      'UPDATE loan_topups SET rev = 0, rev_by = \'\'',
+      'UPDATE loan_repayments SET rev = 0, rev_by = \'\'',
+    ]) {
+      await db.customStatement(stmt);
+    }
+  });
+
+  @override
   Future<void> applyV2({
     required DomainData data,
     required Map<String, RecordMeta> meta,

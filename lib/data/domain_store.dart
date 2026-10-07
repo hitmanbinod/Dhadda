@@ -168,6 +168,17 @@ abstract class DomainStore {
   Future<void> saveTombstone(TombEntry tomb);
   Future<void> deleteTombstone(String type, String id);
 
+  /// Drops every revision and every tombstone, returning the device to the
+  /// rev-0 baseline.
+  ///
+  /// Used only by eraseAll. Without it a wiped device keeps the tombstones it
+  /// recorded before the wipe and re-publishes them on the next sync, deleting
+  /// records on peers that the user believed they had erased. It also resets
+  /// the revisions the reseeded default categories inherit from replaceAll's
+  /// per-id preservation, so a wiped device is not permanently outranked by a
+  /// peer that still holds the pre-wipe history.
+  Future<void> resetSyncMeta();
+
   /// Atomic v2 apply: domain rows (with revisions) + tombstones in one
   /// transaction where supported. Used by merge application.
   Future<void> applyV2({

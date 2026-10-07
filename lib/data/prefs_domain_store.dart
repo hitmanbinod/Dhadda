@@ -239,6 +239,12 @@ class PrefsDomainStore implements DomainStore {
   }
 
   @override
+  Future<void> resetSyncMeta() async {
+    await prefs.remove(kRevs);
+    await prefs.remove(kTombs);
+  }
+
+  @override
   Future<void> applyV2({
     required DomainData data,
     required Map<String, RecordMeta> meta,

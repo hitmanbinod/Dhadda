@@ -704,6 +704,16 @@ class ExpenseStore extends ChangeNotifier {
     accent = 0xFF009688;
     relayOrigin = '';
     setDisplaySymbol('रू');
+    // Before load() reseeds: prefs.clear() already dropped the migration
+    // marker, so load() re-migrates into the same database. resetSyncMeta
+    // clears the tombstones the wipe must forget and the revisions the
+    // reseeded defaults would otherwise inherit, so this device stops
+    // re-publishing pre-wipe deletions to peers and rejoins at rev 0.
+    try {
+      await _domain?.resetSyncMeta();
+    } catch (e) {
+      debugPrint('Dhadda: erase-all could not reset sync meta: ${e.runtimeType}');
+    }
     await load(); // re-seeds defaults + notifies
   }
 
