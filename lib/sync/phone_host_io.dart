@@ -88,6 +88,51 @@ Response _rateLimited(LanThrottle throttle, String scope) => _json(
   {'Retry-After': '${throttle.remaining(scope).inSeconds + 1}'},
 );
 
+/// HTTP 429 for the unauthenticated mailbox-creation limiter.
+Response _rateLimitedFor(Duration retryAfter) => _json(
+  429,
+  {'error': 'too many pairings started, retry later'},
+  {'Retry-After': '${retryAfter.inSeconds + 1}'},
+);
+
+/// Fixed-window limiter for `POST /api/sync/link`.
+///
+/// Box creation cannot require a credential: the device that starts a pairing
+/// has no shared secret yet, so there is nothing to check. That left the
+/// endpoint free -- any peer on the network could allocate boxes until the
+/// 50-box cap, each holding a snapshot of up to 8 MiB, evicting real pairings
+/// along the way. [LanThrottle] cannot cover it because that counts *failures*
+/// and a successful creation is the abuse itself.
+///
+/// Ten per minute is far more than a human needs to pair a second or third
+/// device; the cap is what bounds memory, and this bounds how fast a peer can
+/// churn through the box table and knock out live pairings.
+class _LinkCreateLimiter {
+  static const limit = 10;
+  static const window = Duration(seconds: 60);
+
+  int _count = 0;
+  DateTime _start = DateTime.now();
+
+  /// How long until another creation is permitted (zero = now).
+  Duration get retryAfter {
+    final elapsed = DateTime.now().difference(_start);
+    return elapsed >= window ? Duration.zero : window - elapsed;
+  }
+
+  bool get allowed => _count < limit;
+
+  /// Consumes one creation slot, opening a fresh window when the old expired.
+  void consume() {
+    if (!allowed) return;
+    if (retryAfter == Duration.zero) {
+      _start = DateTime.now();
+      _count = 0;
+    }
+    _count++;
+  }
+}
+
 /// Serves the bundled web UI plus the link-sync API on your WiFi, so
 /// any same-network browser can open the tracker straight from
 /// this phone. No PC, no cloud. Works while the app stays open.
@@ -95,8 +140,11 @@ Future<PhoneHostSession> startPhoneHost() async {
   final mail = LinkStore();
   final hits = ValueNotifier<int>(0);
   // LAN PIN throttle: per link box (boxes already cap at 50 with TTL, so
-  // no attacker-growable state). Static assets and /api/ping stay public.
+  // guessing at box X never locks out box Y). Static assets and /api/ping
+  // stay public. Box *creation* is a separate concern and has its own
+  // limiter, because it carries no credential at all (see below).
   final throttle = LanThrottle();
+  final linkCreate = _LinkCreateLimiter();
   var base = '';
 
   void bump() {
@@ -133,6 +181,9 @@ Future<PhoneHostSession> startPhoneHost() async {
 
   final router = Router();
   router.post('/api/sync/link', (Request req) async {
+    // Creation carries no credential by protocol necessity, so it is bounded
+    // by rate instead. See _LinkCreateLimiter.
+    if (!linkCreate.allowed) return _rateLimitedFor(linkCreate.retryAfter);
     Map<String, dynamic> b;
     try {
       b = jsonDecode(await readCappedBody(req)) as Map<String, dynamic>;
@@ -151,6 +202,8 @@ Future<PhoneHostSession> startPhoneHost() async {
       time: '${b['time'] ?? ''}',
     );
     if (id == null) return _json(400, {'error': 'bad input'});
+    // Only a well-formed, accepted box costs a slot.
+    linkCreate.consume();
     return _json(200, {'link': id, 'origin': base});
   });
   router.post('/api/sync/push', (Request req) async {

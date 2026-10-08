@@ -46,13 +46,34 @@ with UI copy.
 `LanThrottle` (`lib/sync/lan_throttle.dart`): 10 free failures per scope,
 then HTTP 429 + `Retry-After` for 60 s; any success resets; no permanent
 lockout. In-memory and bounded (global 2-counter scope for single-PIN
-servers; per-box scopes for link mailboxes, which already cap at 50 boxes
-with TTL -- no attacker-growable state). Correct credentials always work,
-even mid-cooldown; only failures count. Restart resets (server lifetimes
-are minutes-to-open-hours; documented, not a bypass: guessing 10 PINs per
-restart across a 6-digit/8-char space stays infeasible inside credential
-lifetimes). Wrong-PIN on non-existent boxes is not counted (404s are not
-guesses); 403s are.
+servers; per-box scopes for link mailboxes). Correct credentials always
+work, even mid-cooldown; only failures count. Restart resets (server
+lifetimes are minutes-to-open-hours; documented, not a bypass: guessing
+10 PINs per restart across a 6-digit/8-char space stays infeasible inside
+credential lifetimes). Wrong-PIN on non-existent boxes is not counted
+(404s are not guesses); 403s are.
+
+### 3a. Unauthenticated mailbox creation
+
+`POST /api/sync/link` cannot require a credential: the device that starts
+a pairing has no shared secret yet, so there is nothing to check. That made
+the endpoint free -- any peer could allocate boxes until the 50-box cap,
+each holding a snapshot (8 MiB cap on the phone host, 6 MiB on the Node
+relay), evicting live pairings on the way.
+
+Bounded by rate instead, identically on both servers: **10 accepted
+creations per 60 s**, then HTTP 429 + `Retry-After`. Only well-formed,
+accepted boxes consume a slot, so a peer cannot lock the owner out of
+pairing by sending junk (every rejection stays 400, never 429).
+
+`LanThrottle` deliberately does *not* cover this: it counts failures, and a
+successful creation is the abuse itself.
+
+Not changed: the memory ceiling itself. `maxBoxes = 50` still bounds a
+host at ~400 MB of attacker-reachable snapshots in the worst case, and
+`LinkStore.create` still evicts the oldest box when full. Lowering either is
+a deliberate protocol-constant change with a compatibility cost, so the
+rate limit is the fix and the ceiling stays a documented residual.
 
 ## 4. Direct-WiFi sessions
 

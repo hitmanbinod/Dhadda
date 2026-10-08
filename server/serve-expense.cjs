@@ -56,8 +56,9 @@ setInterval(() => {
 // Same policy as the Dart servers: 10 free PIN failures, then HTTP 429
 // with Retry-After for 60 s; any success resets. Global bucket for the
 // (single-PIN) offer/session flow, per-box buckets for link boxes
-// (boxes already cap at 50 with TTL: no attacker-growable state).
-// Counts wrong-PIN attempts only (403s), never mere 404s.
+// (boxes cap at 50 with TTL: guessing at box X never locks out box Y).
+// Counts wrong-PIN attempts only (403s), never mere 404s. Box *creation*
+// carries no credential and has its own limiter below.
 const THROTTLE_FREE = 10;
 const THROTTLE_COOLDOWN_MS = 60000;
 const _buckets = new Map(); // scope -> {fails, windowStart}
@@ -90,6 +91,34 @@ function throttlePassed(scope) { _buckets.delete(scope); }
 function throttleDeny(res, scope) {
   res.writeHead(429, {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Retry-After": String(throttleRetryAfter(scope))});
   res.end(JSON.stringify({error: "rate limited, retry later"}));
+  return true;
+}
+
+// ---- Unauthenticated mailbox creation limiter ----
+// POST /api/sync/link cannot require a credential: the device starting a
+// pairing has no shared secret yet. Without a bound, any peer on the network
+// could allocate boxes until the 50-box cap, each holding a snapshot of up to
+// 6 MiB, evicting real pairings on the way. The PIN throttle above cannot
+// cover it because it counts failures, and a successful creation is the abuse
+// itself. Ten per minute is far more than a human needs to pair another
+// device. Mirrors _LinkCreateLimiter in lib/sync/phone_host_io.dart.
+const LINK_CREATE_LIMIT = 10;
+const LINK_CREATE_WINDOW_MS = 60000;
+let _linkCreates = 0;
+let _linkCreateWindow = Date.now();
+function linkCreateRetryAfter() {
+  const remain = LINK_CREATE_WINDOW_MS - (Date.now() - _linkCreateWindow);
+  return remain <= 0 ? 0 : Math.ceil(remain / 1000);
+}
+function linkCreateAllowed() { return _linkCreates < LINK_CREATE_LIMIT; }
+function linkCreateConsume() {
+  const now = Date.now();
+  if (now - _linkCreateWindow >= LINK_CREATE_WINDOW_MS) { _linkCreateWindow = now; _linkCreates = 0; }
+  _linkCreates++;
+}
+function linkCreateDeny(res) {
+  res.writeHead(429, {"Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Retry-After": String(Math.max(1, linkCreateRetryAfter()))});
+  res.end(JSON.stringify({error: "too many pairings started, retry later"}));
   return true;
 }
 
@@ -164,6 +193,9 @@ async function api(req, res) {
     return apiSend(res, 200, {ok: true});
   }
   if (req.method === "POST" && u.pathname === "/api/sync/link") {
+    // Creation carries no credential by protocol necessity, so it is bounded
+    // by rate instead. See linkCreateDeny above.
+    if (!linkCreateAllowed()) return linkCreateDeny(res);
     const b = await readJson(req);
     if (typeof b.pin !== "string" || b.pin.length < 4 || b.pin.length > 12) return apiSend(res, 400, {error: "bad pin"});
     if (typeof b.snapshot !== "string" || !b.snapshot.length) return apiSend(res, 400, {error: "bad snapshot"});
@@ -180,6 +212,8 @@ async function api(req, res) {
     const slot = {snapshot: b.snapshot, snapshotV2: v2, name: String(b.name || "device"), time: String(b.time || "")};
     const now = Date.now();
     links.set(id, {pin: b.pin, secret: sec, slots: {[b.deviceId]: slot}, created: now, touched: now});
+    // Only a well-formed, accepted box costs a slot.
+    linkCreateConsume();
     return apiSend(res, 200, {link: id, origin: lanOrigin(req)});
   }
   if (req.method === "POST" && u.pathname === "/api/sync/push") {

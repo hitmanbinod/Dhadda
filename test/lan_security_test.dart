@@ -249,6 +249,81 @@ void main() {
       return (jsonDecode(r.body) as Map<String, dynamic>)['link'] as String;
     }
 
+    test('unauthenticated box creation is rate limited', () async {
+      // POST /api/sync/link cannot require a credential -- the initiating
+      // device has no shared secret yet -- so it has to be bounded by rate.
+      // Unbounded, any peer could allocate boxes until the 50-box cap, each
+      // holding a snapshot, evicting real pairings along the way.
+      late PhoneHostSession h;
+      try {
+        h = await startPhoneHost();
+        for (var i = 0; i < 10; i++) {
+          final r = await http.post(
+            Uri.parse('${h.url}/api/sync/link'),
+            headers: _json,
+            body: jsonEncode({
+              'pin': 'pin$i',
+              'deviceId': 'dev$i',
+              'snapshot': '{"version":1}',
+              'name': 'A',
+              'time': '',
+            }),
+          );
+          expect(r.statusCode, 200, reason: 'creation ${i + 1} must be allowed');
+        }
+        final blocked = await http.post(
+          Uri.parse('${h.url}/api/sync/link'),
+          headers: _json,
+          body: jsonEncode({
+            'pin': 'pinX',
+            'deviceId': 'devX',
+            'snapshot': '{"version":1}',
+            'name': 'A',
+            'time': '',
+          }),
+        );
+        expect(blocked.statusCode, 429);
+        expect(blocked.headers['retry-after'], isNotNull);
+      } finally {
+        try {
+          await h.close();
+        } catch (_) {}
+      }
+    });
+
+    test('malformed link bodies do not consume creation quota', () async {
+      late PhoneHostSession h;
+      try {
+        h = await startPhoneHost();
+        // A rejected request must not cost a slot, or a peer could lock the
+        // owner out of pairing by sending junk.
+        for (var i = 0; i < 15; i++) {
+          final r = await http.post(
+            Uri.parse('${h.url}/api/sync/link'),
+            headers: _json,
+            body: jsonEncode({'pin': 'x', 'deviceId': '', 'snapshot': ''}),
+          );
+          expect(r.statusCode, 400, reason: 'junk must stay 400, not 429');
+        }
+        final good = await http.post(
+          Uri.parse('${h.url}/api/sync/link'),
+          headers: _json,
+          body: jsonEncode({
+            'pin': _pin,
+            'deviceId': 'devA',
+            'snapshot': '{"version":1}',
+            'name': 'A',
+            'time': '',
+          }),
+        );
+        expect(good.statusCode, 200, reason: 'real pairing still works');
+      } finally {
+        try {
+          await h.close();
+        } catch (_) {}
+      }
+    });
+
     test('link PINs throttle per box with reset', () async {
       late PhoneHostSession h;
       try {
@@ -540,6 +615,28 @@ void main() {
         });
         expect(unlinked['status'], 200);
         expect(await pull2(_pin, secret), 404);
+
+        // Unauthenticated box creation is rate limited on the relay too:
+        // 10 per minute, then 429 with Retry-After. Two boxes exist above, so
+        // eight more are free and the eleventh must be refused.
+        for (var i = 0; i < 8; i++) {
+          final r = await post('/api/sync/link', {
+            'pin': _pin,
+            'deviceId': 'dev$i',
+            'snapshot': '{"version":1}',
+            'name': 'A',
+            'time': '',
+          });
+          expect(r['status'], 200, reason: 'creation ${i + 3} must be allowed');
+        }
+        final overLimit = await post('/api/sync/link', {
+          'pin': _pin,
+          'deviceId': 'devX',
+          'snapshot': '{"version":1}',
+          'name': 'A',
+          'time': '',
+        });
+        expect(overLimit['status'], 429);
       } finally {
         client?.close(force: true);
         proc?.kill();
