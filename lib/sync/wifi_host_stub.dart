@@ -1,3 +1,7 @@
+// The pairing screens still generate a PIN on web (this device can only
+// receive, but it still displays one); the generator is platform-neutral.
+export 'session_pin.dart';
+
 /// Web stub: browsers cannot host a listening socket, so this device
 /// can only RECEIVE (act as client). Sending needs Android/Windows.
 class HostSession {

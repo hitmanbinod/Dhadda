@@ -20,6 +20,40 @@ const _json = {'Content-Type': 'application/json'};
 String _oversized() => 'x' * ((8 << 20) + 1);
 
 void main() {
+  group('pairing PIN generation', () {
+    test('is six digits and not derived from the clock', () {
+      for (var i = 0; i < 200; i++) {
+        final pin = newPin();
+        expect(pin, matches(RegExp(r'^[1-9][0-9]{5}$')), reason: pin);
+      }
+      // A time-seeded generator returns the same value for every call inside
+      // one millisecond and its values track the wall clock. This asserts the
+      // opposite: distinct draws, spread across the space, no correlation with
+      // the time of day.
+      final drawn = <String>{for (var i = 0; i < 200; i++) newPin()};
+      expect(
+        drawn.length,
+        greaterThan(190),
+        reason: '200 draws collided too often to be random',
+      );
+      final spread = drawn.map(int.parse).toSet();
+      expect(
+        spread.reduce((a, b) => a < b ? a : b),
+        lessThan(900000),
+      );
+      expect(spread.reduce((a, b) => a > b ? a : b), greaterThan(0));
+    });
+
+    test('two calls a millisecond apart differ', () {
+      // The old generator was
+      // 100000 + (DateTime.now().millisecondsSinceEpoch % 900000), so two
+      // calls inside the same millisecond returned an identical PIN.
+      final a = newPin();
+      final b = newPin();
+      expect(a, isNot(b), reason: 'same-millisecond draws must still differ');
+    });
+  });
+
   group('direct WiFi sender', () {
     test('unauthorized requests are rejected, misses are 403', () async {
       late HostSession s;

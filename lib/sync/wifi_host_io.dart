@@ -8,6 +8,10 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 
 import 'http_limits.dart';
+
+// Re-exported so both the server and the web stub expose the same CSPRNG
+// pairing-PIN generator to the screens that import this file.
+export 'session_pin.dart';
 import 'lan_throttle.dart';
 
 /// A short-lived LAN server hosting this device's snapshot.
@@ -301,13 +305,4 @@ Future<HostSession> startSendServer({
 
   timer = Timer(const Duration(minutes: 5), close);
   return HostSession(url: url, pin: pin, close: close);
-}
-
-/// 6-digit numeric PIN shown next to the QR code.
-/// CSPRNG (unlike the old time-seeded variant): the PIN protects a
-/// live 5-minute session, so predictability was a real (if LAN-scoped)
-/// weakness.
-String newPin() {
-  final rand = Random.secure();
-  return '${100000 + rand.nextInt(900000)}';
 }

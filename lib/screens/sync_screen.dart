@@ -97,7 +97,7 @@ class _SyncScreenState extends State<SyncScreen> {
       );
       return;
     }
-    final pin = _makePin();
+    final pin = newPin();
     // High-entropy link secret for this box (client-generated, QR-carried).
     // Old relays drop the field and the box stays legacy PIN-only.
     final secret = newLinkSecret();
@@ -455,12 +455,9 @@ class _SyncScreenState extends State<SyncScreen> {
 
   // ---------- Option 3: WiFi ----------
 
-  String _makePin() =>
-      '${100000 + (DateTime.now().millisecondsSinceEpoch % 900000)}';
-
   Future<void> _startSend() async {
     final store = context.read<ExpenseStore>();
-    final pin = _makePin();
+    final pin = newPin();
     try {
       final s = await startSendServer(
         currentSnapshot: store.exportJson,
