@@ -87,7 +87,8 @@ Application ID: com.dhadda.expense
 Current version: 1.4.0 / versionCode 3
 License (SPDX): Apache-2.0
 Source: <upstream git URL> at tag v1.4.0 (tag naming: v<version>)
-Category: Money (F-Droid category choice at submission)
+Category: Finance Manager (from fdroiddata/config/categories.yml; there is
+  no "Money" category)
 Flutter: 3.47.2 (see .fvmrc; CI pins flutter-version 3.47.2)
 JDK: 17; AGP/Kotlin per android/settings.gradle.kts
 Build flavor: default; build command: flutter build apk --release
@@ -110,36 +111,66 @@ neither key material nor an explicit opt-in, so a plain
 for maintainer builds; F-Droid needs a supported way in.
 
 The opt-in is accepted as either an environment variable or a Gradle
-property. F-Droid has no build field that maps to an arbitrary environment
-variable for the `flutter` process, so the property is the one that works:
+property (`-PdhaddaAllowUnsignedRelease=true`). F-Droid's build metadata has
+no field that sets an arbitrary environment variable, so the recipe passes it
+on the `flutter build` command line via `--android-project-arg`:
 
 ```yaml
-# fdroiddata/build.yaml, in the recipe entry
-- id: flutter
-  properties:
-    - dhaddaAllowUnsignedRelease=true
+build:
+  - export PUB_CACHE=$(pwd)/.pub-cache
+  - $$flutter$$/bin/flutter build apk --release --android-project-arg "dhaddaAllowUnsignedRelease=true"
+output: build/app/outputs/flutter-apk/app-release.apk
 ```
 
-which F-Droid turns into `-PdhaddaAllowUnsignedRelease=true`. Locally, the
-equivalent is:
+Note `--android-project-arg` takes `key=value` — it adds the `-P` itself, so
+do not include it. (An earlier draft of this doc used a `properties:` YAML
+field; that field does not exist in F-Droid's build metadata. The correct
+fields are `build`, `output`, `gradleprops`, `scanignore`/`scandelete`, and
+`rm`.)
 
-```text
-flutter build apk --release --android-project-arg "dhaddaAllowUnsignedRelease=true"
-```
+The complete, ready-to-copy metadata file is **`fdroid/com.dhadda.expense.yml`**,
+modelled on F-Droid's own `templates/build-flutter.yml`.
 
-Note the value is `key=value` — `--android-project-arg` adds the `-P`
-itself, so do not include it.
+**What was verified locally** (clean `git clone` of the pinned commit, no
+`android/key.properties`):
 
-Verified on this tree: with the property the release build succeeds and
-produces a genuinely unsigned APK (no `META-INF/*.RSA|EC|SF` entries,
-`signingConfig = null`, AGP emits `app-release-unsigned.apk`). Without
-either opt-in the build still stops with the fail-closed error.
+| Check | Result |
+|---|---|
+| `flutter build apk --release` (no opt-in) | fails closed, as designed |
+| `flutter pub get --enforce-lockfile` | lockfile honored |
+| `flutter build apk --release --android-project-arg "dhaddaAllowUnsignedRelease=true"` | succeeds, 88.4 MB |
+| Output APK signature | genuinely unsigned (F-Droid applies its own key) |
+| applicationId / versionCode / versionName | `com.dhadda.expense` / `3` / `1.4.0` |
 
-This only unlocks the *build*. F-Droid applies its own signing, so the
-artifact F-Droid publishes is signed by F-Droid's key and differs from the
-maintainer-signed GitHub build — switching between the two requires a
-reinstall, because Android refuses to replace an app signed by a different
-key.
+**Not yet verified:** an actual `fdroid build` inside F-Droid's container. That
+needs their buildserver; the Flutter 3.47.2 tag does exist upstream, which is
+what the `srclibs: [flutter@stable]` + `git -C $$flutter$$ checkout -f 3.47.2`
+pin depends on.
+
+### Known F-Droid friction points
+
+1. **Category.** F-Droid rejects categories not in
+   `fdroiddata/config/categories.yml`. The correct value for this app is
+   `Finance Manager` (there is no `Money` category).
+2. **Committed binaries.** F-Droid's scanner refuses to build when binaries are
+   committed. `assets/webapp/` is a committed Flutter web bundle (~38 MB of
+   `.wasm`/`.symbols`) used by the "Show on PC" feature. The recipe
+   `scanignore`s it, justified in `MaintainerNotes`; it is deterministic
+   output of `dart tool/build_embedded_web.dart` and CI already verifies its
+   freshness with `--check`. If reviewers object, the alternative is to `rm`
+   the bundle and rebuild it in `prebuild` — at the cost of requiring
+   `flutter build web` (and its `precache`) to work in their container.
+3. **`commit:` must be a full 40-character hash**, not a tag name. Tags are
+   still needed for `UpdateCheckMode: Tags` to detect future releases, so tag
+   `v1.4.0` even though the recipe references a commit hash.
+4. **`--split-per-abi` is not used.** A single universal APK is simpler for a
+   first submission. Splitting would cut per-device size but requires three
+   build blocks plus `VercodeOperation`, which changes the version-code
+   scheme.
+5. **Two signatures, two installs.** F-Droid signs with its own key, so the
+   artifact differs from the maintainer-signed GitHub build. Switching between
+   them requires a reinstall — Android refuses to replace an app signed by a
+   different key.
 
 This is metadata readiness, not acceptance: F-Droid review and
 inclusion remain an external process. Reproducibility status is in
