@@ -23,6 +23,20 @@ class PrefsDomainStore implements DomainStore {
   final SharedPreferences prefs;
   PrefsDomainStore(this.prefs);
 
+  /// Writes [value] under [key], turning a refused write into a throw.
+  ///
+  /// `SharedPreferences.setString` reports a refused write by returning false
+  /// rather than throwing -- which is what the web backend does when
+  /// localStorage is full. Callers used to discard that bool, so on web a
+  /// quota-exhausted save looked identical to a successful one: the store
+  /// cleared its error and the UI showed "Saved" for data that was never
+  /// written. Throwing here lets [_persistDomain] revert and report instead.
+  Future<void> _put(String key, String value) async {
+    if (!await prefs.setString(key, value)) {
+      throw StateError('SharedPreferences refused the write to $key');
+    }
+  }
+
   @override
   Future<DomainData> loadDomain() async => decodeLegacyDomain(
     cats: prefs.getString(kCats),
@@ -33,19 +47,19 @@ class PrefsDomainStore implements DomainStore {
 
   @override
   Future<void> replaceAll(DomainData data) async {
-    await prefs.setString(
+    await _put(
       kCats,
       jsonEncode([for (final c in data.categories) c.toJson()]),
     );
-    await prefs.setString(
+    await _put(
       kTxns,
       jsonEncode([for (final t in data.transactions) t.toJson()]),
     );
-    await prefs.setString(
+    await _put(
       kLoans,
       jsonEncode([for (final l in data.loans) l.toJson()]),
     );
-    await prefs.setString(
+    await _put(
       kProjects,
       jsonEncode([for (final p in data.projects) p.toJson()]),
     );
@@ -53,7 +67,7 @@ class PrefsDomainStore implements DomainStore {
 
   @override
   Future<void> saveCategories(List<Category> categories) async {
-    await prefs.setString(
+    await _put(
       kCats,
       jsonEncode([for (final c in categories) c.toJson()]),
     );
@@ -61,7 +75,7 @@ class PrefsDomainStore implements DomainStore {
 
   @override
   Future<void> saveTransactions(List<Txn> transactions) async {
-    await prefs.setString(
+    await _put(
       kTxns,
       jsonEncode([for (final t in transactions) t.toJson()]),
     );
@@ -98,7 +112,7 @@ class PrefsDomainStore implements DomainStore {
     } else {
       current[i] = loan;
     }
-    await prefs.setString(
+    await _put(
       kLoans,
       jsonEncode([for (final l in current) l.toJson()]),
     );
@@ -111,7 +125,7 @@ class PrefsDomainStore implements DomainStore {
   Future<void> deleteLoan(String id) async {
     final current = (await loadDomain()).loans;
     current.removeWhere((l) => l.id == id);
-    await prefs.setString(
+    await _put(
       kLoans,
       jsonEncode([for (final l in current) l.toJson()]),
     );
@@ -126,7 +140,7 @@ class PrefsDomainStore implements DomainStore {
     } else {
       current[i] = project;
     }
-    await prefs.setString(
+    await _put(
       kProjects,
       jsonEncode([for (final p in current) p.toJson()]),
     );
@@ -139,7 +153,7 @@ class PrefsDomainStore implements DomainStore {
   Future<void> deleteProject(String id) async {
     final current = (await loadDomain()).projects;
     current.removeWhere((p) => p.id == id);
-    await prefs.setString(
+    await _put(
       kProjects,
       jsonEncode([for (final p in current) p.toJson()]),
     );
@@ -191,7 +205,7 @@ class PrefsDomainStore implements DomainStore {
   ) async {
     final map = _readRevs();
     map['$type/$id'] = RecordMeta(rev: rev, by: by);
-    await prefs.setString(
+    await _put(
       kRevs,
       jsonEncode(map.map((k, v) => MapEntry(k, v.toJson()))),
     );
@@ -222,7 +236,7 @@ class PrefsDomainStore implements DomainStore {
     } else {
       current[i] = tomb;
     }
-    await prefs.setString(
+    await _put(
       kTombs,
       jsonEncode([for (final t in current) t.toJson()]),
     );
@@ -232,7 +246,7 @@ class PrefsDomainStore implements DomainStore {
   Future<void> deleteTombstone(String type, String id) async {
     final current = await loadTombstones();
     current.removeWhere((t) => t.type == type && t.id == id);
-    await prefs.setString(
+    await _put(
       kTombs,
       jsonEncode([for (final t in current) t.toJson()]),
     );
@@ -251,11 +265,11 @@ class PrefsDomainStore implements DomainStore {
     required List<TombEntry> tombs,
   }) async {
     await replaceAll(data);
-    await prefs.setString(
+    await _put(
       kRevs,
       jsonEncode(meta.map((k, v) => MapEntry(k, v.toJson()))),
     );
-    await prefs.setString(
+    await _put(
       kTombs,
       jsonEncode([for (final t in tombs) t.toJson()]),
     );

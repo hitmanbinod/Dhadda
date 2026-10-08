@@ -3,6 +3,28 @@ import 'package:expense/store.dart';
 import 'package:expense/sync/sms.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
+
+/// Store platform that reads normally but refuses every write, the way the
+/// web backend does when localStorage is full.
+class _RefusingPrefs extends SharedPreferencesStorePlatform {
+  _RefusingPrefs(this.inner);
+
+  final SharedPreferencesStorePlatform inner;
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async =>
+      false;
+
+  @override
+  Future<bool> remove(String key) => inner.remove(key);
+
+  @override
+  Future<bool> clear() => inner.clear();
+
+  @override
+  Future<Map<String, Object>> getAll() => inner.getAll();
+}
 
 void main() {
   test('currency defaults to NPR and formats everywhere', () async {
@@ -55,6 +77,35 @@ void main() {
     expect(b.accent, 0xFFC2185B);
     await b.setThemeMode('neon');
     expect(b.themeMode, 'system');
+  });
+
+  test('a refused prefs write is reported, not shown as Saved', () async {
+    // setString signals a refused write by returning false rather than
+    // throwing. The prefs backend used to discard that bool, so on web a
+    // quota-exhausted save took the success branch: lastPersistError stayed
+    // null and the UI showed "Saved" for data that was never written.
+    SharedPreferences.setMockInitialValues({});
+    final original = SharedPreferencesStorePlatform.instance;
+    SharedPreferencesStorePlatform.instance = _RefusingPrefs(original);
+    addTearDown(() => SharedPreferencesStorePlatform.instance = original);
+
+    final store = ExpenseStore();
+    await store.load();
+    await store.addTransaction(
+      type: 'expense',
+      amount: 99,
+      categoryId: 'food',
+      date: DateTime.utc(2026, 9, 1),
+    );
+
+    expect(
+      store.lastPersistError,
+      isNotNull,
+      reason: 'the refused write must surface as an error',
+    );
+    // And the in-memory entry was rolled back rather than left as a phantom
+    // the UI would render as saved.
+    expect(store.transactions.where((t) => t.amount == 99), isEmpty);
   });
 
   test('eraseAll wipes domain data and reseeds', () async {    SharedPreferences.setMockInitialValues({});

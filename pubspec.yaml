@@ -78,6 +78,10 @@ dev_dependencies:
   drift_dev: ^2.34.6
   build_runner: ^2.16.1
   sqlite3: ^3.5.2
+  # Test-only: lets a test swap in a store platform whose setValue returns
+  # false, proving a refused prefs write surfaces as an error instead of a
+  # fake "Saved". Already a transitive dependency of shared_preferences.
+  shared_preferences_platform_interface: ^2.4.2
   plugin_platform_interface: ^2.1.8
 
 # For information on the generic Dart part of this file, see the
