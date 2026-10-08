@@ -92,15 +92,54 @@ Flutter: 3.47.2 (see .fvmrc; CI pins flutter-version 3.47.2)
 JDK: 17; AGP/Kotlin per android/settings.gradle.kts
 Build flavor: default; build command: flutter build apk --release
   WITHOUT maintainer key material (F-Droid signs its own builds;
-  android/key.properties is git-ignored and absent upstream, and the
-  Gradle fail-closed check must be satisfied by the F-Droid build
-  recipe — e.g. an explicit unsigned/dev path — never by weakening it)
+  android/key.properties is git-ignored and absent upstream). The
+  Gradle fail-closed check must be satisfied by the F-Droid recipe, never
+  by weakening it -- see "F-Droid build recipe" below for the exact flag.
 Pre-build: flutter pub get --enforce-lockfile;
   dart run build_runner build --delete-conflicting-outputs
 Anti-features: none apply (no network services, no ads, no tracking,
   no non-free dependencies; local-network sync is user-initiated on a
   trusted LAN and documented in docs/SECURITY_LAN.md)
 ```
+
+### F-Droid build recipe
+
+`android/app/build.gradle.kts` fails CLOSED on a release build that has
+neither key material nor an explicit opt-in, so a plain
+`flutter build apk --release` cannot succeed upstream. That is deliberate
+for maintainer builds; F-Droid needs a supported way in.
+
+The opt-in is accepted as either an environment variable or a Gradle
+property. F-Droid has no build field that maps to an arbitrary environment
+variable for the `flutter` process, so the property is the one that works:
+
+```yaml
+# fdroiddata/build.yaml, in the recipe entry
+- id: flutter
+  properties:
+    - dhaddaAllowUnsignedRelease=true
+```
+
+which F-Droid turns into `-PdhaddaAllowUnsignedRelease=true`. Locally, the
+equivalent is:
+
+```text
+flutter build apk --release --android-project-arg "dhaddaAllowUnsignedRelease=true"
+```
+
+Note the value is `key=value` — `--android-project-arg` adds the `-P`
+itself, so do not include it.
+
+Verified on this tree: with the property the release build succeeds and
+produces a genuinely unsigned APK (no `META-INF/*.RSA|EC|SF` entries,
+`signingConfig = null`, AGP emits `app-release-unsigned.apk`). Without
+either opt-in the build still stops with the fail-closed error.
+
+This only unlocks the *build*. F-Droid applies its own signing, so the
+artifact F-Droid publishes is signed by F-Droid's key and differs from the
+maintainer-signed GitHub build — switching between the two requires a
+reinstall, because Android refuses to replace an app signed by a different
+key.
 
 This is metadata readiness, not acceptance: F-Droid review and
 inclusion remain an external process. Reproducibility status is in

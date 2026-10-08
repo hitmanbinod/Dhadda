@@ -11,6 +11,13 @@ plugins {
 // instructions instead of silently shipping debug-signed APKs. Explicitly
 // unsigned dev releases remain possible with DHADDA_ALLOW_UNSIGNED_RELEASE=1
 // (never publish those artifacts). Debug builds and tests are unaffected.
+//
+// The same opt-in is also accepted as a Gradle property
+// (-PdhaddaAllowUnsignedRelease) because F-Droid's build.yml has no field that
+// maps to an arbitrary environment variable for the flutter process, so an
+// env-only gate would make the tree unbuildable by F-Droid. The property is
+// equivalent in force; neither is ever set by a tagged release, so the
+// fail-closed default is unchanged.
 val keyPropsFile = rootProject.file("key.properties")
 val keyProps = Properties()
 if (keyPropsFile.exists()) keyProps.load(keyPropsFile.inputStream())
@@ -19,7 +26,8 @@ val hasReleaseKeys = keyProps.containsKey("storeFile") &&
     keyProps.containsKey("keyAlias") &&
     keyProps.containsKey("keyPassword")
 val allowUnsignedRelease =
-    System.getenv("DHADDA_ALLOW_UNSIGNED_RELEASE") == "1"
+    System.getenv("DHADDA_ALLOW_UNSIGNED_RELEASE") == "1" ||
+        (project.findProperty("dhaddaAllowUnsignedRelease")?.toString() == "true")
 
 android {
     namespace = "com.dhadda.expense"
@@ -33,7 +41,6 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.dhadda.expense"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
