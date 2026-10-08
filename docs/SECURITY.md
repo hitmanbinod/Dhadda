@@ -28,6 +28,12 @@ memory-inspection resistance, LAN confidentiality (Phase 5).
 - The PIN hash must never become, or derive, a database or backup key.
   Backup passphrases are independent user secrets (the UI refuses the idea
   that the app PIN qualifies).
+- The lock re-arms when the app leaves the foreground (`hidden`/`paused`).
+  Re-locking also **pops every route pushed above the shell** (Sync, Add,
+  Scan), because the lock gate replaces only `home`: a pushed pairing screen
+  would otherwise stay mounted, visible and interactive above the locked
+  home, putting the pairing PIN and link secret on screen with no
+  authentication at all.
 
 ## 3. PIN hashing: unchanged, with rationale
 

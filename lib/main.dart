@@ -23,6 +23,15 @@ void main() {
   runApp(const ExpenseApp());
 }
 
+/// Navigator key for the app's root navigator.
+///
+/// The lock gate replaces `home`, but screens like SyncScreen and AddScreen
+/// are pushed onto this navigator, where they sit *above* the locked home and
+/// stay mounted, visible and interactive. Holding the key lets the shell pop
+/// those routes away when it re-locks, so a backgrounded app can never come
+/// back to a live pairing screen showing the PIN and link secret.
+final GlobalKey<NavigatorState> kRootNavigatorKey = GlobalKey<NavigatorState>();
+
 class ExpenseApp extends StatelessWidget {
   const ExpenseApp({super.key});
 
@@ -43,6 +52,7 @@ class ExpenseApp extends StatelessWidget {
           return MaterialApp(
             title: 'Dhadda',
             debugShowCheckedModeBanner: false,
+            navigatorKey: kRootNavigatorKey,
             theme: ThemeData(
               colorScheme: ColorScheme.fromSeed(seedColor: seed),
               useMaterial3: true,
@@ -219,9 +229,23 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       // same contract: lock state re-derives from the vault.
       final vault = _vault;
       if (vault != null && vault.isEnabled) {
+        // Drop every pushed route before locking. The lock gate only replaces
+        // `home`; anything pushed onto the root navigator (SyncScreen with its
+        // pairing PIN and link secret, AddScreen) would otherwise stay mounted
+        // and interactive above it, so returning from the background would
+        // show the pairing screen instead of the PIN pad.
+        _popToRoot();
         setState(() => _locked = true);
       }
     }
+  }
+
+  /// Pops every route above the first one. Safe to call when nothing is pushed
+  /// and when the navigator is not mounted yet.
+  void _popToRoot() {
+    final nav = kRootNavigatorKey.currentState;
+    if (nav == null) return;
+    nav.popUntil((route) => route.isFirst);
   }
 
   Future<void> _checkLock() async {
