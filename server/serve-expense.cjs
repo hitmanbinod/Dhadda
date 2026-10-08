@@ -2,6 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const crypto = require("crypto"); // built-in; this file still has zero npm deps
 const root = process.argv[2];
 const port = +(process.argv[3] || 8080);
 
@@ -44,7 +45,18 @@ const links = new Map(); // id -> {pin, slots: {deviceId: {snapshot,name,time}},
 const LINK_TTL_MS = 7 * 24 * 3600 * 1000;
 const lid = () => { let id = nid() + nid().substring(0, 2); while (links.has(id)) id = nid() + nid().substring(0, 2); return id; };
 const ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-const nid = () => Array.from({length: 6}, () => ABC[Math.floor(Math.random() * ABC.length)]).join("");
+// Session and box IDs are drawn from crypto.randomBytes, not Math.random().
+// Math.random() is a predictable PRNG: anyone who has seen a few ids from this
+// relay can reconstruct its internal state and predict the rest, which matters
+// because a session id gates the offer/session flow and a box id is the first
+// half of the pairing credential. Node's crypto is a built-in, so this costs
+// nothing and keeps the file at zero npm dependencies.
+const nid = () => {
+  const bytes = crypto.randomBytes(6);
+  let out = "";
+  for (let i = 0; i < 6; i++) out += ABC[bytes[i] % ABC.length];
+  return out;
+};
 const TTL_MS = 5 * 60 * 1000;
 setInterval(() => {
   const now = Date.now();
@@ -285,11 +297,25 @@ http.createServer((req, res) => {
         if (!(await api(req, res)) && !res.headersSent) send(res, 404, {error: "no such api"});
         return;
       }
-    } catch (e) { if (!res.headersSent) send(res, e.code || 500, {error: String((e && e.message) || e)}); return; }
+    // Deliberate client errors (readJson's "bad json" / "too big") carry a
+    // code and a static message we authored, so echoing them is safe and
+    // useful. Anything else is an unexpected throw -- a TypeError from a junk
+    // body, say -- and its message must not reach the client: docs/SECURITY.md
+    // promises error CLASSES only, never messages or stacks.
+    } catch (e) {
+      if (!res.headersSent) {
+        const known = e && e.code ? String((e && e.message) || e) : "relay error";
+        send(res, (e && e.code) || 500, {error: known});
+      }
+      return;
+    }
     let p = decodeURIComponent(req.url.split("?")[0]);
     if (p.endsWith("/")) p += "index.html";
     const f = path.normalize(path.join(root, p));
-    if (!f.startsWith(root)) { res.writeHead(403); res.end(); return; }
+    // Containment check on path components, not a string prefix: with root
+    // "/srv/app" the prefix test also admits the sibling "/srv/app-secrets".
+    const rel = path.relative(root, f);
+    if (rel.startsWith("..") || path.isAbsolute(rel)) { res.writeHead(403); res.end(); return; }
     fs.readFile(f, (err, data) => {
       if (err) {
         fs.readFile(path.join(root, "index.html"), (e2, d2) => {
