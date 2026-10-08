@@ -9,7 +9,8 @@ the embedded-web workflow, and CI behavior. Baseline record stays in
 - Canonical version: **Flutter 3.47.2** (Dart 3.13.2) — the Phase 0-verified
   toolchain. Pinned in two places that must agree:
   - `.fvmrc` (`{"flutter": "3.47.2"}`) for local/FVM/IDE users;
-  - `flutter-version: "3.47.2"` in `.github/workflows/build.yml` (both jobs).
+  - `flutter-version: "3.47.2"` in `.github/workflows/build.yml` (all three
+    jobs: `web`, `embedded-web`, `apk`).
 - Do not float CI on `stable` alone for releases. When upgrading, update both
   pins, re-run the full validation (analyze, tests, web, debug APK), and record
   the new versions here.
@@ -80,6 +81,8 @@ Previous state: `release` builds silently used debug keys. That is gone.
 - Releases happen only on `v*` tags: signed APK (maintainer secrets, fail-closed
   without them) + `SHA256SUMS`, attached via the `release` job. Non-tag APKs are
   unsigned dev artifacts for testing, never published.
-- No cloud services, no analytics, no secrets in the repo. Pushes/tags cannot be
-  exercised from a local-only clone (no git remote configured) — workflow changes
-  are validated by inspection plus the equivalent local commands.
+- No cloud services, no analytics, no secrets in the repo. A git remote *is*
+  configured (`origin`), so pushing a branch or tag and reading the run is the
+  real proof — workflow changes are still validated first by inspection plus
+  the equivalent local commands, and a live CI run is required before trusting
+  a release.

@@ -49,7 +49,7 @@ read (spot-checked ecosystem packages only — all flutter/packages/dart-lang
 BSD-style); native `.so` provenance beyond zxing-cpp not traced; confirm again
 at F-Droid submission time. Re-audit on every dependency change.
 
-## 4. Phase 2 additions (same method: packaged LICENSE headers read)
+## 3. Phase 2 additions (same method: packaged LICENSE headers read)
 
 | Package | Purpose | License | FOSS-compatible | Concern |
 |---|---|---|---|---|
@@ -62,13 +62,13 @@ at F-Droid submission time. Re-audit on every dependency change.
 No Firebase/GMS/ads/analytics anywhere (lockfile re-scanned clean). No
 dependency replaced for this audit. License snapshot: everything permissive.
 
-## 5. Phase 3 addition (same method: packaged LICENSE header read)
+## 4. Phase 3 addition (same method: packaged LICENSE header read)
 
 | Package | Purpose | License | FOSS-compatible | Concern |
 |---|---|---|---|---|
 | cryptography 2.9.0 | Argon2id + XChaCha20-Poly1305 for optional encrypted backups (pure Dart, no native code → identical on Android/Web) | Apache-2.0 | yes | none: no binaries, no network, no platform SDKs |
 
-## 3. Upstream metadata (fastlane, F-Droid-compatible layout)
+## 5. Upstream metadata (fastlane, F-Droid-compatible layout)
 
 Present under `fastlane/metadata/android/en-US/`: `title.txt` (Dhadda),
 `short_description.txt`, `full_description.txt` (both already accurate —

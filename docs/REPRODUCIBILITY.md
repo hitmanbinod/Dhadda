@@ -75,8 +75,9 @@ bit-for-bit (weak datapoint: shared cache, labeled as such).
 4. **Environment assumptions:** JDK 17 (Temurin in CI), Android SDK with
    current build-tools, `flutter`/`dart`/`keytool`/`sha256sum` on PATH, ~8 GB
    Gradle heap (`gradle.properties`). None of these are containerized yet.
-5. **No git remote is configured** in this clone, so CI behavior is validated by
-   inspection + local command parity, not by observed CI runs.
+5. A git remote **is** configured (`origin`), so CI behavior can be proven by
+   pushing and reading the run. Until a run has been observed, treat the
+   workflow as validated by inspection + local command parity only.
 
 ## What "demonstrated" would require (future work)
 

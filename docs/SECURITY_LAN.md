@@ -103,13 +103,20 @@ lifetime.
 
 - **Generation:** 128-bit hex from `Random.secure`, client-side at link
   create (`newLinkSecret()`). Independent from the app PIN, user PINs,
-  timestamps, and device IDs. No new dependencies (Dart `Random.secure`
-  everywhere incl. Web; Node uses `crypto.randomBytes`).
+  timestamps, and device IDs.
 - **Transport:** stored opaquely server-side per box; travels in the pairing
   QR as an optional 4th `::` part (the QR channel is already a temporary
   secret -- old parsers reject 4-part codes as "not a sync code", which is
   safe and explicit). Manual server/code/PIN entry carries no secret, so it
   joins legacy boxes only; strong boxes need a scan.
+- **All random material comes from a CSPRNG**, with no new dependencies: Dart
+  uses `Random.secure()` everywhere including Web; the Node relay uses
+  `crypto.randomBytes` (a Node built-in, so the file stays at zero npm
+  dependencies). This covers the pairing PIN (`newPin()`), the 128-bit link
+  secret, the direct-WiFi session token, **and** the relay's own session and
+  box ids -- the last of which were on `Math.random()` until the September 2026
+  audit, a predictable PRNG whose internal state can be reconstructed from a
+  few observed ids.
 - **Enforcement (Node relay, phone host, `LinkStore` alike):** a box WITH a
   secret requires matching PIN **and** secret on every push/pull; PIN-only
   (or wrong-secret) attempts get a distinct 403 (`link secret required -

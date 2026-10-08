@@ -35,14 +35,29 @@ memory-inspection resistance, LAN confidentiality (Phase 5).
   home, putting the pairing PIN and link secret on screen with no
   authentication at all.
 
-## 3. PIN hashing: unchanged, with rationale
+## 3. PIN hashing
 
-`PinVault` stores SHA-256(`expense-tracker::pin::v1::<pin>`) — salted against
-rainbow tables across apps, but fast and unsalted per-install. Against an
-attacker who already extracted app storage (the only way to reach the hash),
-the data beside it is already readable, so a slower KDF would add theater,
-not security, while complicating every install. Changed only if the storage
-model ever makes the hash the hardest target — it is not.
+`PinVault` stores PBKDF2-HMAC-SHA256, 10,000 iterations, with a 16-byte
+`Random.secure()` salt per user:
+
+```text
+pbkdf2$<iterations>$<salt-b64>$<hash-b64>
+```
+
+Verification is constant-time (accumulated XOR) and the stored iteration
+count is bounds-checked, so a tampered prefs value cannot drive an unbounded
+KDF on the UI thread.
+
+Legacy installs may still hold `sha256(expense-tracker::pin::v1::<pin>)` from
+before the September 2026 audit. Those entries verify through a separate
+equality path and are rewritten to PBKDF2 the next time the PIN is set — an
+untouched legacy install keeps the weak hash indefinitely, which is a known
+gap rather than an oversight.
+
+**What this is not:** the PIN space is 10,000 values, so 10,000 iterations
+multiplies an offline search cost that is already seconds. It does not make
+the PIN cryptographic, and section 2's claim is unchanged: the PIN is a
+casual-snooper gate, not encryption.
 
 ## 4. Rate limiting (`PinThrottle`, `lib/security.dart`)
 
