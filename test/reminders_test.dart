@@ -58,6 +58,8 @@ class FakeAndroidNotifications extends AndroidFlutterLocalNotificationsPlugin
       'body': body,
       'scheduledDate': scheduledDate,
       'mode': scheduleMode,
+      'visibility': notificationDetails?.visibility,
+      'importance': notificationDetails?.importance,
     });
   }
 
@@ -141,6 +143,32 @@ void main() {
     expect(zoned.single['id'], Reminders.idFor(id));
     expect(zoned.single['title'], 'Ask for money');
     expect('${zoned.single['body']}', contains('Asha'));
+  });
+
+  test('reminder bodies are private so the lock screen does not leak them', () async {
+    // The body carries an amount and a counterparty name ("Asha still owes
+    // you Rs 5,000"). Importance.max plus no visibility setting meant Android
+    // rendered it on the lock screen -- the place a phone is most likely to be
+    // photographed or shoulder-surfed. NotificationVisibility.private redacts
+    // it there while still showing it once the device is unlocked.
+    final s = await loanStore();
+    await s.addLoan(person: 'Asha', amount: 5000, date: DateTime(2026, 1, 1));
+    await s.setReminderAt(
+      s.loans.single.id,
+      DateTime.now().add(const Duration(days: 2)),
+    );
+    await Reminders.refresh(s);
+
+    final entry = scheduled().single;
+    // Precondition: the body really does carry the sensitive parts.
+    expect('${entry['body']}', contains('Asha'));
+    expect('${entry['body']}', contains('5,000'));
+
+    expect(
+      entry['visibility'],
+      NotificationVisibility.private,
+      reason: 'amount + counterparty must not render on the lock screen',
+    );
   });
 
   test('borrowed reminder uses return wording', () async {

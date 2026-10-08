@@ -50,6 +50,12 @@ class Reminders {
             'Nudges to ask for lent money or return borrowed money',
         importance: Importance.max,
         priority: Priority.high,
+        // The body carries an amount and a counterparty name. Without this,
+        // Android renders both on the lock screen and in the shade -- the one
+        // place a phone is most likely to be shoulder-surfed or photographed.
+        // `private` redacts it there and shows it normally once unlocked;
+        // `secret` would hide it everywhere, which is too much.
+        visibility: NotificationVisibility.private,
       );
 
   /// Whether the OS currently grants exact-alarm access. Never throws;

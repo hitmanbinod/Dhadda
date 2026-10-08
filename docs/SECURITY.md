@@ -137,6 +137,22 @@ app itself holds is only as private as the browser profile. No cloud added.
 Explicit user Export/Import (now incl. encrypted) remains the only backup
 mechanism. `docs/BACKUP_POLICY.md` still authoritative.
 
+## 10a. Notification visibility (lock screen)
+
+- Loan reminder bodies contain an amount and a counterparty name
+  ("Asha still owes you Rs 5,000"). Scheduled at `Importance.max` so they
+  cannot be silently missed, which also means Android renders them on the
+  lock screen -- the place a phone is most likely to be photographed.
+- The `loan_reminders` channel is therefore created with
+  `NotificationVisibility.private`: the body is redacted on the lock screen
+  and in the shade, and shown normally once the device is unlocked.
+  `NotificationVisibility.secret` would hide it everywhere, which is more
+  than is needed.
+- Caveat: visibility is a **channel** property. Android will not change the
+  visibility of a channel that already exists, so an install that already has
+  `loan_reminders` keeps the old setting until the channel is removed
+  (Settings > Notifications > Dhadda > loan_reminders) or the app is
+  reinstalled. F-Droid/GitHub users switching signers must reinstall anyway.
 ## 11. Sensitive logging policy (audited this phase)
 
 Rule: logs carry operation type, counts, and error CLASSES — never messages,
