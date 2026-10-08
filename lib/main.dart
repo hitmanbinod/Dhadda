@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'format.dart';
 
 import 'screens/add_screen.dart';
+import 'screens/database_problem_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/menu_screen.dart';
 import 'screens/home_screen.dart';
@@ -266,6 +267,19 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final store = context.watch<ExpenseStore>();
+    // Never fall through to the app when the database would not open: an
+    // empty tracker is indistinguishable from deleted data.
+    if (store.databaseProblem.isNotEmpty) {
+      return DatabaseProblemScreen(
+        message: store.lastQuarantinedDb.isEmpty
+            ? store.databaseProblem
+            : '$store.databaseProblem A copy was kept as '
+                  '${store.lastQuarantinedDb}.',
+        onRetry: () => store.retryAfterDatabaseProblem(),
+        onStartEmpty: () => store.startEmptyAfterDatabaseProblem(),
+      );
+    }
     if (!_lockChecked) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -287,7 +301,6 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       MenuScreen(engine: _link),
     ];
     final wide = MediaQuery.widthOf(context) > 900;
-    final store = context.watch<ExpenseStore>();
 
     return Scaffold(
       appBar: AppBar(

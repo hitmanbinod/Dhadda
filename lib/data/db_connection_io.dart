@@ -7,9 +7,11 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import 'db_recovery_io.dart';
+
 /// Opens (creating first) the app-private database file. Local-only, matching
 /// the Phase 1 `allowBackup=false` posture: no cloud, no sync of the file.
 QueryExecutor openDbConnection() => LazyDatabase(() async {
   final dir = await getApplicationDocumentsDirectory();
-  return NativeDatabase(File(p.join(dir.path, 'dhadda.sqlite')));
+  return NativeDatabase(File(p.join(dir.path, kDbFileName)));
 });

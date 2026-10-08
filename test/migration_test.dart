@@ -306,6 +306,80 @@ Future<(_TempDb, DomainSummary)> _seedPopulated(String name) async {
   return (tempDb, _domainOf(s).summarize());
 }
 
+/// Backend that cannot open: models a corrupt SQLite file (unreadable page,
+/// failed FFI load) reached through the already-migrated marker.
+class _UnopenableBackend implements DomainStore {
+  _UnopenableBackend(this.inner);
+  final DomainStore inner;
+
+  @override
+  Future<DomainData> loadDomain() async =>
+      throw StateError('database disk image is malformed');
+
+  @override
+  Future<void> close() async {}
+
+  @override
+  Future<void> replaceAll(DomainData d) => inner.replaceAll(d);
+
+  @override
+  Future<void> saveCategories(List<Category> c) => inner.saveCategories(c);
+
+  @override
+  Future<void> saveTransactions(List<Txn> t) => inner.saveTransactions(t);
+
+  @override
+  Future<void> upsertTransaction(Txn t, {int? rev, String? by}) =>
+      inner.upsertTransaction(t, rev: rev, by: by);
+
+  @override
+  Future<void> deleteTransaction(String id) => inner.deleteTransaction(id);
+
+  @override
+  Future<void> upsertLoan(Loan l, {int? rev, String? by}) =>
+      inner.upsertLoan(l, rev: rev, by: by);
+
+  @override
+  Future<void> deleteLoan(String id) => inner.deleteLoan(id);
+
+  @override
+  Future<void> upsertProject(Project p, {int? rev, String? by}) =>
+      inner.upsertProject(p, rev: rev, by: by);
+
+  @override
+  Future<void> deleteProject(String id) => inner.deleteProject(id);
+
+  @override
+  Future<Map<String, int>> counts() => inner.counts();
+
+  @override
+  Future<Map<String, RecordMeta>> loadRecordMeta() => inner.loadRecordMeta();
+
+  @override
+  Future<void> saveRecordMeta(String type, String id, int rev, String by) =>
+      inner.saveRecordMeta(type, id, rev, by);
+
+  @override
+  Future<List<TombEntry>> loadTombstones() => inner.loadTombstones();
+
+  @override
+  Future<void> saveTombstone(TombEntry tomb) => inner.saveTombstone(tomb);
+
+  @override
+  Future<void> deleteTombstone(String type, String id) =>
+      inner.deleteTombstone(type, id);
+
+  @override
+  Future<void> resetSyncMeta() => inner.resetSyncMeta();
+
+  @override
+  Future<void> applyV2({
+    required DomainData data,
+    required Map<String, RecordMeta> meta,
+    required List<TombEntry> tombs,
+  }) => inner.applyV2(data: data, meta: meta, tombs: tombs);
+}
+
 void main() {
   test(
     'fresh install seeds, migrates, reloads from DB on 2nd launch',
@@ -365,6 +439,57 @@ void main() {
       await a.load();
       expect(_domainOf(a).summarize().matches(expected.summarize()), isTrue);
       expect((await tempDb.backend.counts())['transactions'], 8);
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('an unopenable database surfaces a problem instead of an empty app', () async {
+    // Previously load() had no try/catch here: the exception escaped into
+    // main()'s unawaited load(), `loaded` stayed false and the UI rendered as
+    // an expense tracker with no transactions -- indistinguishable from the
+    // user's data having been deleted. No error, no recovery.
+    final tempDb = await _TempDb.open('unopenable');
+    try {
+      SharedPreferences.setMockInitialValues({_marker: 1});
+      final s = ExpenseStore(
+        domainOverride: _UnopenableBackend(tempDb.backend),
+      );
+      await s.load();
+
+      expect(s.databaseProblem, isNotEmpty, reason: 'problem is recorded');
+      expect(
+        s.loaded,
+        isFalse,
+        reason: 'a failed load must not present as a successful empty load',
+      );
+      expect(s.transactions, isEmpty);
+
+      // The recovery screen gates on this, so it must clear on retry.
+      await s.retryAfterDatabaseProblem();
+      expect(s.databaseProblem, isNotEmpty, reason: 'same file, still broken');
+    } finally {
+      await tempDb.dispose();
+    }
+  });
+
+  test('retry clears the problem once the database opens', () async {
+    final tempDb = await _TempDb.open('recovers');
+    try {
+      SharedPreferences.setMockInitialValues({_marker: 1});
+      final broken = _UnopenableBackend(tempDb.backend);
+      final s = ExpenseStore(domainOverride: broken);
+      await s.load();
+      expect(s.databaseProblem, isNotEmpty);
+
+      // Simulate the transient failure clearing: load() must now succeed and
+      // hand the app back its real data.
+      final healthy = tempDb.backend;
+      final s2 = ExpenseStore(domainOverride: healthy);
+      await s2.retryAfterDatabaseProblem();
+      expect(s2.databaseProblem, isEmpty);
+      expect(s2.loaded, isTrue);
+      expect(broken, isNotNull);
     } finally {
       await tempDb.dispose();
     }

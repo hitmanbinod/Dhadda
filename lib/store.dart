@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import 'format.dart';
 import 'analytics.dart';
+import 'data/db_recovery.dart';
 import 'data/domain_store.dart';
 import 'data/drift_domain_store.dart';
 import 'data/prefs_domain_store.dart';
@@ -125,6 +126,17 @@ class ExpenseStore extends ChangeNotifier {
   String lastSynced = 'never';
   bool loaded = false;
 
+  /// Non-empty when the database file would not open. The shell gates on this
+  /// and offers recovery; [loaded] stays false so no empty state is rendered
+  /// as if it were the user's real data. Cleared by
+  /// [retryAfterDatabaseProblem].
+  String databaseProblem = '';
+
+  /// File name of the unreadable database the user chose to set aside, empty
+  /// when nothing was moved. Surfaced by the recovery screen so the copy is
+  /// not a mystery on the device.
+  String lastQuarantinedDb = '';
+
   SharedPreferences? _prefs;
 
   Future<void> load() async {
@@ -147,7 +159,12 @@ class ExpenseStore extends ChangeNotifier {
     _domain = _domainOverride ?? await _openDomain(p);
     _ownsDomain = _domainOverride == null && _domain is DriftDomainStore;
     if (_domain is! PrefsDomainStore && p.getInt(_kDbMigrated) == 1) {
-      await _loadDomainFromStore();
+      if (!await _loadDomainFromStore()) {
+        // The database exists but will not open (corrupt file, unreadable
+        // page). Do not fall through to an empty UI: quarantine the file and
+        // park the user on a recoverable screen. See _recoverUnreadableDb.
+        return;
+      }
     } else {
       _readLegacyDomain(p);
       if (_domain is! PrefsDomainStore &&
@@ -190,12 +207,57 @@ class ExpenseStore extends ChangeNotifier {
     return PrefsDomainStore(p);
   }
 
-  Future<void> _loadDomainFromStore() async {
-    final d = await _domain!.loadDomain();
-    categories = d.categories;
-    transactions = d.transactions;
-    loans = d.loans;
-    projects = d.projects;
+  /// Loads domain rows from the active backend. Returns false when the backend
+  /// would not open, having already recorded the problem for the UI.
+  Future<bool> _loadDomainFromStore() async {
+    try {
+      final d = await _domain!.loadDomain();
+      categories = d.categories;
+      transactions = d.transactions;
+      loans = d.loans;
+      projects = d.projects;
+      return true;
+    } catch (e) {
+      await _recordDatabaseProblem(e);
+      return false;
+    }
+  }
+
+  /// Records that the backend would not open, so the shell can offer recovery
+  /// instead of showing an empty expense tracker that is indistinguishable from
+  /// deleted data. The file is deliberately left in place: retrying is the
+  /// honest first try, and it is only moved aside if the user chooses to start
+  /// empty.
+  Future<void> _recordDatabaseProblem(Object error) async {
+    debugPrint('Dhadda: database would not open (${error.runtimeType}).');
+    try {
+      await _domain?.close();
+    } catch (_) {}
+    _domain = null;
+    _ownsDomain = false;
+    // A failed load must never look like a successful empty load.
+    loaded = false;
+    databaseProblem =
+        "Dhadda couldn't open the file holding your transactions.";
+    notifyListeners();
+  }
+
+  /// Retries the load against the same file, for transient failures.
+  Future<void> retryAfterDatabaseProblem() async {
+    databaseProblem = '';
+    await load();
+  }
+
+  /// Moves the unreadable file aside and starts fresh. The file is renamed,
+  /// never deleted, so anything still recoverable stays on the device.
+  Future<void> startEmptyAfterDatabaseProblem() async {
+    databaseProblem = '';
+    try {
+      lastQuarantinedDb = await quarantineDatabaseFile();
+    } catch (e) {
+      debugPrint('Dhadda: quarantine failed (${e.runtimeType})');
+    }
+    await load();
   }
 
   /// Loads revision + tombstone maps from the active backend. Missing

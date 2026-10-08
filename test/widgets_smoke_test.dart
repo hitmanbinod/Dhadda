@@ -1,4 +1,5 @@
 import 'package:expense/screens/add_screen.dart';
+import 'package:expense/screens/database_problem_screen.dart';
 import 'package:expense/screens/history_screen.dart';
 import 'package:expense/screens/home_screen.dart';
 import 'package:expense/screens/lent_screen.dart';
@@ -76,7 +77,48 @@ void main() {
             vault: PinVault(
                 await SharedPreferences.getInstance()),
             onUnlock: () {}));
+    await _pumpScreen(
+        tester,
+        store,
+        DatabaseProblemScreen(
+          message: "Dhadda couldn't open the file holding your transactions.",
+          onRetry: () {},
+          onStartEmpty: () {},
+        ));
     engine.stop();
+  });
+
+  testWidgets('the recovery screen offers both ways out and reports the tap',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    var retried = 0;
+    var startedEmpty = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DatabaseProblemScreen(
+          message: "Dhadda couldn't open the file holding your transactions.",
+          onRetry: () => retried++,
+          onStartEmpty: () => startedEmpty++,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    // The user must be able to tell what happened and that nothing was lost.
+    expect(find.text('Your data could not be opened'), findsOneWidget);
+    expect(find.textContaining('Nothing has been deleted'), findsOneWidget);
+
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(retried, 1);
+
+    await tester.tap(find.text('Start with an empty tracker'));
+    await tester.pumpAndSettle();
+    expect(startedEmpty, 1);
   });
 
   testWidgets('home + history lay out cleanly on desktop (1280x800)',
