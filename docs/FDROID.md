@@ -152,14 +152,33 @@ pin depends on.
 1. **Category.** F-Droid rejects categories not in
    `fdroiddata/config/categories.yml`. The correct value for this app is
    `Finance Manager` (there is no `Money` category).
-2. **Committed binaries.** F-Droid's scanner refuses to build when binaries are
-   committed. `assets/webapp/` is a committed Flutter web bundle (~38 MB of
-   `.wasm`/`.symbols`) used by the "Show on PC" feature. The recipe
-   `scanignore`s it, justified in `MaintainerNotes`; it is deterministic
-   output of `dart tool/build_embedded_web.dart` and CI already verifies its
-   freshness with `--check`. If reviewers object, the alternative is to `rm`
-   the bundle and rebuild it in `prebuild` — at the cost of requiring
-   `flutter build web` (and its `precache`) to work in their container.
+2. **The scanner is the real risk, and it was a real bug.** fdroidserver's
+   `scan_source` rejects `.wasm` unconditionally (since fdroidserver 2.3.0)
+   and flags binary-looking `.bin` files, aborting the build with
+   `Can't build due to N errors while scanning`. The scan runs **before** any
+   build command, so it cannot be handled at build time, and `--skip-scan` is
+   refused outright when `scandelete` is present.
+
+   `assets/webapp/` contains six CanvasKit/SkWasm engines (~34 MB) plus
+   `AssetManifest.bin`, so it needed `scanignore`. Two traps, both hit:
+
+   - `scanignore` matches by **string prefix**, so one `assets/webapp` entry
+     covers every `.wasm` including the nested `chromium/` and `webparagraph/`
+     copies — narrow entries are unnecessary.
+   - An entry that **matches nothing is itself an error**
+     (`Non-exist scanignore path`), so a plausible-but-wrong path fails the
+     build just as hard.
+
+   `fdroid/scan_sim.js` reproduces the scanner's hard-error rules against the
+   real tree so this can be re-checked without a full build:
+
+   ```text
+   node fdroid/scan_sim.js
+   # no scanignore:  7 errors    (build aborts)
+   # old recipe:     3 errors    (build aborts)
+   # current recipe: 0 errors
+   ```
+
 3. **`commit:` must be a full 40-character hash**, not a tag name. Tags are
    still needed for `UpdateCheckMode: Tags` to detect future releases, so tag
    `v1.4.0` even though the recipe references a commit hash.
@@ -167,7 +186,10 @@ pin depends on.
    first submission. Splitting would cut per-device size but requires three
    build blocks plus `VercodeOperation`, which changes the version-code
    scheme.
-5. **Two signatures, two installs.** F-Droid signs with its own key, so the
+5. **`scan_binary` is off on the official buildserver**, so F-Droid's
+   post-build APK blocklist scan does not apply. Worth re-checking if that
+   ever changes.
+6. **Two signatures, two installs.** F-Droid signs with its own key, so the
    artifact differs from the maintainer-signed GitHub build. Switching between
    them requires a reinstall — Android refuses to replace an app signed by a
    different key.
