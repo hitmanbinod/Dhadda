@@ -16,6 +16,7 @@
 Categories:
   - Finance Manager
 License: Apache-2.0
+AuthorName: hitmanbinod
 SourceCode: https://github.com/hitmanbinod/Dhadda
 IssueTracker: https://github.com/hitmanbinod/Dhadda/issues
 WebSite: https://github.com/hitmanbinod/Dhadda
@@ -74,8 +75,12 @@ Builds:
       - integration_test
     prebuild:
       # Pin Flutter to the version in .fvmrc. The tag exists upstream; the
-      # srclib is a clone of github.com/flutter/flutter.
-      - git -C $$flutter$$ checkout -f 3.47.2
+      # srclib is a clone of github.com/flutter/flutter. pushd/popd rather than
+      # `git -C`, matching the convention used by other Flutter recipes in
+      # fdroiddata.
+      - pushd $$flutter$$
+      - git checkout -f 3.47.2
+      - popd
       # Keep the pub cache inside the scanned tree so F-Droid's scanner can
       # check the downloaded Dart packages for licence compliance.
       - export PUB_CACHE=$(pwd)/.pub-cache
