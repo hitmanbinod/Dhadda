@@ -63,7 +63,7 @@ Builds:
   - versionName: '1.4.0'
     versionCode: 3
     # Full commit hash, not a tag name, per F-Droid's build metadata reference.
-    commit: 5047cc7b5458001f2666c7fd8ce4f4b7fd8d870e
+    commit: 26ac49aa0d7d2a559c7c74f3348c4e3a9560e11a
     srclibs:
       - flutter@stable
     # Delete platform folders the scanner does not need. Note `web/` is removed
