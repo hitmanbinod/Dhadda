@@ -64,13 +64,17 @@ class _LentScreenState extends State<LentScreen> {
                           ],
                         ),
                       ),
-                      FilledButton.icon(
-                        onPressed: () => _personDialog(
-                            context, store,
-                            borrowed: false),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Lent'),
-                      ),                    ],
+                      SizedBox(
+                        width: 132,
+                        child: FilledButton.icon(
+                          onPressed: () => _personDialog(
+                              context, store,
+                              borrowed: false),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Lent'),
+                        ),
+                      ),
+                    ],
                   ),
                   const Divider(height: 24),
                   Row(
@@ -95,12 +99,15 @@ class _LentScreenState extends State<LentScreen> {
                           ],
                         ),
                       ),
-                      FilledButton.icon(
-                        onPressed: () => _personDialog(
-                            context, store,
-                            borrowed: true),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Borrowed'),
+                      SizedBox(
+                        width: 132,
+                        child: FilledButton.icon(
+                          onPressed: () => _personDialog(
+                              context, store,
+                              borrowed: true),
+                          icon: const Icon(Icons.add),
+                          label: const Text('Borrowed'),
+                        ),
                       ),
                     ],
                   ),
