@@ -53,17 +53,8 @@ class ExpenseApp extends StatelessWidget {
             title: 'Dhadda',
             debugShowCheckedModeBanner: false,
             navigatorKey: kRootNavigatorKey,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: seed),
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: seed,
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-            ),
+            theme: _baseTheme(seed, Brightness.light),
+            darkTheme: _baseTheme(seed, Brightness.dark),
             themeMode: mode,
             home: const RootShell(),
           );
@@ -71,6 +62,18 @@ class ExpenseApp extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Shared app theme. Grey press overlays (splash + highlight) are
+/// removed for a calm, professional look.
+ThemeData _baseTheme(Color seed, Brightness brightness) {
+  return ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),
+    useMaterial3: true,
+    splashColor: Colors.transparent,
+    highlightColor: Colors.transparent,
+    splashFactory: NoSplash.splashFactory,
+  );
 }
 
 class RootShell extends StatefulWidget {
