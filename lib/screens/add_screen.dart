@@ -156,6 +156,12 @@ class _AddScreenState extends State<AddScreen>
                       setState(() => _reordering = true),
                   child: _catChip(c),
                 ),
+              ActionChip(
+                avatar: const Icon(Icons.add, size: 18),
+                label: const Text('New'),
+                tooltip: 'Add your own category',
+                onPressed: () => _newCategory(context, store),
+              ),
             ],
           ),
         ],
@@ -308,6 +314,54 @@ class _AddScreenState extends State<AddScreen>
           .addProject(name.text.trim(), note.text.trim());
       setState(() => _projectId = id);
     }
+  }
+
+  /// Category picked from the chip row - or created inline without
+  /// leaving the Add screen.
+  Future<void> _newCategory(
+      BuildContext context, ExpenseStore store) async {
+    final name = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('New category'),
+        content: TextField(
+          controller: name,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(
+            labelText: 'Name (Gym, Baby, Car...)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+    final trimmed = name.text.trim();
+    if (ok != true || trimmed.isEmpty || !mounted) return;
+    // Reuse an existing category instead of silently duplicating it.
+    final existing = store.categories
+        .cast<Category?>()
+        .firstWhere(
+          (c) => c!.name.toLowerCase() == trimmed.toLowerCase(),
+          orElse: () => null,
+        );
+    if (existing != null) {
+      setState(() => _categoryId = existing.id);
+      return;
+    }
+    final id = await store.addCategory(trimmed);
+    if (!mounted) return;
+    setState(() => _categoryId = id);
   }
 
   Future<void> _save() async {

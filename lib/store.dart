@@ -968,16 +968,31 @@ class ExpenseStore extends ChangeNotifier {
 
   // ---------- categories & budgets ----------
 
-  Future<void> addCategory(String name, {double budget = 0}) async {
+  Future<String> addCategory(String name, {double budget = 0}) async {
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
     final newId = _uuid.v4();
+    // Fresh look for user-created categories: first palette entry not
+    // taken by an existing category, cycling through the pool when the
+    // palette is exhausted. Deterministic, so sync replays stay identical.
+    final usedColors = categories.map((c) => c.color).toSet();
+    final newColor = kColorChoices.firstWhere(
+      (k) => !usedColors.contains(k),
+      orElse: () => kColorChoices[categories.length % kColorChoices.length],
+    );
+    final usedIcons = categories.map((c) => c.icon).toSet();
+    final newIcon = kIconChoices
+        .firstWhere(
+          (i) => !usedIcons.contains(i.codePoint),
+          orElse: () => kIconChoices[categories.length % kIconChoices.length],
+        )
+        .codePoint;
     categories.add(
       Category(
         id: newId,
         name: name,
-        icon: 0xe148,
-        color: 0xFF607D8B,
+        icon: newIcon,
+        color: newColor,
         budget: budget,
       ),
     );
@@ -988,6 +1003,7 @@ class ExpenseStore extends ChangeNotifier {
       await d.saveRecordMeta(SyncType.cat, newId, rm.rev, rm.by);
     });
     notifyListeners();
+    return newId;
   }
 
   Future<void> setBudget(String id, double budget) async {
