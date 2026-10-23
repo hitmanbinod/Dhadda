@@ -259,19 +259,21 @@ class _MenuScreenState extends State<MenuScreen> {
                   title: const Text('Accent colour'),
                   subtitle: Text(ExpenseStore.accentName(store.accent)),
                   children: [
-                    GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      children: [
-                        if (!ExpenseStore.accentChoices.contains(store.accent))
-                          _swatch(context, store, store.accent, true),
-                        for (final c in ExpenseStore.accentChoices)
-                          _swatch(context, store, c, false),
-                      ],
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12, horizontal: 4),
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.start,
+                        children: [
+                          if (!ExpenseStore.accentChoices
+                              .contains(store.accent))
+                            _swatch(context, store, store.accent, true),
+                          for (final c in ExpenseStore.accentChoices)
+                            _swatch(context, store, c, false),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Align(
@@ -499,10 +501,42 @@ class _MenuScreenState extends State<MenuScreen> {
         const SizedBox(height: 16),
         Text('About', style: Theme.of(context).textTheme.titleMedium),
         const Card(
-          child: ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('Expense $kAppVersion ($kBuildStamp)'),
-            subtitle: Text('Local-first • offline • free forever'),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Dhadda Expense $kAppVersion',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text('Local-first • offline • free forever'),
+                Text(
+                  'Built $kBuildStamp',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                Divider(height: 24),
+                Text(
+                  'Developer',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text('Binod Acharya'),
+                SelectableText(
+                  'binod.acharya@example.com',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -663,6 +697,8 @@ class _MenuScreenState extends State<MenuScreen> {
     _say(on ? 'Fingerprint unlock on.' : 'Fingerprint unlock off.');
   }
 
+  /// One fixed-size colour swatch: thin outline always, a primary ring,
+  /// ripple feedback and a check mark when selected.
   Widget _swatch(
     BuildContext context,
     ExpenseStore store,
@@ -670,18 +706,40 @@ class _MenuScreenState extends State<MenuScreen> {
     bool custom,
   ) {
     final selected = store.accent == color;
-    return GestureDetector(
-      onTap: () =>
-          custom ? _pickCustom(context, store) : store.setAccent(color),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Color(color),
-          shape: BoxShape.circle,
-          border: Border.all(
+    return Tooltip(
+      message: custom ? 'Custom colour' : ExpenseStore.accentName(color),
+      child: Material(
+        color: Colors.transparent,
+        shape: CircleBorder(
+          side: BorderSide(
             color: selected
-                ? Theme.of(context).colorScheme.onSurface
-                : Colors.transparent,
-            width: 3,
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context)
+                    .colorScheme
+                    .outline
+                    .withValues(alpha: 0.6),
+            width: 2,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: Material(
+            color: Color(color),
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () =>
+                  custom ? _pickCustom(context, store) : store.setAccent(color),
+              child: SizedBox(
+                width: 38,
+                height: 38,
+                child: Icon(
+                  Icons.check,
+                  size: 20,
+                  color: selected ? Colors.white : Colors.transparent,
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -694,7 +752,7 @@ class _MenuScreenState extends State<MenuScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Pick an accent'),
-        content: SingleChildScrollView(
+          content: SingleChildScrollView(
           child: ColorPicker(
             color: picked,
             onColorChanged: (c) => picked = c,
@@ -708,6 +766,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ColorPickerType.wheel: true,
             },
             enableShadesSelection: true,
+            showColorCode: true,
           ),
         ),
         actions: [
