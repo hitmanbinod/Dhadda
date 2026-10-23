@@ -221,13 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: Text('Long-press a slice for details',
-                        style:
-                            Theme.of(context).textTheme.bodySmall),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   for (final e in top)
                     Padding(
                       padding:
