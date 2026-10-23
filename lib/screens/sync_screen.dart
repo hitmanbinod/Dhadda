@@ -49,6 +49,7 @@ class _SyncScreenState extends State<SyncScreen> {
   String? _offerPin;
   String _offerSecret = '';
   String _offerOrigin = '';
+  String _offerPollOrigin = '';
   final _quickCode = TextEditingController();
   final _srvCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
@@ -80,9 +81,32 @@ class _SyncScreenState extends State<SyncScreen> {
   // ---------- Quick sync (LAN relay, scan & done) ----------
 
   /// Where the relay lives. Web knows its own origin; native reuses the
-  /// address learned from the last scanned code.
+  /// address learned from the last scanned code. New fallbacks so
+  /// "Show my code" works without a previous pairing: while this phone
+  /// hosts its own relay (Show on PC), that server is the best origin;
+  /// otherwise an address typed into the Server field below counts too.
   String get _relayOrigin {
     if (kIsWeb) return Uri.base.origin;
+    return context.read<ExpenseStore>().relayOrigin;
+  }
+
+  String _resolveRelayOrigin() {
+    if (kIsWeb) return Uri.base.origin;
+    final serving = _serve?.url;
+    if (serving != null && serving.startsWith('http')) {
+      final u = Uri.tryParse(serving);
+      if (u != null && u.origin != 'null' && u.host.isNotEmpty) {
+        return u.origin;
+      }
+    }
+    final typed = _srvCtrl.text.trim();
+    if (typed.isNotEmpty) {
+      final u = Uri.tryParse(
+          typed.startsWith('http') ? typed : 'http://$typed');
+      if (u != null && u.host.isNotEmpty) {
+        return u.scheme.isEmpty ? 'http://${u.host}' : u.origin;
+      }
+    }
     return context.read<ExpenseStore>().relayOrigin;
   }
 
@@ -90,10 +114,11 @@ class _SyncScreenState extends State<SyncScreen> {
   /// Whoever scans it joins the same box - then both stay synced.
   Future<void> _startQuickOffer() async {
     final store = context.read<ExpenseStore>();
-    final origin = _relayOrigin;
+    final origin = _resolveRelayOrigin();
     if (origin.isEmpty) {
+      setState(() {}); // surface the Server field for entry below
       _say(
-        'Tip: tap Show my code on your DESKTOP first (same WiFi), then scan it here. One scan pairs both for good.',
+        'Add the relay address in the Server field below (shown under the desktop code), then tap Show my code again.',
       );
       return;
     }
@@ -124,6 +149,7 @@ class _SyncScreenState extends State<SyncScreen> {
         _offerPin = pin;
         _offerSecret = secret;
         _offerOrigin = showOrigin;
+        _offerPollOrigin = origin;
       });
       _poll?.cancel();
       _poll = Timer.periodic(const Duration(seconds: 2), (_) => _pollLink());
@@ -140,7 +166,11 @@ class _SyncScreenState extends State<SyncScreen> {
     final secret = _offerSecret;
     if (link == null || pin == null) return;
     final store = context.read<ExpenseStore>();
-    final origin = _relayOrigin;
+    // Poll the relay the box was created on: on a fresh phone the
+    // remembered origin may be empty, e.g. while this device is
+    // hosting the relay itself (Show on PC).
+    final origin =
+        _offerPollOrigin.isNotEmpty ? _offerPollOrigin : _resolveRelayOrigin();
     if (origin.isEmpty) return;
     try {
       final peers = await LinkClient(origin)
@@ -743,13 +773,22 @@ class _SyncScreenState extends State<SyncScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    SelectableText(
-                      'Code ${_offerSession!}   PIN: ${_offerPin!}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    const Text(
+                      'Browser without a camera? Paste this code there:',
+                      style: TextStyle(fontSize: 12),
                     ),
+                    const SizedBox(height: 4),
                     SelectableText(
-                      'Server $_offerOrigin',
-                      style: Theme.of(context).textTheme.bodySmall,
+                      QrV2.build(
+                        _offerOrigin,
+                        _offerSession!,
+                        _offerPin!,
+                        _offerSecret,
+                      ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     const Text('Waiting for the other device... (auto-closes)'),
