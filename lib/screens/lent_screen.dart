@@ -65,13 +65,12 @@ class _LentScreenState extends State<LentScreen> {
                         ),
                       ),
                       SizedBox(
-                        width: 132,
-                        child: FilledButton.icon(
+                        width: 140,
+                        child: FilledButton(
                           onPressed: () => _personDialog(
                               context, store,
                               borrowed: false),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Lent'),
+                          child: const Text('Lent'),
                         ),
                       ),
                     ],
@@ -100,13 +99,12 @@ class _LentScreenState extends State<LentScreen> {
                         ),
                       ),
                       SizedBox(
-                        width: 132,
-                        child: FilledButton.icon(
+                        width: 140,
+                        child: FilledButton(
                           onPressed: () => _personDialog(
                               context, store,
                               borrowed: true),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Borrowed'),
+                          child: const Text('Borrowed'),
                         ),
                       ),
                     ],
