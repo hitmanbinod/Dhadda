@@ -329,6 +329,10 @@ class _AddScreenState extends State<AddScreen>
           controller: name,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
+          // Accept the keyboard's Done key: with the keyboard open, some
+          // devices swallow the first tap on the dialog buttons.
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => Navigator.of(ctx).pop(true),
           decoration: const InputDecoration(
             labelText: 'Name (Gym, Baby, Car...)',
             border: OutlineInputBorder(),
