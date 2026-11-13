@@ -27,7 +27,13 @@
         android:label="Dhadda"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:allowBackup="false">
+        android:allowBackup="false"
+        android:usesCleartextTraffic="true">
+        <!-- usesCleartextTraffic: every sync transport speaks plain HTTP on
+             the LAN by design (docs/SECURITY_LAN.md, trusted-home-network
+             only). Without this flag Android 9+ silently blocks all
+             outbound sync calls from the phone while hosting (Show on PC)
+             keeps working, which made pairing look completely broken. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../format.dart';
 import '../store.dart';
 import '../widgets/entry_actions.dart';
+import '../widgets/event_branch_group.dart';
 import '../widgets/page.dart';
 
 /// Dashboard: month totals, category chart, budgets, recent entries.
@@ -31,6 +32,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final income = store.monthIncome(_month);
     final balance = income - spend;
     final byCat = store.spendByCategory(_month);
+    // This month's event activity: each event's entries collected under
+    // one collapsible branch (transactions are newest-first globally, so
+    // groups appear newest-event first).
+    final monthEvents = <Project, List<Txn>>{};
+    for (final t in store.transactions) {
+      if (t.projectId.isEmpty) continue;
+      final d = t.dateTime;
+      if (d.year != _month.year || d.month != _month.month) continue;
+      final p = store.projectOf(t.projectId);
+      if (p.id.isEmpty) continue;
+      (monthEvents[p] ??= []).add(t);
+    }
     final sorted = byCat.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final top = sorted.take(6).toList();
@@ -279,10 +292,38 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }),
         const SizedBox(height: 20),
+        if (monthEvents.isNotEmpty) ...[
+          Text('Events',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+              child: Column(
+                children: [
+                  for (final e in monthEvents.entries)
+                    EventBranchGroup(
+                      key: ValueKey('home-${e.key.id}'),
+                      store: store,
+                      project: e.key,
+                      txns: e.value,
+                      initiallyExpanded: false,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
         Text('Recent',
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...store.transactions.take(8).map((t) {
+        // Event-tagged entries live in the Events branches above, so
+        // Recent shows only untagged activity.
+        ...store.transactions
+            .where((t) => t.projectId.isEmpty)
+            .take(8)
+            .map((t) {
           final c = store.categoryOf(t.categoryId);
           return ListTile(
             onLongPress: () =>

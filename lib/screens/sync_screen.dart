@@ -301,7 +301,8 @@ class _SyncScreenState extends State<SyncScreen> {
   }
 
   /// Joining side: read the link box, converge, save the pairing.
-  /// Accepts a full scanned code, or manual Server + Code + PIN below.
+  /// Accepts a full scanned code, the web paste field's code text, or
+  /// manual Server + Code + PIN below.
   /// Manual entry carries no link secret (secrets only travel in QR codes),
   /// so it joins legacy PIN-only boxes; strong boxes need a scan.
   Future<void> _quickAnswer({String? presetRaw}) async {
@@ -309,7 +310,7 @@ class _SyncScreenState extends State<SyncScreen> {
     String? code;
     String? pin;
     var secret = '';
-    final raw = (presetRaw ?? '').trim();
+    var raw = (presetRaw ?? _quickCode.text).trim();
     if (raw.isNotEmpty) {
       final v2 = QrV2.parse(raw);
       if (v2 == null) {
@@ -329,7 +330,9 @@ class _SyncScreenState extends State<SyncScreen> {
       code = _codeCtrl.text.trim();
       pin = _pinCtrl.text.trim();
       if (server.isEmpty || code.isEmpty || pin.isEmpty) {
-        _say('Fill server, code and PIN - all three sit under the QR.');
+        _say(kIsWeb
+            ? 'Paste the code text shown on the other device first.'
+            : 'Fill server, code and PIN - all three sit under the QR.');
         return;
       }
     }
@@ -698,6 +701,14 @@ class _SyncScreenState extends State<SyncScreen> {
                         ),
                       )
                     else ...[
+                      TextField(
+                        controller: _quickCode,
+                        decoration: const InputDecoration(
+                          labelText: 'Paste code text (easiest)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       TextField(
                         controller: _srvCtrl,
                         keyboardType: TextInputType.url,

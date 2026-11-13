@@ -5,7 +5,8 @@ import 'relay_client.dart';
 
 /// Keeps linked devices converged for as long as the app is open:
 /// pushes on every local change (debounced) and polls the relay
-/// mailbox every 15 seconds.
+/// mailbox every 5 seconds, so both sides track each other in near
+/// real time.
 ///
 /// Phase 4: peers merge by record revision (v2 payloads, or v1 payloads
 /// converted to baseline rev-0 records), so independent offline edits on
@@ -34,7 +35,7 @@ class LinkEngine {
     };
     store.addListener(_onStore!);
     _poll?.cancel();
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => syncNow());
+    _poll = Timer.periodic(const Duration(seconds: 5), (_) => syncNow());
     syncNow(); // immediate catch-up on boot
   }
 

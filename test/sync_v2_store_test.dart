@@ -526,10 +526,11 @@ void main() {
       final msg = await a.importSnapshotString(jsonEncode(incoming));
       expect(msg, startsWith('Synced'));
       expect(a.transactions.any((t) => t.id == doomed.id), isFalse);
-      // User-picked file with the record: resurrects (old UX preserved).
+      // User-picked file with the record: resurrects (file-restore UX,
+      // now via the record-level merge instead of the updatedAt gate).
       incoming['updatedAt'] = '2027-06-01T00:00:00.000Z';
       final msg2 = await a.importFilePayload(jsonEncode(incoming));
-      expect(msg2, startsWith('Synced'));
+      expect(msg2, startsWith('Imported'));
       expect(a.transactions.any((t) => t.id == doomed.id), isTrue);
       // Force restore drops every tombstone.
       await a.deleteTransaction(doomed.id);

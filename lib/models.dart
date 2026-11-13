@@ -416,6 +416,7 @@ class Snapshot {
   final String updatedAt; // ISO-8601 UTC
   final String deviceId;
   final String deviceName;
+  final String userName; // display name; '' when absent (older exports)
   final List<Category> categories;
   final List<Txn> transactions;
   final List<Loan> loans;
@@ -426,6 +427,7 @@ class Snapshot {
     required this.updatedAt,
     required this.deviceId,
     required this.deviceName,
+    this.userName = '',
     required this.categories,
     required this.transactions,
     required this.loans,
@@ -437,6 +439,7 @@ class Snapshot {
         'updatedAt': updatedAt,
         'deviceId': deviceId,
         'deviceName': deviceName,
+        'userName': userName,
         'categories': categories.map((c) => c.toJson()).toList(),
         'transactions': transactions.map((t) => t.toJson()).toList(),
         'loans': loans.map((l) => l.toJson()).toList(),
@@ -454,6 +457,7 @@ class Snapshot {
       updatedAt: '${json['updatedAt'] ?? ''}',
       deviceId: '${json['deviceId'] ?? ''}',
       deviceName: '${json['deviceName'] ?? 'device'}',
+      userName: '${json['userName'] ?? ''}',
       categories: listOf(json['categories'], Category.fromJson),
       transactions: listOf(json['transactions'], Txn.fromJson),
       loans: listOf(json['loans'], Loan.fromJson),

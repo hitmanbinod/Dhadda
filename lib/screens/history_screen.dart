@@ -10,8 +10,11 @@ import '../store.dart';
 import '../sync/file_sync.dart';
 import '../widgets/delete.dart';
 import '../widgets/entry_actions.dart';
+import '../widgets/event_branch_group.dart';
+import '../widgets/event_share.dart';
 import '../widgets/glass.dart';
 import '../widgets/page.dart';
+import 'category_entries_screen.dart';
 
 /// Searchable history with type/category filters + CSV export.
 class HistoryScreen extends StatefulWidget {
@@ -27,10 +30,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
   DateTime? _dayFilter;
   Timer? _debounce;
 
+  /// Entries-list scroll position. Drives the slow collapse of the
+  /// search + filter block: scrolling down hands its space to history.
+  final ScrollController _listCtrl = ScrollController();
+
   @override
   void dispose() {
     _debounce?.cancel();
+    _listCtrl.dispose();
     super.dispose();
+  }
+
+  /// 0 (fully shown) to 1 (fully hidden) across the first ~220 px of
+  /// list scroll. Linear on purpose: the top area melts away steadily
+  /// with the finger, not in a snap.
+  double _collapseT() {
+    final off = _listCtrl.hasClients ? _listCtrl.offset : 0.0;
+    return (off / 220).clamp(0.0, 1.0);
   }
   String _type = 'all'; // all | expense | income
   String _cat = 'all';
@@ -76,6 +92,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return true;
     }).toList();
 
+    // Event-tagged entries collect under one collapsible branch per
+    // event, placed at that event's newest entry position; untagged
+    // entries stay chronological.
+    final display = <Object>[];
+    final groupedEvents = <String>{};
+    for (final t in txns) {
+      final p = t.projectId.isEmpty
+          ? Project(id: '', name: '', created: 0)
+          : store.projectOf(t.projectId);
+      if (p.id.isEmpty) {
+        display.add(t);
+        continue;
+      }
+      if (groupedEvents.add(t.projectId)) {
+        display.add((
+          p,
+          [for (final x in txns) if (x.projectId == t.projectId) x],
+        ));
+      }
+    }
+
     return Padding(
       padding:
           EdgeInsets.symmetric(horizontal: pageGutter(context)),
@@ -84,10 +121,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Column(
             children: [
               _segmented(),
+              // Search + filters collapse slowly out of the way as the
+              // list scrolls, so long histories read cleanly.
+              AnimatedBuilder(
+                animation: _listCtrl,
+                child: Column(
+                  children: [
               Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: TextField(
-            decoration: const InputDecoration(
+            child: TextField(            decoration: const InputDecoration(
               labelText: 'Search note, category, mode',
               prefixIcon: Icon(Icons.search),
               border: OutlineInputBorder(),
@@ -178,56 +220,92 @@ class _HistoryScreenState extends State<HistoryScreen> {
             },
           ),
         ),
+                  ],
+                ),
+                builder: (ctx, child) {
+                  final t = _collapseT();
+                  return IgnorePointer(
+                    ignoring: t > 0.5,
+                    child: Opacity(
+                      opacity: 1 - t,
+                      // ClipRect matters: Align's heightFactor shrinks the
+                      // box but the child keeps painting past it, which
+                      // would ghost the filters behind the list rows.
+                      child: ClipRect(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          heightFactor: 1 - t,
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
         Expanded(
           child: txns.isEmpty
               ? const Center(child: Text('Nothing found.'))
               : ListView.builder(
-                  itemCount: txns.length,
+                  controller: _listCtrl,
+                  itemCount: display.length,
                   itemBuilder: (ctx, i) {
-                    final t = txns[i];
-                    final c = store.categoryOf(t.categoryId);
-                    return Slidable(
-                      key: ValueKey(t.id),
-                      endActionPane: ActionPane(
-                        motion: const BehindMotion(),
-                        // Slide to reveal the delete tab (~80% wide).
-                        // Nothing deletes until the tab is pressed.
-                        extentRatio: 0.8,
-                        children: [
-                          SlidableAction(
-                            onPressed: (_) => deleteWithUndo(
-                                context, store, t),
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            icon: Icons.delete,
-                            label: 'Delete',
+                    final item = display[i];
+                    if (item is Txn) {
+                      final t = item;
+                      final c = store.categoryOf(t.categoryId);
+                      return Slidable(
+                        key: ValueKey(t.id),
+                        endActionPane: ActionPane(
+                          motion: const BehindMotion(),
+                          // Slide to reveal the delete tab (~80% wide).
+                          // Nothing deletes until the tab is pressed.
+                          extentRatio: 0.8,
+                          children: [
+                            SlidableAction(
+                              onPressed: (_) => deleteWithUndo(
+                                  context, store, t),
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              icon: Icons.delete,
+                              label: 'Delete',
+                            ),
+                          ],
+                        ),
+                        child: ListTile(
+                          onLongPress: () =>
+                              showEntryActions(context, store, t),
+                          onTap: () =>
+                              showEntryActions(context, store, t),
+                          leading: CircleAvatar(
+                            backgroundColor: c.colorValue
+                                .withValues(alpha: 0.15),
+                            child: Icon(c.iconData,
+                                color: c.colorValue, size: 20),
                           ),
-                        ],
-                      ),
-                      child: ListTile(
-                        onLongPress: () =>
-                            showEntryActions(context, store, t),
-                        onTap: () =>
-                            showEntryActions(context, store, t),
-                        leading: CircleAvatar(
-                          backgroundColor: c.colorValue
-                              .withValues(alpha: 0.15),
-                          child: Icon(c.iconData,
-                              color: c.colorValue, size: 20),
+                          title:
+                              Text(t.note.isEmpty ? c.name : t.note),
+                          subtitle: Text(
+                              '${dayStr(t.dateTime)}  -  ${c.name}  -  ${t.mode.toUpperCase()}'),
+                          trailing: Text(
+                            '${t.isExpense ? '-' : '+'}${money(t.amount)}',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: t.isExpense
+                                    ? Colors.red
+                                    : Colors.green),
+                          ),
                         ),
-                        title:
-                            Text(t.note.isEmpty ? c.name : t.note),
-                        subtitle: Text(
-                            '${dayStr(t.dateTime)}  -  ${c.name}  -  ${t.mode.toUpperCase()}${t.projectId.isEmpty ? '' : '  -  ${store.projectOf(t.projectId).name}'}'),
-                        trailing: Text(
-                          '${t.isExpense ? '-' : '+'}${money(t.amount)}',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: t.isExpense
-                                  ? Colors.red
-                                  : Colors.green),
-                        ),
-                      ),
+                      );
+                    }
+                    // Event group: every entry tagged with one event is
+                    // collected under a collapsible branch at the event's
+                    // newest entry position.
+                    final (p, groupTxns) = item as (Project, List<Txn>);
+                    return EventBranchGroup(
+                      key: ValueKey('evt-${p.id}'),
+                      store: store,
+                      project: p,
+                      txns: groupTxns,
                     );
                   },
            ),
@@ -237,7 +315,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           if (_dayFilter != null)
             Positioned(
               left: 0,
-              bottom: 16,
+              bottom: 20,
               child: InputChip(
                 label: Text(dayStr(_dayFilter!)),
                 deleteIcon:
@@ -247,12 +325,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
           Positioned(
-            right: 0,
-            bottom: 16,
+            right: 8,
+            bottom: 20,
             child: FloatingActionButton.small(
+              heroTag: 'history-jump-date',
               tooltip: 'Jump to date',
               onPressed: () => _pickDay(context),
-              child: const Icon(Icons.calendar_month),
+              child: const Icon(Icons.calendar_today),
             ),
           ),
         ],
@@ -330,7 +409,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(
-                'Hold the handle and drag to arrange.',
+                'Tap a category to see its history. Hold the handle and drag to arrange.',
                 style: Theme.of(context).textTheme.bodySmall),
           ),
         ),
@@ -347,14 +426,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
               final c = store.categories[i];
               return ListTile(
                 key: ValueKey(c.id),
-                onTap: () =>
-                    _customizeCategory(context, store, c),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        CategoryEntriesScreen(category: c),
+                  ),
+                ),
                 leading:
                     Icon(c.iconData, color: c.colorValue),
                 title: Text(c.name),
                 subtitle: Text(c.budget > 0
                     ? 'Budget ${c.budget.toStringAsFixed(0)}'
-                    : 'No budget Â· tap to customize'),
+                    : 'No budget · tap for history'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -412,53 +495,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
         for (final p in store.projects)
           Card(
             margin: const EdgeInsets.symmetric(vertical: 6),
-            child: ExpansionTile(
-              leading: CircleAvatar(
-                backgroundColor: p.colorValue
-                    .withValues(alpha: 0.15),
-                child: Icon(p.iconData,
-                    color: p.colorValue),
-              ),
-              title: Text(p.name,
-                  style:
-                      const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(
-                  '${money(store.projectSpend(p.id))} - ${store.projectTxns(p.id).length} entries'),
+            child: Column(
               children: [
-                if (p.note.isNotEmpty)
-                  ListTile(
-                      dense: true,
-                      leading:
-                          const Icon(Icons.note, size: 18),
-                      title: Text(p.note)),
-                for (final t in store.projectTxns(p.id).take(8))
-                  ListTile(
-                    dense: true,
-                    leading: Icon(
-                        store
-                            .categoryOf(t.categoryId)
-                            .iconData,
-                        size: 18,
-                        color: store
-                            .categoryOf(t.categoryId)
-                            .colorValue),
-                    title: Text(t.note.isEmpty
-                        ? store
-                            .categoryOf(t.categoryId)
-                            .name
-                        : t.note),
-                    subtitle: Text(dayStr(t.dateTime)),
-                    trailing: Text(
-                      '${t.isExpense ? '-' : '+'}${money(t.amount)}',
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: t.isExpense
-                              ? Colors.red
-                              : Colors.green),
-                    ),
-                  ),
+                EventBranchGroup(
+                  key: ValueKey('events-${p.id}'),
+                  store: store,
+                  project: p,
+                  txns: (store.projectTxns(p.id).toList()
+                    ..sort((a, b) => b.date.compareTo(a.date))),
+                  initiallyExpanded: false,
+                ),
                 OverflowBar(
                   children: [
+                    TextButton.icon(
+                      onPressed: () =>
+                          shareEventReport(context, store, p),
+                      icon: const Icon(Icons.ios_share),
+                      label: const Text('Share'),
+                    ),
                     TextButton.icon(
                       onPressed: () => _customizeProject(
                           context, store, p),

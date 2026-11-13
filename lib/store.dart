@@ -1544,6 +1544,7 @@ class ExpenseStore extends ChangeNotifier {
     updatedAt: updatedAt,
     deviceId: deviceId,
     deviceName: deviceName,
+    userName: userName,
     categories: List<Category>.from(categories),
     transactions: List<Txn>.from(transactions),
     loans: List<Loan>.from(loans),
@@ -1557,8 +1558,8 @@ class ExpenseStore extends ChangeNotifier {
   ///
   /// Sync metadata is re-keyed, never reset: existing revisions survive per
   /// id, new ids baseline at 0. Tombstones: [force] (explicit restore) drops
-  /// them all; [dropTombstonesForPresent] (user-picked file) drops them for
-  /// imported ids; ambient sync keeps them so deletions stand. Restored-over
+  /// them all; [dropTombstonesForPresent] drops them for ids the snapshot
+  /// contains. Restored-over
   /// tombstone ids outrank the deletion they undo.
   Future<String> importSnapshotString(
     String raw, {
@@ -1703,6 +1704,11 @@ class ExpenseStore extends ChangeNotifier {
     }
     _sortTxns();
     updatedAt = remote.updatedAt;
+    // Backups carry the display name (optional field; older exports have
+    // none) so a restore on another device greets the same person.
+    if (remote.userName.isNotEmpty) {
+      userName = remote.userName;
+    }
     lastSynced = DateTime.now().toUtc().toIso8601String();
     _saveAll();
     notifyListeners();
@@ -1716,12 +1722,86 @@ class ExpenseStore extends ChangeNotifier {
     return importSnapshotString(list[index], force: true);
   }
 
-  /// User-picked file import: v2 payloads merge by revision; v1 payloads
-  /// whole-replace with tombstones dropped for imported ids (preserves the
-  /// file-restore UX: file content appears after import).
-  Future<String> importFilePayload(String raw) {
-    if (V2Snapshot.detectFormat(raw) == 2) return importSnapshotV2(raw);
-    return importSnapshotString(raw, dropTombstonesForPresent: true);
+  /// User-picked file import: v1 and v2 payloads both merge record-level,
+  /// and records the file still contains come back even if this device had
+  /// deleted them (file-restore UX). The old v1 path gated the whole file
+  /// on `updatedAt`, so re-importing your own export (equal timestamps)
+  /// reported "Already up to date" and imported nothing. A true
+  /// point-in-time snapshot restore stays with Local backups -> Restore
+  /// (force) or erase-all + import.
+  Future<String> importFilePayload(String raw) async {
+    final fmt = V2Snapshot.detectFormat(raw);
+    if (fmt == 2) return _importV2File(raw);
+    if (fmt == 1) return _importV1File(raw);
+    return 'Could not read that file.';
+  }
+
+  /// Applies the merge result and, for v1 file imports, pulls the backup's
+  /// display name (optional field; empty in older exports = no change).
+  /// [preImportJson] (the explicit file-import path only) becomes a rolling
+  /// backup when the import changes anything — same safety net the old
+  /// whole-replace import had.
+  Future<String> _importMerged(
+    ({bool changed, int adopted, int tombs, String? error}) r, {
+    String adoptedName = '',
+    String preImportJson = '',
+  }) async {
+    if (r.error != null) {
+      return 'Could not save the import. Nothing was changed.';
+    }
+    if (r.changed && preImportJson.isNotEmpty) {
+      _pushBackup(preImportJson);
+    }
+    if (adoptedName.isNotEmpty && adoptedName != userName) {
+      await setUserName(adoptedName);
+    }
+    if (!r.changed) {
+      return 'Nothing new to import - this device already has '
+          'everything in the file.';
+    }
+    final n = r.adopted + r.tombs;
+    return 'Imported $n change${n == 1 ? '' : 's'} from the file.';
+  }
+
+  Future<String> _importV2File(String raw) async {
+    final snap = V2Snapshot.tryDecode(raw);
+    if (snap == null) return 'Could not read that sync data.';
+    if (!_v2ready) await _ensureV2Init(_prefs!);
+    final drop = <String>{
+      for (final rec in snap.records)
+        if (!rec.dead) rec.key,
+    };
+    final preJson = exportJson();
+    return _importMerged(
+      await _mergeAndApply(snap.records, dropTombstonesFor: drop),
+      preImportJson: preJson,
+    );
+  }
+
+  Future<String> _importV1File(String raw) async {
+    final Snapshot remote;
+    try {
+      remote = Snapshot.decode(raw);
+    } catch (_) {
+      return 'Could not read that file.';
+    }
+    if (!_v2ready) await _ensureV2Init(_prefs!);
+    final drop = <String>{
+      for (final c in remote.categories) '${SyncType.cat}/${c.id}',
+      for (final t in remote.transactions) '${SyncType.txn}/${t.id}',
+      for (final p in remote.projects) '${SyncType.proj}/${p.id}',
+      for (final l in remote.loans) ...[
+        '${SyncType.loan}/${l.id}',
+        for (final t in l.topups) '${SyncType.topup}/${t.id}',
+        for (final r in l.repayments) '${SyncType.repay}/${r.id}',
+      ],
+    };
+    final preJson = exportJson();
+    return _importMerged(
+      await _mergeAndApply(v1ToRev0Records(remote), dropTombstonesFor: drop),
+      adoptedName: remote.userName,
+      preImportJson: preJson,
+    );
   }
 
   // ---------- Snapshot v2 (record-level sync) ----------
@@ -2077,15 +2157,27 @@ class ExpenseStore extends ChangeNotifier {
   /// discipline extended to rev/tomb maps). Never throws: failures restore
   /// everything and surface through the returned error.
   ///
+  /// [dropTombstonesFor] removes local tombstones for those `type/id` keys
+  /// before merging — used by file imports, where a record the file still
+  /// contains should come back (file-restore UX). Safe: a dropped tombstone
+  /// means the file holds a live record for the id, so the merge always
+  /// adopts it and the result is applied (no memory/database divergence).
+  ///
   /// Held under the write lock: the merge is computed from in-memory state
   /// and then written as a wholesale replace, so it must not interleave with
   /// another writer (see [_serialized]).
   Future<({bool changed, int adopted, int tombs, String? error})>
-  _mergeAndApply(List<SyncRecord> remote) =>
-      _serialized(() => _mergeAndApplyLocked(remote));
+  _mergeAndApply(
+    List<SyncRecord> remote, {
+    Set<String> dropTombstonesFor = const {},
+  }) =>
+      _serialized(() => _mergeAndApplyLocked(remote, dropTombstonesFor));
 
   Future<({bool changed, int adopted, int tombs, String? error})>
-  _mergeAndApplyLocked(List<SyncRecord> remote) async {
+  _mergeAndApplyLocked(
+    List<SyncRecord> remote,
+    Set<String> dropTombstonesFor,
+  ) async {
     final d = _domain;
     if (d == null) {
       return (changed: false, adopted: 0, tombs: 0, error: 'not ready');
@@ -2096,13 +2188,14 @@ class ExpenseStore extends ChangeNotifier {
     }
     final localTombs = <String, SyncRecord>{
       for (final t in _tombs.values)
-        t.key: SyncRecord(
-          type: t.type,
-          id: t.id,
-          rev: t.rev,
-          by: t.by,
-          dead: true,
-        ),
+        if (!dropTombstonesFor.contains(t.key))
+          t.key: SyncRecord(
+            type: t.type,
+            id: t.id,
+            rev: t.rev,
+            by: t.by,
+            dead: true,
+          ),
     };
     final result = mergeRecords(
       localRecords: local,
