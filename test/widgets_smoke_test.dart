@@ -9,6 +9,7 @@ import 'package:expense/screens/sync_screen.dart';
 import 'package:expense/security.dart';
 import 'package:expense/store.dart';
 import 'package:expense/sync/link_sync.dart';
+import 'package:expense/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +38,7 @@ Future<void> _pumpScreen(
     WidgetTester tester, ExpenseStore store, Widget screen) async {
   await tester.pumpWidget(
     MaterialApp(
+      theme: AppTheme.build(const Color(0xFF009688), Brightness.dark),
       home: ChangeNotifierProvider<ExpenseStore>.value(
         value: store,
         child: Scaffold(body: screen),

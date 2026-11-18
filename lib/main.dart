@@ -18,6 +18,7 @@ import 'store.dart';
 import 'sync/link_sync.dart';
 import 'sync/reminders.dart';
 import 'sync/sms.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const ExpenseApp());
@@ -53,8 +54,8 @@ class ExpenseApp extends StatelessWidget {
             title: 'Dhadda',
             debugShowCheckedModeBanner: false,
             navigatorKey: kRootNavigatorKey,
-            theme: _baseTheme(seed, Brightness.light),
-            darkTheme: _baseTheme(seed, Brightness.dark),
+            theme: AppTheme.build(seed, Brightness.light),
+            darkTheme: AppTheme.build(seed, Brightness.dark),
             themeMode: mode,
             home: const RootShell(),
           );
@@ -62,18 +63,6 @@ class ExpenseApp extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Shared app theme. Grey press overlays (splash + highlight) are
-/// removed for a calm, professional look.
-ThemeData _baseTheme(Color seed, Brightness brightness) {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),
-    useMaterial3: true,
-    splashColor: Colors.transparent,
-    highlightColor: Colors.transparent,
-    splashFactory: NoSplash.splashFactory,
-  );
 }
 
 class RootShell extends StatefulWidget {
