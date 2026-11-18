@@ -57,7 +57,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.widgetWithText(FilledButton, 'Add expense'));
+    await tester.tap(find.byKey(const Key('home-add')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(AddScreen), findsOneWidget);

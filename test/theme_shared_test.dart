@@ -57,6 +57,14 @@ void main() {
     );
     expect(dark.textTheme.bodyLarge?.fontSize, 16);
     expect(
+      dark.navigationBarTheme.labelTextStyle
+          ?.resolve(<WidgetState>{})
+          ?.fontSize,
+      11,
+    );
+    expect(dark.navigationRailTheme.selectedLabelTextStyle?.fontSize, 11);
+    expect(dark.navigationRailTheme.unselectedLabelTextStyle?.fontSize, 11);
+    expect(
       dark.pageTransitionsTheme.builders[TargetPlatform.android],
       isA<FadeForwardsPageTransitionsBuilder>(),
     );

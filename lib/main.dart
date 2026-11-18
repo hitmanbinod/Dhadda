@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 
-import 'format.dart';
-
 import 'screens/add_screen.dart';
 import 'screens/database_problem_screen.dart';
 import 'screens/history_screen.dart';
@@ -281,6 +279,11 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     );
   }
 
+  void _openSync() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => SyncScreen(engine: _link)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
@@ -311,7 +314,12 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     }
 
     final pages = [
-      HomeScreen(onAdd: _openAdd, onSync: () => _link.syncNow()),
+      HomeScreen(
+        onAdd: _openAdd,
+        onSync: () => _link.syncNow(),
+        onOpenSync: _openSync,
+        onSeeAll: () => _go(1),
+      ),
       const HistoryScreen(),
       const LentScreen(),
       MenuScreen(engine: _link),
@@ -319,45 +327,44 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     final wide = MediaQuery.widthOf(context) > 900;
 
     return Scaffold(
-      appBar: AppBar(
-        title: _index == 0
-            ? Text(
-                homeGreeting(store.userName, DateTime.now()),
-                overflow: TextOverflow.ellipsis,
-              )
-            : Text(_titles[_index]),
-        actions: [
-          IconButton(
-            tooltip: 'Sync',
-            icon: const Icon(Icons.sync),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => SyncScreen(engine: _link)),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Row(
-        children: [
-          if (wide)
-            NavigationRail(
-              selectedIndex: _index,
-              onDestinationSelected: _go,
-              labelType: NavigationRailLabelType.all,
-              destinations: [
-                for (final d in _destinations)
-                  NavigationRailDestination(
-                    icon: d.icon,
-                    selectedIcon: d.selectedIcon,
-                    label: Text(d.label),
-                  ),
+      // Home owns its greeting and month header, so the shared bar only
+      // belongs to the other tabs.
+      appBar: _index == 0
+          ? null
+          : AppBar(
+              title: Text(_titles[_index]),
+              actions: [
+                IconButton(
+                  tooltip: 'Sync',
+                  icon: const Icon(Icons.sync),
+                  onPressed: _openSync,
+                ),
               ],
             ),
-          Expanded(
-            child: IndexedStack(index: _index, children: pages),
-          ),
-        ],
+      body: SafeArea(
+        top: _index == 0,
+        bottom: false,
+        child: Row(
+          children: [
+            if (wide)
+              NavigationRail(
+                selectedIndex: _index,
+                onDestinationSelected: _go,
+                labelType: NavigationRailLabelType.all,
+                destinations: [
+                  for (final d in _destinations)
+                    NavigationRailDestination(
+                      icon: d.icon,
+                      selectedIcon: d.selectedIcon,
+                      label: Text(d.label),
+                    ),
+                ],
+              ),
+            Expanded(
+              child: IndexedStack(index: _index, children: pages),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: wide
           ? null
