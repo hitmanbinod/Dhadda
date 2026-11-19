@@ -22,7 +22,8 @@ import '../widgets/empty_state.dart';
 import '../widgets/entry_actions.dart';
 import '../widgets/event_branch_group.dart';
 import '../widgets/event_share.dart';
-import '../widgets/page.dart' show kPageMaxWidth;
+import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
+import '../widgets/profile_avatar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/segmented_tabs.dart';
 import 'category_entries_screen.dart';
@@ -45,7 +46,10 @@ class HistoryScreen extends StatefulWidget {
   /// Opens the Sync screen. Provided by the shell; standalone uses omit it.
   final VoidCallback? onOpenSync;
 
-  const HistoryScreen({super.key, this.onOpenSync});
+  /// Opens Settings from the small avatar in the title row.
+  final VoidCallback? onOpenSettings;
+
+  const HistoryScreen({super.key, this.onOpenSync, this.onOpenSettings});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -173,6 +177,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   : () => _exportCsv(context, store, filtered),
             ),
           ],
+          SettingsAvatarButton(
+            name: store.userName,
+            onTap: widget.onOpenSettings,
+          ),
         ],
       ),
     );
@@ -559,7 +567,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return ListView.builder(
       key: const PageStorageKey('history-entries'),
       controller: _listCtrl,
-      padding: const EdgeInsets.only(top: Spacing.xs, bottom: Spacing.xxl),
+      padding: EdgeInsets.only(
+        top: Spacing.xs,
+        bottom: tabScrollBottomPadding(context),
+      ),
       itemCount: days.length,
       itemBuilder: (context, i) =>
           _daySection(colors, store, days[i], first: i == 0),
@@ -765,7 +776,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 )
               : ReorderableListView.builder(
                   buildDefaultDragHandles: false,
-                  padding: const EdgeInsets.only(bottom: Spacing.xxl),
+                  padding: EdgeInsets.only(
+                    bottom: tabScrollBottomPadding(context),
+                  ),
                   itemCount: store.categories.length,
                   onReorderItem: (oldI, newI) async {
                     await store.moveCategoryTo(store.categories[oldI].id, newI);
@@ -919,7 +932,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   onAction: () => _addProjectDialog(context, store),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.only(bottom: Spacing.xxl),
+                  padding: EdgeInsets.only(
+                    bottom: tabScrollBottomPadding(context),
+                  ),
                   itemCount: store.projects.length,
                   itemBuilder: (context, i) {
                     final p = store.projects[i];

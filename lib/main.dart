@@ -1,15 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 
 import 'screens/add_screen.dart';
 import 'screens/database_problem_screen.dart';
 import 'screens/history_screen.dart';
-import 'screens/menu_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/insights_screen.dart';
 import 'screens/lent_screen.dart';
 import 'screens/lock_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/sync_screen.dart';
 import 'security.dart';
 import 'store.dart';
@@ -79,13 +81,16 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   bool _locked = false;
   PinVault? _vault;
 
-  static const _titles = ['Home', 'History', 'Lent', 'Menu'];
-
   static const _destinations = [
     NavigationDestination(
       icon: Icon(Icons.home_outlined),
       selectedIcon: Icon(Icons.home),
       label: 'Home',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.bar_chart_outlined),
+      selectedIcon: Icon(Icons.bar_chart),
+      label: 'Insights',
     ),
     NavigationDestination(
       icon: Icon(Icons.receipt_long_outlined),
@@ -96,11 +101,6 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       icon: Icon(Icons.handshake_outlined),
       selectedIcon: Icon(Icons.handshake),
       label: 'Lent',
-    ),
-    NavigationDestination(
-      icon: Icon(Icons.menu_outlined),
-      selectedIcon: Icon(Icons.menu),
-      label: 'Menu',
     ),
   ];
 
@@ -284,6 +284,11 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         .push(MaterialPageRoute(builder: (_) => SyncScreen(engine: _link)));
   }
 
+  void _openSettings() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => SettingsScreen(engine: _link)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
@@ -318,53 +323,48 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         onAdd: _openAdd,
         onSync: () => _link.syncNow(),
         onOpenSync: _openSync,
-        onSeeAll: () => _go(1),
+        onOpenSettings: _openSettings,
+        onSeeAll: () => _go(2),
       ),
-      HistoryScreen(onOpenSync: _openSync),
-      const LentScreen(),
-      MenuScreen(engine: _link),
+      InsightsScreen(onOpenSettings: _openSettings),
+      HistoryScreen(onOpenSync: _openSync, onOpenSettings: _openSettings),
+      LentScreen(onOpenSettings: _openSettings),
     ];
     final wide = MediaQuery.widthOf(context) > 900;
-    // Home and History draw their own large titles, so the shared bar
-    // only belongs to the remaining tabs.
-    final ownHeader = _index <= 1;
+    // Every tab draws its own large title now (Settings is a pushed route),
+    // so the shell only owns the navigation chrome.
 
     return Scaffold(
-      appBar: ownHeader
-          ? null
-          : AppBar(
-              title: Text(_titles[_index]),
-              actions: [
-                IconButton(
-                  tooltip: 'Sync',
-                  icon: const Icon(Icons.sync),
-                  onPressed: _openSync,
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value:
+            (Theme.of(context).brightness == Brightness.dark
+                    ? SystemUiOverlayStyle.light
+                    : SystemUiOverlayStyle.dark)
+                .copyWith(statusBarColor: Colors.transparent),
+        child: SafeArea(
+          top: true,
+          bottom: false,
+          child: Row(
+            children: [
+              if (wide)
+                NavigationRail(
+                  selectedIndex: _index,
+                  onDestinationSelected: _go,
+                  labelType: NavigationRailLabelType.all,
+                  destinations: [
+                    for (final d in _destinations)
+                      NavigationRailDestination(
+                        icon: d.icon,
+                        selectedIcon: d.selectedIcon,
+                        label: Text(d.label),
+                      ),
+                  ],
                 ),
-              ],
-            ),
-      body: SafeArea(
-        top: ownHeader,
-        bottom: false,
-        child: Row(
-          children: [
-            if (wide)
-              NavigationRail(
-                selectedIndex: _index,
-                onDestinationSelected: _go,
-                labelType: NavigationRailLabelType.all,
-                destinations: [
-                  for (final d in _destinations)
-                    NavigationRailDestination(
-                      icon: d.icon,
-                      selectedIcon: d.selectedIcon,
-                      label: Text(d.label),
-                    ),
-                ],
+              Expanded(
+                child: IndexedStack(index: _index, children: pages),
               ),
-            Expanded(
-              child: IndexedStack(index: _index, children: pages),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: wide

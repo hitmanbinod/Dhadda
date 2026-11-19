@@ -129,7 +129,8 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         height: 64,
         backgroundColor: colors.background,
-        indicatorColor: colors.accent.withValues(alpha: 0.14),
+        // Quiet selection: accent icon + label only, no heavy pill/blob.
+        indicatorColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         overlayColor: overlay,
         iconTheme: WidgetStateProperty.resolveWith((states) {
@@ -152,11 +153,7 @@ abstract final class AppTheme {
         backgroundColor: colors.background,
         elevation: 0,
         minWidth: 72,
-        useIndicator: true,
-        indicatorColor: colors.accent.withValues(alpha: 0.14),
-        indicatorShape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(12)),
-        ),
+        useIndicator: false,
         selectedIconTheme: IconThemeData(color: colors.accent, size: 22),
         unselectedIconTheme: IconThemeData(
           color: colors.textSecondary,

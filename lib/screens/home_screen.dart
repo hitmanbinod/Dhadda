@@ -18,7 +18,8 @@ import '../widgets/delete.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/entry_actions.dart';
 import '../widgets/event_branch_group.dart';
-import '../widgets/page.dart' show kPageMaxWidth;
+import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
+import '../widgets/profile_avatar.dart';
 import '../widgets/section_header.dart';
 
 /// Dashboard: month totals, category distribution, budgets, recent entries.
@@ -30,6 +31,9 @@ class HomeScreen extends StatefulWidget {
   /// (tests and embedded uses that do not own a link engine).
   final VoidCallback? onOpenSync;
 
+  /// Opens Settings from the profile header.
+  final VoidCallback? onOpenSettings;
+
   /// Switches the shell to History.
   final VoidCallback? onSeeAll;
 
@@ -38,6 +42,7 @@ class HomeScreen extends StatefulWidget {
     required this.onAdd,
     this.onSync,
     this.onOpenSync,
+    this.onOpenSettings,
     this.onSeeAll,
   });
 
@@ -281,7 +286,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           },
                         ),
                       ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 96)),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: tabScrollBottomPadding(context)),
+                    ),
                   ],
                 ),
               ),
@@ -297,19 +304,99 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Greeting, month pager, and sync above the large month/year title.
+  /// Profile row first, then the large month title with its pager and
+  /// calendar jump. Tapping the avatar/name opens Settings.
   Widget _header(BuildContext context, ExpenseStore store, AppColors colors) {
+    final name = store.userName.trim();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
           children: [
             Expanded(
-              child: Text(
-                homeGreeting(store.userName, DateTime.now()),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.caption.copyWith(color: colors.textSecondary),
+              child: Semantics(
+                button: true,
+                label: 'Open settings',
+                child: InkWell(
+                  key: const Key('home-profile'),
+                  onTap: widget.onOpenSettings,
+                  borderRadius: Radii.cardRadius,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+                    child: Row(
+                      children: [
+                        ProfileAvatar(name: name),
+                        const SizedBox(width: Spacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name.isEmpty ? 'Set your name' : name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.title.copyWith(
+                                  color: colors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                homeGreeting('', DateTime.now()),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppType.caption.copyWith(
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: Spacing.xs),
+            _headerIcon(
+              colors,
+              Icons.sync,
+              'Sync',
+              widget.onOpenSync ?? () => _doSync(),
+            ),
+          ],
+        ),
+        const SizedBox(height: Spacing.md),
+        Row(
+          children: [
+            Expanded(
+              child: Semantics(
+                button: true,
+                label: 'Jump to month',
+                child: InkWell(
+                  onTap: _pickMonth,
+                  borderRadius: BorderRadius.circular(Radii.icon),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: _monthTitle(colors),
+                          ),
+                        ),
+                        const SizedBox(width: Spacing.xs),
+                        Icon(
+                          Icons.expand_more,
+                          size: 20,
+                          color: colors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
             _headerIcon(
@@ -328,40 +415,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 () => _month = DateTime(_month.year, _month.month + 1),
               ),
             ),
-            _headerIcon(
-              colors,
-              Icons.sync,
-              'Sync',
-              widget.onOpenSync ?? () => _doSync(),
-            ),
           ],
-        ),
-        const SizedBox(height: Spacing.xs),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Semantics(
-            button: true,
-            label: 'Jump to month',
-            child: InkWell(
-              onTap: _pickMonth,
-              borderRadius: BorderRadius.circular(Radii.icon),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(child: _monthTitle(colors)),
-                    const SizedBox(width: Spacing.xs),
-                    Icon(
-                      Icons.expand_more,
-                      size: 20,
-                      color: colors.textSecondary,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
         ),
       ],
     );
