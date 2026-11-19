@@ -89,6 +89,49 @@ void main() {
     expect(data.elapsedDays, 76);
   });
 
+  test('period metadata offers Month, 3, 6 and Year', () {
+    expect(InsightPeriod.values.map((p) => p.label), [
+      'Month',
+      '3 months',
+      '6 months',
+      'Year',
+    ]);
+    expect(InsightPeriod.values.map((p) => p.months), [1, 3, 6, 12]);
+    expect(InsightPeriod.half.spentLabel, 'Spent in the last 6 months');
+    expect(InsightPeriod.half.compareLabel, 'the previous 6 months');
+    expect(InsightPeriod.year.spentLabel, 'Spent in the last 12 months');
+    expect(InsightPeriod.values.map((p) => p.trendMonths), [6, 6, 6, 12]);
+  });
+
+  test('six months spans the anchor and five months back', () {
+    final data = computeInsights(
+      [
+        ...sample(),
+        txn('dec', 'expense', 120, 'food', DateTime(2025, 12, 31)),
+      ],
+      anchor,
+      InsightPeriod.half,
+      asOf: asOf,
+    );
+
+    expect(data.start, DateTime(2026, 1, 1));
+    expect(data.end, DateTime(2026, 7, 1));
+    expect(data.previousStart, DateTime(2025, 7, 1));
+    expect(data.spend, 1349);
+    expect(data.income, 500);
+    // December 2025 sits in the comparison block, not the window.
+    expect(data.previousSpend, 120);
+    expect(data.spendChange, closeTo((1349 - 120) / 120, 1e-12));
+    expect(data.trend, hasLength(6));
+    expect(data.topExpenses.map((t) => t.id), [
+      'may',
+      'apr',
+      'jun-start',
+      'jun-end',
+    ]);
+    expect(data.elapsedDays, 166);
+  });
+
   test('twelve months rolls across the year boundary', () {
     final data = computeInsights(
       [

@@ -22,7 +22,7 @@ import '../widgets/segmented_tabs.dart';
 final _trendMonthFmt = DateFormat.MMM();
 final _trendMonthFullFmt = DateFormat.yMMMM();
 
-/// Insights: a calm read on the trailing month, quarter, or year.
+/// Insights: a calm read on the trailing month, 3, 6 or 12 months.
 /// All maths comes from [ExpenseStore.insights], which memoizes by data
 /// revision and period; this screen only formats and arranges it.
 class InsightsScreen extends StatefulWidget {

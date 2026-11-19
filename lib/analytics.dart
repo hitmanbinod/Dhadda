@@ -69,37 +69,43 @@ MonthlyAnalytics computeMonthlyAnalytics(List<Txn> txns, DateTime month) {
 }
 
 /// The three trailing windows offered by the Insights tab.
-enum InsightPeriod { month, quarter, year }
+/// The four windows offered by the Insights tab. `year` is a trailing
+/// 12-month window, not a calendar year.
+enum InsightPeriod { month, quarter, half, year }
 
 extension InsightPeriodInfo on InsightPeriod {
   /// Number of calendar months in the selected window.
   int get months => switch (this) {
     InsightPeriod.month => 1,
     InsightPeriod.quarter => 3,
+    InsightPeriod.half => 6,
     InsightPeriod.year => 12,
   };
 
   String get label => switch (this) {
     InsightPeriod.month => 'Month',
     InsightPeriod.quarter => '3 months',
-    InsightPeriod.year => '12 months',
+    InsightPeriod.half => '6 months',
+    InsightPeriod.year => 'Year',
   };
 
-  /// "Spent this month" / "Spent in the last 3 months".
+  /// "Spent this month" / "Spent in the last 6 months".
   String get spentLabel => switch (this) {
     InsightPeriod.month => 'Spent this month',
     InsightPeriod.quarter => 'Spent in the last 3 months',
+    InsightPeriod.half => 'Spent in the last 6 months',
     InsightPeriod.year => 'Spent in the last 12 months',
   };
 
-  /// "than last month" / "than the previous 3 months".
+  /// "than last month" / "than the previous 6 months".
   String get compareLabel => switch (this) {
     InsightPeriod.month => 'last month',
     InsightPeriod.quarter => 'the previous 3 months',
+    InsightPeriod.half => 'the previous 6 months',
     InsightPeriod.year => 'the previous 12 months',
   };
 
-  /// Bars stay readable at six; a full year gets one bar per month.
+  /// Bars stay readable at six; a trailing year gets one bar per month.
   int get trendMonths => this == InsightPeriod.year ? 12 : 6;
 }
 

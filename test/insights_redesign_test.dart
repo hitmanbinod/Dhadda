@@ -140,8 +140,13 @@ void main() {
     expect(find.text('Shopping'), findsOneWidget);
     expect(find.text('No previous spending to compare.'), findsOneWidget);
 
-    // And the full year.
-    await tester.tap(find.text('12 months'));
+    // Six months is its own window, with its own comparison copy.
+    await tester.tap(find.text('6 months'));
+    await tester.pumpAndSettle();
+    expect(find.text('Spent in the last 6 months'), findsOneWidget);
+
+    // And the trailing year.
+    await tester.tap(find.text('Year'));
     await tester.pumpAndSettle();
     expect(find.text('Spent in the last 12 months'), findsOneWidget);
     expect(find.text('Last 12 months'), findsOneWidget);
@@ -171,7 +176,7 @@ void main() {
     expect(find.text('Largest expenses'), findsNothing);
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('12 months'));
+    await tester.tap(find.text('Year'));
     await tester.pumpAndSettle();
     expect(find.text('No activity in this period.'), findsOneWidget);
   });
@@ -197,7 +202,7 @@ void main() {
           isNull,
           reason: '$size ${brightness.name}',
         );
-        for (final label in ['3 months', '12 months', 'Month']) {
+        for (final label in ['Month', '3 months', '6 months', 'Year']) {
           await tester.tap(find.text(label));
           await tester.pumpAndSettle();
           expect(
