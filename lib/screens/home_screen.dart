@@ -533,55 +533,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: Spacing.md),
-        Row(
-          children: [
-            Expanded(
-              child: Semantics(
-                button: true,
-                label: 'Jump to month',
-                child: InkWell(
-                  onTap: _pickMonth,
-                  borderRadius: BorderRadius.circular(Radii.icon),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: _monthTitle(colors),
-                          ),
-                        ),
-                        const SizedBox(width: Spacing.xs),
-                        Icon(
-                          Icons.expand_more,
-                          size: 20,
-                          color: colors.textSecondary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+        Semantics(
+          button: true,
+          label: 'Choose month. Swipe left or right to browse months.',
+          child: GestureDetector(
+            key: const Key('home-month-title'),
+            behavior: HitTestBehavior.opaque,
+            onTap: _pickMonth,
+            onHorizontalDragStart: _onMonthDragStart,
+            onHorizontalDragUpdate: _onMonthDragUpdate,
+            onHorizontalDragEnd: _onMonthDragEnd,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: _monthTitle(colors),
               ),
             ),
-            _headerIcon(
-              colors,
-              Icons.chevron_left,
-              'Previous month',
-              () => setState(
-                () => _month = DateTime(_month.year, _month.month - 1),
-              ),
-            ),
-            _headerIcon(
-              colors,
-              Icons.chevron_right,
-              'Next month',
-              () => setState(
-                () => _month = DateTime(_month.year, _month.month + 1),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
@@ -608,6 +578,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (split <= 0) {
       return Text(
         label,
+        key: const Key('home-month-label'),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: style,
@@ -626,6 +597,7 @@ class _HomeScreenState extends State<HomeScreen> {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: style,
+      key: const Key('home-month-label'),
     );
   }
 
@@ -1595,6 +1567,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  /// Distance-based month paging: a slow swipe works as well as a fling,
+  /// and a short tap still reaches the calendar.
+  double _monthDragDx = 0;
+  bool _monthSwiped = false;
+
+  void _onMonthDragStart(DragStartDetails details) {
+    _monthDragDx = 0;
+    _monthSwiped = false;
+  }
+
+  void _onMonthDragUpdate(DragUpdateDetails details) {
+    if (_monthSwiped) return;
+    _monthDragDx += details.delta.dx;
+    if (_monthDragDx.abs() < 56) return;
+    _monthSwiped = true;
+    Haptics.selection();
+    setState(() {
+      _month = DateTime(
+        _month.year,
+        _month.month + (_monthDragDx < 0 ? 1 : -1),
+      );
+    });
+  }
+
+  void _onMonthDragEnd(DragEndDetails details) {
+    _monthDragDx = 0;
+    _monthSwiped = false;
   }
 
   /// Tapping the month pops a calendar to jump timelines directly.

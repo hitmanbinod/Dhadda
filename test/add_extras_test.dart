@@ -106,7 +106,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Repeat'), findsOneWidget);
-      final chip = find.byKey(const Key('add-repeat-Momo'));
+      final chip = find.byKey(const Key('add-repeat-food-Momo'));
       expect(chip, findsOneWidget);
       await tester.tap(chip);
       await tester.pumpAndSettle();
@@ -118,6 +118,31 @@ void main() {
         find.widgetWithText(ChoiceChip, 'Food'),
       );
       expect(food.selected, isTrue);
+    });
+
+    testWidgets('same note in two categories gets unique repeat chips', (
+      tester,
+    ) async {
+      final store = await seededStore();
+      await store.addTransaction(
+        type: 'expense',
+        amount: 120,
+        categoryId: 'travel',
+        date: now.subtract(const Duration(days: 1)),
+        note: 'Momo',
+        mode: 'cash',
+      );
+      await tester.pumpWidget(
+        ChangeNotifierProvider<ExpenseStore>.value(
+          value: store,
+          child: MaterialApp(home: AddScreen(onSaved: () {})),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('add-repeat-food-Momo')), findsOneWidget);
+      expect(find.byKey(const Key('add-repeat-travel-Momo')), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('keypad writes strict amounts and Save stays visible', (

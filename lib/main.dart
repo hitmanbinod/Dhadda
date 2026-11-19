@@ -89,14 +89,14 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       label: 'Home',
     ),
     NavigationDestination(
-      icon: Icon(Icons.bar_chart_outlined),
-      selectedIcon: Icon(Icons.bar_chart),
-      label: 'Insights',
-    ),
-    NavigationDestination(
       icon: Icon(Icons.receipt_long_outlined),
       selectedIcon: Icon(Icons.receipt_long),
       label: 'History',
+    ),
+    NavigationDestination(
+      icon: Icon(Icons.bar_chart_outlined),
+      selectedIcon: Icon(Icons.bar_chart),
+      label: 'Insights',
     ),
     NavigationDestination(
       icon: Icon(Icons.handshake_outlined),
@@ -276,7 +276,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   /// Home's rhythm strip: filter History to that day, then switch tabs.
   void _openHistoryDay(DateTime day) {
     _historyDay.open(day);
-    setState(() => _index = 2);
+    setState(() => _index = 1);
   }
 
   void _openAdd() {
@@ -332,15 +332,15 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         onSync: () => _link.syncNow(),
         onOpenSync: _openSync,
         onOpenSettings: _openSettings,
-        onSeeAll: () => _go(2),
+        onSeeAll: () => _go(1),
         onOpenDay: _openHistoryDay,
       ),
-      InsightsScreen(onOpenSettings: _openSettings),
       HistoryScreen(
         onOpenSync: _openSync,
         onOpenSettings: _openSettings,
         dayRequest: _historyDay,
       ),
+      InsightsScreen(onOpenSettings: _openSettings),
       LentScreen(onOpenSettings: _openSettings),
     ];
     final wide = MediaQuery.widthOf(context) > 900;

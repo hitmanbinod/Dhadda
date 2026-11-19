@@ -199,4 +199,42 @@ void main() {
       }
     }
   });
+
+  testWidgets('month header swipes between months and opens the calendar', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 1400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final store = await readyStore();
+    await tester.pumpWidget(shell(store));
+    await tester.pumpAndSettle();
+
+    String label() {
+      final text = tester.widget<Text>(find.byKey(const Key('home-month-label')));
+      return text.data ?? text.textSpan!.toPlainText();
+    }
+
+    final now = DateTime.now();
+    expect(label(), monthStr(DateTime(now.year, now.month)));
+    // No chevrons / dropdown arrow: one clean, tappable date.
+    expect(find.byTooltip('Previous month'), findsNothing);
+    expect(find.byTooltip('Next month'), findsNothing);
+    expect(find.byIcon(Icons.expand_more), findsNothing);
+    expect(find.byKey(const Key('home-month-title')), findsOneWidget);
+
+    final title = find.byKey(const Key('home-month-title'));
+    final center = tester.getCenter(title);
+    await tester.dragFrom(
+      center - const Offset(60, 0),
+      const Offset(120, 0),
+      // A fast fling; slow drags are ignored so taps still open the picker.
+    );
+    await tester.pumpAndSettle();
+    expect(label(), monthStr(DateTime(now.year, now.month - 1)));
+
+    await tester.dragFrom(center + const Offset(60, 0), const Offset(-120, 0));
+    await tester.pumpAndSettle();
+    expect(label(), monthStr(DateTime(now.year, now.month)));
+  });
 }

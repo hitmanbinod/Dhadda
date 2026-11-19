@@ -7,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Step 1 shell: Home / Insights / History / Lent, a pushed Settings route,
+/// Step 1 shell: Home / History / Insights / Lent, a pushed Settings route,
 /// and the profile shortcut. Every tab is laid out at phone and wide widths
 /// in both themes.
 void main() {
@@ -67,7 +67,7 @@ void main() {
     await pumpApp(tester, store);
 
     expect(find.byType(NavigationBar), findsOneWidget);
-    for (final label in ['Home', 'Insights', 'History', 'Lent']) {
+    for (final label in ['Home', 'History', 'Insights', 'Lent']) {
       expect(navLabel(label), findsOneWidget);
     }
     expect(navLabel('Menu'), findsNothing);
@@ -124,7 +124,7 @@ void main() {
           wide ? find.byType(NavigationRail) : find.byType(NavigationBar),
           findsOneWidget,
         );
-        for (final label in ['Insights', 'History', 'Lent', 'Home']) {
+        for (final label in ['History', 'Insights', 'Lent', 'Home']) {
           await tester.tap(navLabel(label));
           await tester.pumpAndSettle();
           expect(

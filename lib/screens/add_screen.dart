@@ -155,7 +155,7 @@ class _AddScreenState extends State<AddScreen>
             children: [
               for (final s in suggestions)
                 InputChip(
-                  key: Key('add-repeat-${s.note}'),
+                  key: Key('add-repeat-${s.categoryId}-${s.note}'),
                   avatar: const Icon(Icons.replay, size: 16),
                   label: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 160),
