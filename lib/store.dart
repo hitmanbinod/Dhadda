@@ -1419,6 +1419,27 @@ class ExpenseStore extends ChangeNotifier {
   Map<String, double> spendByCategory(DateTime month) =>
       Map.of(monthly(month).byCategory);
 
+  // Memoized Insights summaries. The key is the data revision (updatedAt)
+  // plus the period; clearing the map on a revision change keeps every
+  // period cached while settings-only rebuilds reuse the last result.
+  // The day is part of the revision because the per-day average depends on
+  // how much of the window has elapsed.
+  String _insightsRevision = '';
+  final Map<InsightPeriod, InsightsAnalytics> _insightsCache = {};
+
+  InsightsAnalytics insights(InsightPeriod period) {
+    final now = DateTime.now();
+    final revision = '$updatedAt|${now.year}-${now.month}-${now.day}';
+    if (_insightsRevision != revision) {
+      _insightsRevision = revision;
+      _insightsCache.clear();
+    }
+    return _insightsCache.putIfAbsent(
+      period,
+      () => computeInsights(transactions, now, period, asOf: now),
+    );
+  }
+
   // ---------- event projects ----------
 
   Project projectOf(String id) {
