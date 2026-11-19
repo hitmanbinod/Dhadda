@@ -75,6 +75,7 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
   late final LinkEngine _link;
+  final HistoryDayRequest _historyDay = HistoryDayRequest();
   bool _smsBootDone = false;
   bool _smsBusy = false;
   bool _lockChecked = false;
@@ -197,6 +198,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _link.stop();
+    _historyDay.dispose();
     try {
       context.read<ExpenseStore>().removeListener(_maybeAutoSms);
     } catch (_) {}
@@ -271,6 +273,12 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
 
   void _go(int i) => setState(() => _index = i);
 
+  /// Home's rhythm strip: filter History to that day, then switch tabs.
+  void _openHistoryDay(DateTime day) {
+    _historyDay.open(day);
+    setState(() => _index = 2);
+  }
+
   void _openAdd() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -325,9 +333,14 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         onOpenSync: _openSync,
         onOpenSettings: _openSettings,
         onSeeAll: () => _go(2),
+        onOpenDay: _openHistoryDay,
       ),
       InsightsScreen(onOpenSettings: _openSettings),
-      HistoryScreen(onOpenSync: _openSync, onOpenSettings: _openSettings),
+      HistoryScreen(
+        onOpenSync: _openSync,
+        onOpenSettings: _openSettings,
+        dayRequest: _historyDay,
+      ),
       LentScreen(onOpenSettings: _openSettings),
     ];
     final wide = MediaQuery.widthOf(context) > 900;

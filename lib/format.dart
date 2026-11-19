@@ -16,9 +16,18 @@ final _fmtCache = <String, NumberFormat>{};
 String money(double v, [String? symbol]) {
   final sym = (symbol == null || symbol.isEmpty) ? _displaySymbol : symbol;
   var f = _fmtCache[sym];
-  f ??= _fmtCache[sym] =
-      NumberFormat.currency(symbol: '$sym ', decimalDigits: 0);
+  f ??= _fmtCache[sym] = NumberFormat.currency(
+    symbol: '$sym ',
+    decimalDigits: 0,
+  );
   return f.format(v);
+}
+
+/// Placeholder for the hide-balance eye. Keeps the active currency symbol
+/// visible (never hard-coded) and replaces the digits with four dots.
+String hiddenMoney([String? symbol]) {
+  final sym = (symbol == null || symbol.isEmpty) ? _displaySymbol : symbol;
+  return '$sym \u2022\u2022\u2022\u2022';
 }
 
 /// Strict cash parser: digits with optional thousand-commas and up to

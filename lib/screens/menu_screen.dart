@@ -14,6 +14,7 @@ import '../widgets/backup_password.dart';
 import '../sync/link_sync.dart';
 import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
+import 'edit_home_screen.dart';
 import 'sync_screen.dart';
 
 /// Menu tab: sync entry, appearance, security, currency, data, about.
@@ -243,6 +244,30 @@ class _MenuScreenState extends State<MenuScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
+                SwitchListTile(
+                  key: const Key('settings-hide-balance'),
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  title: const Text('Hide balance when the app opens'),
+                  subtitle: const Text(
+                    'Home masks amounts until you tap the eye.',
+                  ),
+                  value: store.hideBalance,
+                  onChanged: (v) => store.setHideBalance(v),
+                ),
+                ListTile(
+                  key: const Key('settings-edit-home'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.dashboard_customize_outlined),
+                  title: const Text('Edit Home'),
+                  subtitle: const Text('Choose sections and their order'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const EditHomeScreen()),
+                  ),
+                ),
+                const Divider(height: 1),
+                const SizedBox(height: 4),
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
                   leading: Container(
@@ -261,14 +286,17 @@ class _MenuScreenState extends State<MenuScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                          vertical: 12, horizontal: 4),
+                        vertical: 12,
+                        horizontal: 4,
+                      ),
                       child: Wrap(
                         spacing: 12,
                         runSpacing: 12,
                         alignment: WrapAlignment.start,
                         children: [
-                          if (!ExpenseStore.accentChoices
-                              .contains(store.accent))
+                          if (!ExpenseStore.accentChoices.contains(
+                            store.accent,
+                          ))
                             _swatch(context, store, store.accent, true),
                           for (final c in ExpenseStore.accentChoices)
                             _swatch(context, store, c, false),
@@ -714,10 +742,7 @@ class _MenuScreenState extends State<MenuScreen> {
           side: BorderSide(
             color: selected
                 ? Theme.of(context).colorScheme.primary
-                : Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.6),
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.6),
             width: 2,
           ),
         ),
@@ -752,7 +777,7 @@ class _MenuScreenState extends State<MenuScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Pick an accent'),
-          content: SingleChildScrollView(
+        content: SingleChildScrollView(
           child: ColorPicker(
             color: picked,
             onColorChanged: (c) => picked = c,
@@ -943,8 +968,9 @@ class _MenuScreenState extends State<MenuScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Last chance'),
         content: const Text(
-            'There is no undo. This also removes the app lock (PIN/biometric) '
-            'and all settings. Really erase?'),
+          'There is no undo. This also removes the app lock (PIN/biometric) '
+          'and all settings. Really erase?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),

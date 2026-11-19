@@ -320,3 +320,21 @@ InsightsAnalytics computeInsights(
     topExpenses: top,
   );
 }
+
+/// Calendar days in [month]'s month (28-31).
+int daysInMonth(DateTime month) => DateTime(month.year, month.month + 1, 0).day;
+
+/// Month-end projection at the current pace. Null when [month] is not the
+/// calendar month containing [asOf] or fewer than [minDays] have elapsed, so
+/// Home can stay quiet early in the month and never "forecasts" history.
+double? projectMonthEndSpend(
+  double spent,
+  DateTime month, {
+  DateTime? asOf,
+  int minDays = 5,
+}) {
+  final now = asOf ?? DateTime.now();
+  if (now.year != month.year || now.month != month.month) return null;
+  if (now.day < minDays || now.day <= 0) return null;
+  return spent / now.day * daysInMonth(month);
+}

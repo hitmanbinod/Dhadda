@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
+import '../analytics.dart';
 import '../format.dart';
+import '../home_layout.dart';
 import '../store.dart';
 import '../theme/haptics.dart';
 import '../theme/palette.dart';
@@ -21,6 +23,7 @@ import '../widgets/event_branch_group.dart';
 import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
 import '../widgets/profile_avatar.dart';
 import '../widgets/section_header.dart';
+import 'edit_home_screen.dart';
 
 /// Dashboard: month totals, category distribution, budgets, recent entries.
 class HomeScreen extends StatefulWidget {
@@ -37,6 +40,9 @@ class HomeScreen extends StatefulWidget {
   /// Switches the shell to History.
   final VoidCallback? onSeeAll;
 
+  /// Opens History filtered to one day (the rhythm strip).
+  final ValueChanged<DateTime>? onOpenDay;
+
   const HomeScreen({
     super.key,
     required this.onAdd,
@@ -44,6 +50,7 @@ class HomeScreen extends StatefulWidget {
     this.onOpenSync,
     this.onOpenSettings,
     this.onSeeAll,
+    this.onOpenDay,
   });
 
   @override
@@ -79,6 +86,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final colors = AppColors.of(context);
+    final now = DateTime.now();
+    final isCurrentMonth = _month.year == now.year && _month.month == now.month;
+    final hidden = store.hideBalance;
+    final layout = store.homeLayout;
     final analytics = store.monthly(_month);
     final spend = analytics.spend;
     final income = analytics.income;
@@ -139,6 +150,29 @@ class _HomeScreenState extends State<HomeScreen> {
         .take(8)
         .toList(growable: false);
 
+    // The optional rhythm/today sections need one pass over this month's
+    // expenses. Other layouts keep the original single-pass analytics only.
+    final days = daysInMonth(_month);
+    final needsDaily = layout.any(
+      (s) =>
+          s.visible &&
+          (s.section == HomeSection.rhythm ||
+              s.section == HomeSection.todayRing),
+    );
+    final daily = List<double>.filled(days, 0);
+    if (needsDaily) {
+      for (final t in store.transactions) {
+        if (!t.isExpense) continue;
+        final d = t.dateTime;
+        if (d.year != _month.year || d.month != _month.month) continue;
+        daily[d.day - 1] += t.amount;
+      }
+    }
+    final todaySpend = isCurrentMonth ? daily[now.day - 1] : 0.0;
+    final budgetTotal = budgets.fold<double>(0, (sum, c) => sum + c.budget);
+    final dailyAllowance = budgetTotal > 0 ? budgetTotal / days : 0.0;
+    final projected = projectMonthEndSpend(spend, _month);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         // Local 20dp phone margin, centred and capped at 880dp. Computed
@@ -147,6 +181,261 @@ class _HomeScreenState extends State<HomeScreen> {
         final hPad = math.max(
           Spacing.screen,
           (constraints.maxWidth - kPageMaxWidth) / 2,
+        );
+
+        final slivers = <Widget>[
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
+            sliver: SliverToBoxAdapter(child: _header(context, store, colors)),
+          ),
+        ];
+        HomeSection? previous;
+
+        void gap(double height) {
+          if (height <= 0) return;
+          slivers.add(SliverToBoxAdapter(child: SizedBox(height: height)));
+        }
+
+        void cardSection(Widget child) {
+          slivers.add(
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: hPad),
+              sliver: SliverToBoxAdapter(child: child),
+            ),
+          );
+        }
+
+        for (final setting in layout) {
+          if (!setting.visible) continue;
+          final section = setting.section;
+          // Content-driven sections disappear cleanly when empty.
+          if (section == HomeSection.budgets && budgets.isEmpty) continue;
+          if (section == HomeSection.events && monthEvents.isEmpty) continue;
+
+          if (section == HomeSection.stats) {
+            if (previous != HomeSection.balance) gap(Spacing.xl);
+          } else if (section != HomeSection.balance) {
+            gap(Spacing.xl);
+          }
+
+          switch (section) {
+            case HomeSection.balance:
+              cardSection(_balanceHero(store, colors, balance));
+              break;
+            case HomeSection.stats:
+              cardSection(
+                _stats(
+                  colors,
+                  spend: spend,
+                  income: income,
+                  lent: store.pendingLoansTotal,
+                  masked: hidden,
+                ),
+              );
+              break;
+            case HomeSection.categories:
+              cardSection(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader('By category'),
+                    const SizedBox(height: Spacing.sm),
+                    _categoriesCard(
+                      context,
+                      colors,
+                      slices: slices,
+                      spotlight: spotlight,
+                      spend: spend,
+                    ),
+                  ],
+                ),
+              );
+              break;
+            case HomeSection.budgets:
+              cardSection(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader('Budgets'),
+                    const SizedBox(height: Spacing.sm),
+                    AppCard.group(
+                      children: [
+                        for (final c in budgets)
+                          _budgetRow(
+                            context,
+                            colors,
+                            c,
+                            byCat[c.id] ?? 0,
+                            masked: hidden,
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+              break;
+            case HomeSection.events:
+              cardSection(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader('Events'),
+                    const SizedBox(height: Spacing.sm),
+                    AppCard(
+                      padding: const EdgeInsets.fromLTRB(
+                        Spacing.md,
+                        Spacing.xs,
+                        Spacing.md,
+                        Spacing.sm,
+                      ),
+                      child: Column(
+                        children: [
+                          for (final e in monthEvents.entries)
+                            EventBranchGroup(
+                              key: ValueKey('home-${e.key.id}'),
+                              store: store,
+                              project: e.key,
+                              txns: e.value,
+                              initiallyExpanded: false,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              break;
+            case HomeSection.recent:
+              slivers.add(
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(hPad, 0, hPad, Spacing.sm),
+                  sliver: SliverToBoxAdapter(
+                    child: SectionHeader(
+                      'Recent',
+                      trailing: TextButton(
+                        onPressed: widget.onSeeAll,
+                        child: const Text('See all'),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              if (recent.isEmpty) {
+                slivers.add(
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    sliver: SliverToBoxAdapter(
+                      child: AppCard(
+                        child: EmptyState(
+                          icon: Icons.receipt_long_outlined,
+                          message: 'No entries yet.',
+                          actionLabel: 'Add expense',
+                          onAction: widget.onAdd,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              } else {
+                slivers.add(
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(horizontal: hPad),
+                    // Rows are built on demand and share one grouped
+                    // card: first/last rows round the outer corners.
+                    sliver: SliverList.builder(
+                      itemCount: recent.length,
+                      itemBuilder: (context, i) {
+                        final first = i == 0;
+                        final last = i == recent.length - 1;
+                        return _recentSurface(
+                          colors,
+                          first: first,
+                          last: last,
+                          child: _recentRow(context, colors, store, recent[i]),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
+              break;
+            case HomeSection.todayRing:
+              cardSection(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader('Today'),
+                    const SizedBox(height: Spacing.sm),
+                    _todayCard(
+                      colors,
+                      spendToday: todaySpend,
+                      dailyAllowance: dailyAllowance,
+                      currentMonth: isCurrentMonth,
+                    ),
+                  ],
+                ),
+              );
+              break;
+            case HomeSection.rhythm:
+              cardSection(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader('Daily rhythm'),
+                    const SizedBox(height: Spacing.sm),
+                    _rhythmCard(
+                      context,
+                      colors,
+                      daily: daily,
+                      month: _month,
+                      spend: spend,
+                      currentMonth: isCurrentMonth,
+                    ),
+                  ],
+                ),
+              );
+              break;
+            case HomeSection.forecast:
+              cardSection(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SectionHeader('Forecast'),
+                    const SizedBox(height: Spacing.sm),
+                    _forecastCard(
+                      colors,
+                      month: _month,
+                      spend: spend,
+                      budgetTotal: budgetTotal,
+                      projected: projected,
+                      currentMonth: isCurrentMonth,
+                    ),
+                  ],
+                ),
+              );
+              break;
+          }
+          previous = section;
+        }
+
+        slivers.add(
+          SliverPadding(
+            padding: EdgeInsets.fromLTRB(hPad, Spacing.xl, hPad, 0),
+            sliver: SliverToBoxAdapter(
+              child: Center(
+                child: TextButton(
+                  key: const Key('home-edit-layout'),
+                  onPressed: _openEditHome,
+                  child: const Text('Edit Home'),
+                ),
+              ),
+            ),
+          ),
+        );
+        slivers.add(
+          SliverToBoxAdapter(
+            child: SizedBox(height: tabScrollBottomPadding(context)),
+          ),
         );
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -161,135 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 onRefresh: _doSync,
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
-                      sliver: SliverToBoxAdapter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _header(context, store, colors),
-                            _balanceHero(colors, balance),
-                            _stats(
-                              colors,
-                              spend: spend,
-                              income: income,
-                              lent: store.pendingLoansTotal,
-                            ),
-                            const SizedBox(height: Spacing.xl),
-                            const SectionHeader('By category'),
-                            const SizedBox(height: Spacing.sm),
-                            _categoriesCard(
-                              context,
-                              colors,
-                              slices: slices,
-                              spotlight: spotlight,
-                              spend: spend,
-                            ),
-                            if (budgets.isNotEmpty) ...[
-                              const SizedBox(height: Spacing.xl),
-                              const SectionHeader('Budgets'),
-                              const SizedBox(height: Spacing.sm),
-                              AppCard.group(
-                                children: [
-                                  for (final c in budgets)
-                                    _budgetRow(
-                                      context,
-                                      colors,
-                                      c,
-                                      byCat[c.id] ?? 0,
-                                    ),
-                                ],
-                              ),
-                            ],
-                            if (monthEvents.isNotEmpty) ...[
-                              const SizedBox(height: Spacing.xl),
-                              const SectionHeader('Events'),
-                              const SizedBox(height: Spacing.sm),
-                              AppCard(
-                                padding: const EdgeInsets.fromLTRB(
-                                  Spacing.md,
-                                  Spacing.xs,
-                                  Spacing.md,
-                                  Spacing.sm,
-                                ),
-                                child: Column(
-                                  children: [
-                                    for (final e in monthEvents.entries)
-                                      EventBranchGroup(
-                                        key: ValueKey('home-${e.key.id}'),
-                                        store: store,
-                                        project: e.key,
-                                        txns: e.value,
-                                        initiallyExpanded: false,
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        hPad,
-                        Spacing.xl,
-                        hPad,
-                        Spacing.sm,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: SectionHeader(
-                          'Recent',
-                          trailing: TextButton(
-                            onPressed: widget.onSeeAll,
-                            child: const Text('See all'),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (recent.isEmpty)
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: hPad),
-                        sliver: SliverToBoxAdapter(
-                          child: AppCard(
-                            child: EmptyState(
-                              icon: Icons.receipt_long_outlined,
-                              message: 'No entries yet.',
-                              actionLabel: 'Add expense',
-                              onAction: widget.onAdd,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: hPad),
-                        // Rows are built on demand and share one grouped
-                        // card: first/last rows round the outer corners.
-                        sliver: SliverList.builder(
-                          itemCount: recent.length,
-                          itemBuilder: (context, i) {
-                            final first = i == 0;
-                            final last = i == recent.length - 1;
-                            return _recentSurface(
-                              colors,
-                              first: first,
-                              last: last,
-                              child: _recentRow(
-                                context,
-                                colors,
-                                store,
-                                recent[i],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: tabScrollBottomPadding(context)),
-                    ),
-                  ],
+                  slivers: slivers,
                 ),
               ),
               Positioned(
@@ -302,6 +463,11 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       },
     );
+  }
+
+  void _openEditHome() {
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const EditHomeScreen()));
   }
 
   /// Profile row first, then the large month title with its pager and
@@ -463,7 +629,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _balanceHero(AppColors colors, double balance) {
+  Widget _balanceHero(ExpenseStore store, AppColors colors, double balance) {
+    final hidden = store.hideBalance;
     return Padding(
       padding: const EdgeInsets.only(top: Spacing.xl, bottom: Spacing.lg),
       child: Column(
@@ -474,18 +641,41 @@ class _HomeScreenState extends State<HomeScreen> {
             style: AppType.caption.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: Spacing.xs),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                money(balance),
-                maxLines: 1,
-                style: AppType.heroAmount.copyWith(
-                  color: balance < 0 ? colors.expense : colors.textPrimary,
+          Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      hidden ? hiddenMoney() : money(balance),
+                      maxLines: 1,
+                      style: AppType.heroAmount.copyWith(
+                        color: hidden || balance >= 0
+                            ? colors.textPrimary
+                            : colors.expense,
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            ),
+              IconButton(
+                key: const Key('home-balance-eye'),
+                tooltip: hidden ? 'Show balance' : 'Hide balance',
+                onPressed: () {
+                  Haptics.selection();
+                  store.setHideBalance(!hidden);
+                },
+                icon: Icon(
+                  hidden
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  size: 22,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -498,22 +688,35 @@ class _HomeScreenState extends State<HomeScreen> {
     required double spend,
     required double income,
     required double lent,
+    required bool masked,
   }) {
     return AppCard(
       padding: EdgeInsets.zero,
       child: Row(
         children: [
-          _statCell(colors, 'Spent', spend, colors.expense),
+          _statCell(colors, 'Spent', spend, colors.expense, masked: masked),
           _statDivider(colors),
-          _statCell(colors, 'Income', income, colors.income),
+          _statCell(colors, 'Income', income, colors.income, masked: masked),
           _statDivider(colors),
-          _statCell(colors, 'Lent out', lent, colors.textPrimary),
+          _statCell(
+            colors,
+            'Lent out',
+            lent,
+            colors.textPrimary,
+            masked: masked,
+          ),
         ],
       ),
     );
   }
 
-  Widget _statCell(AppColors colors, String label, double value, Color color) {
+  Widget _statCell(
+    AppColors colors,
+    String label,
+    double value,
+    Color color, {
+    required bool masked,
+  }) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -535,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
-                money(value),
+                masked ? hiddenMoney() : money(value),
                 maxLines: 1,
                 style: AppType.statValue.copyWith(color: color),
               ),
@@ -783,12 +986,386 @@ class _HomeScreenState extends State<HomeScreen> {
     return '${pct.round()}%';
   }
 
+  /// Today's spend against the daily slice of the total category budget.
+  /// Quiet when there is no budget: the caption still names today's spend.
+  Widget _todayCard(
+    AppColors colors, {
+    required double spendToday,
+    required double dailyAllowance,
+    required bool currentMonth,
+  }) {
+    if (!currentMonth) {
+      return AppCard(
+        key: const Key('home-today-card'),
+        child: Row(
+          children: [
+            Icon(Icons.today_outlined, size: 22, color: colors.textSecondary),
+            const SizedBox(width: Spacing.md),
+            Expanded(
+              child: Text(
+                'Today only appears in the current month.',
+                style: AppType.body.copyWith(
+                  fontSize: 14,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final hasBudget = dailyAllowance > 0;
+    final ratio = hasBudget
+        ? (spendToday / dailyAllowance).clamp(0.0, 1.0)
+        : 0.0;
+    final over = hasBudget && spendToday > dailyAllowance;
+    final barColor = over ? colors.expense : colors.accent;
+    final percent = hasBudget ? (spendToday / dailyAllowance * 100).round() : 0;
+    final footnote = !hasBudget
+        ? 'Today ${money(spendToday)}'
+        : over
+        ? '${money(spendToday - dailyAllowance)} over today'
+        : '${money(dailyAllowance - spendToday)} left today';
+
+    return AppCard(
+      key: const Key('home-today-card'),
+      child: Row(
+        children: [
+          Semantics(
+            label: hasBudget
+                ? 'Today ${money(spendToday)} of '
+                      '${money(dailyAllowance)} daily allowance'
+                : 'Today ${money(spendToday)}',
+            child: ExcludeSemantics(
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(
+                      painter: _RingPainter(
+                        progress: ratio,
+                        color: barColor,
+                        track: colors.track,
+                      ),
+                    ),
+                    Center(
+                      child: hasBudget
+                          ? Text(
+                              '$percent%',
+                              style: AppType.captionStrong.copyWith(
+                                fontSize: 12,
+                                color: over
+                                    ? colors.expense
+                                    : colors.textPrimary,
+                              ),
+                            )
+                          : Icon(
+                              Icons.today_outlined,
+                              size: 20,
+                              color: colors.textSecondary,
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: Spacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Today',
+                  style: AppType.caption.copyWith(color: colors.textSecondary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  money(spendToday),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.sectionTitle.copyWith(
+                    fontSize: 24,
+                    fontFeatures: AppType.tabular,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  footnote,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.caption.copyWith(
+                    fontSize: 12,
+                    color: over ? colors.expense : colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One thin bar per day. Heights use the 90th percentile so rent does not
+  /// flatten the rest; coral marks days above twice the daily average.
+  Widget _rhythmCard(
+    BuildContext context,
+    AppColors colors, {
+    required List<double> daily,
+    required DateTime month,
+    required double spend,
+    required bool currentMonth,
+  }) {
+    final days = daily.length;
+    final now = DateTime.now();
+    final todayIndex = currentMonth ? now.day - 1 : -1;
+    final elapsed = currentMonth ? todayIndex + 1 : days;
+    final average = elapsed > 0 ? spend / elapsed : 0.0;
+    final positives = daily.where((v) => v > 0).toList()..sort();
+    final p90 = positives.isEmpty
+        ? 0.0
+        : positives[((positives.length * 0.9).ceil() - 1).clamp(
+            0,
+            positives.length - 1,
+          )];
+
+    return AppCard(
+      key: const Key('home-rhythm-card'),
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.md,
+        Spacing.lg,
+        Spacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Semantics(
+                label:
+                    'Daily spending for ${monthStr(month)}. '
+                    'Tap a bar to open that day in History.',
+                child: GestureDetector(
+                  key: const Key('home-rhythm-chart'),
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (details) {
+                    if (widget.onOpenDay == null || constraints.maxWidth <= 0) {
+                      return;
+                    }
+                    final index =
+                        (details.localPosition.dx / constraints.maxWidth * days)
+                            .floor()
+                            .clamp(0, days - 1);
+                    Haptics.selection();
+                    widget.onOpenDay!(
+                      DateTime(month.year, month.month, index + 1),
+                    );
+                  },
+                  child: SizedBox(
+                    height: 64,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        for (var i = 0; i < days; i++)
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: days > 20 ? 1 : 2,
+                              ),
+                              child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Container(
+                                  height: _rhythmHeight(
+                                    daily[i],
+                                    p90,
+                                    future: todayIndex >= 0 && i > todayIndex,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _rhythmColor(
+                                      colors,
+                                      daily[i],
+                                      future: todayIndex >= 0 && i > todayIndex,
+                                      today: i == todayIndex,
+                                      over:
+                                          average > 0 && daily[i] > average * 2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: Spacing.sm),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Tap a day to open History',
+                  style: AppType.caption.copyWith(
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+              Text(
+                '1 – $days',
+                style: AppType.caption.copyWith(
+                  fontSize: 12,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _rhythmHeight(double value, double p90, {required bool future}) {
+    if (future || value <= 0 || p90 <= 0) return 3;
+    return (value / p90).clamp(0.0, 1.0) * 52 + 4;
+  }
+
+  Color _rhythmColor(
+    AppColors colors,
+    double value, {
+    required bool future,
+    required bool today,
+    required bool over,
+  }) {
+    if (future || value <= 0) return colors.track;
+    if (over) return colors.expense;
+    if (today) return colors.accent;
+    return colors.textSecondary.withValues(alpha: 0.35);
+  }
+
+  /// Compact month-end projection; quiet before day five and on past months.
+  Widget _forecastCard(
+    AppColors colors, {
+    required DateTime month,
+    required double spend,
+    required double budgetTotal,
+    required double? projected,
+    required bool currentMonth,
+  }) {
+    if (!currentMonth) {
+      final now = DateTime.now();
+      final past =
+          month.year < now.year ||
+          (month.year == now.year && month.month < now.month);
+      return AppCard(
+        key: const Key('home-forecast-card'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              past ? 'Month total' : 'Forecast',
+              style: AppType.caption.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: Spacing.xs),
+            Text(
+              past ? money(spend) : 'Starts when the month does.',
+              style: past
+                  ? AppType.sectionTitle.copyWith(
+                      fontSize: 24,
+                      fontFeatures: AppType.tabular,
+                      color: colors.textPrimary,
+                    )
+                  : AppType.body.copyWith(
+                      fontSize: 14,
+                      color: colors.textSecondary,
+                    ),
+            ),
+            if (past) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Closed month',
+                style: AppType.caption.copyWith(
+                  fontSize: 12,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    if (projected == null) {
+      return AppCard(
+        key: const Key('home-forecast-card'),
+        child: Text(
+          'A forecast appears after five days.',
+          style: AppType.body.copyWith(
+            fontSize: 14,
+            color: colors.textSecondary,
+          ),
+        ),
+      );
+    }
+
+    final over = budgetTotal > 0 && projected > budgetTotal;
+    final delta = (projected - budgetTotal).abs();
+    final daysLeft = daysInMonth(month) - DateTime.now().day;
+    final footnote = budgetTotal <= 0
+        ? '$daysLeft days left at today’s pace'
+        : over
+        ? '${money(delta)} over budget at this pace'
+        : '${money(delta)} under budget at this pace';
+
+    return AppCard(
+      key: const Key('home-forecast-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Projected month end',
+            style: AppType.caption.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: Spacing.xs),
+          Text(
+            money(projected),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.sectionTitle.copyWith(
+              fontSize: 24,
+              fontFeatures: AppType.tabular,
+              color: over ? colors.expense : colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            footnote,
+            style: AppType.caption.copyWith(
+              fontSize: 12,
+              color: over ? colors.expense : colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _budgetRow(
     BuildContext context,
     AppColors colors,
     Category category,
-    double used,
-  ) {
+    double used, {
+    required bool masked,
+  }) {
     final over = used > category.budget;
     final ratio = category.budget <= 0
         ? 0.0
@@ -826,8 +1403,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 2),
                     Text(
                       over
-                          ? 'Over by ${money(used - category.budget)}'
-                          : '${money(used)} of ${money(category.budget)}',
+                          ? 'Over by ${masked ? hiddenMoney() : money(used - category.budget)}'
+                          : '${masked ? hiddenMoney() : money(used)} of '
+                                '${masked ? hiddenMoney() : money(category.budget)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppType.caption.copyWith(
@@ -1042,4 +1620,44 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     }
   }
+}
+
+/// A quiet two-arc ring for the Today card. The progress is already clamped
+/// to 0..1; the track stays visible when there is no budget.
+class _RingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color track;
+
+  const _RingPainter({
+    required this.progress,
+    required this.color,
+    required this.track,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = (size.shortestSide - 6) / 2;
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final trackPaint = Paint()
+      ..color = track
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, trackPaint);
+    if (progress <= 0) return;
+    final arcPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round;
+    canvas.drawArc(rect, -math.pi / 2, progress * 2 * math.pi, false, arcPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.track != track;
 }

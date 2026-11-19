@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import 'format.dart';
 import 'analytics.dart';
+import 'home_layout.dart';
 import 'data/db_recovery.dart';
 import 'data/domain_store.dart';
 import 'data/drift_domain_store.dart';
@@ -75,6 +76,8 @@ class ExpenseStore extends ChangeNotifier {
   int accent = 0xFF009688;
   bool materialYou = false; // wallpaper colours (Android 12+)
   String userName = '';
+  bool hideBalance = false;
+  List<HomeSectionSetting> homeLayout = defaultHomeLayout();
   String smsMode = 'manual'; // manual | auto
   List<String> smsSenders = [];
 
@@ -546,6 +549,12 @@ class ExpenseStore extends ChangeNotifier {
     accent = ac is int ? ac : 0xFF009688;
     materialYou = meta['materialYou'] == true;
     userName = '${meta['userName'] ?? ''}';
+    hideBalance = meta['hideBalance'] == true;
+    homeLayout = decodeHomeLayout(
+      meta['home_layout_v1'] is String
+          ? meta['home_layout_v1'] as String
+          : null,
+    );
     smsMode = '${meta['smsMode'] ?? 'manual'}' == 'auto' ? 'auto' : 'manual';
     final senders = meta['smsSenders'];
     smsSenders = senders is List
@@ -636,6 +645,8 @@ class ExpenseStore extends ChangeNotifier {
         'accent': accent,
         'materialYou': materialYou,
         'userName': userName,
+        'hideBalance': hideBalance,
+        'home_layout_v1': encodeHomeLayout(homeLayout),
         'smsMode': smsMode,
         'smsSenders': smsSenders,
         'linkId': linkId,
@@ -777,6 +788,26 @@ class ExpenseStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Masks Home amounts. The eye on Home and the Settings switch call this;
+  /// the pref is per-device and never enters snapshots.
+  Future<void> setHideBalance(bool v) async {
+    if (hideBalance == v) return;
+    hideBalance = v;
+    _saveAll();
+    notifyListeners();
+  }
+
+  /// Applies a Home section order/visibility list immediately. Balance stays
+  /// pinned first and unknown sections are added hidden by [normalizeHomeLayout].
+  Future<void> setHomeLayout(List<HomeSectionSetting> layout) async {
+    final next = normalizeHomeLayout(layout);
+    homeLayout = next;
+    _saveAll();
+    notifyListeners();
+  }
+
+  Future<void> resetHomeLayout() => setHomeLayout(defaultHomeLayout());
+
   Future<void> setSmsMode(String v) async {
     smsMode = v == 'auto' ? 'auto' : 'manual';
     _saveAll();
@@ -838,7 +869,9 @@ class ExpenseStore extends ChangeNotifier {
     try {
       await _domain?.resetSyncMeta();
     } catch (e) {
-      debugPrint('Dhadda: erase-all could not reset sync meta: ${e.runtimeType}');
+      debugPrint(
+        'Dhadda: erase-all could not reset sync meta: ${e.runtimeType}',
+      );
     }
     await load(); // re-seeds defaults + notifies
   }
@@ -2191,8 +2224,7 @@ class ExpenseStore extends ChangeNotifier {
   _mergeAndApply(
     List<SyncRecord> remote, {
     Set<String> dropTombstonesFor = const {},
-  }) =>
-      _serialized(() => _mergeAndApplyLocked(remote, dropTombstonesFor));
+  }) => _serialized(() => _mergeAndApplyLocked(remote, dropTombstonesFor));
 
   Future<({bool changed, int adopted, int tombs, String? error})>
   _mergeAndApplyLocked(

@@ -42,6 +42,19 @@ String _dayLabel(DateTime d) {
 }
 
 /// Searchable history with type/category filters + CSV export.
+/// A request to open History filtered to one day (the Home rhythm strip).
+/// A notifier rather than an initial value because the shell keeps History
+/// mounted in an IndexedStack across tab switches.
+class HistoryDayRequest extends ChangeNotifier {
+  DateTime? _day;
+  DateTime? get day => _day;
+
+  void open(DateTime day) {
+    _day = DateTime(day.year, day.month, day.day);
+    notifyListeners();
+  }
+}
+
 class HistoryScreen extends StatefulWidget {
   /// Opens the Sync screen. Provided by the shell; standalone uses omit it.
   final VoidCallback? onOpenSync;
@@ -49,7 +62,15 @@ class HistoryScreen extends StatefulWidget {
   /// Opens Settings from the small avatar in the title row.
   final VoidCallback? onOpenSettings;
 
-  const HistoryScreen({super.key, this.onOpenSync, this.onOpenSettings});
+  /// Fired when Home's rhythm strip asks for one day.
+  final HistoryDayRequest? dayRequest;
+
+  const HistoryScreen({
+    super.key,
+    this.onOpenSync,
+    this.onOpenSettings,
+    this.dayRequest,
+  });
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -72,7 +93,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _dayFilter = widget.dayRequest?.day;
+    widget.dayRequest?.addListener(_applyDayRequest);
+  }
+
+  @override
+  void didUpdateWidget(covariant HistoryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.dayRequest != widget.dayRequest) {
+      oldWidget.dayRequest?.removeListener(_applyDayRequest);
+      widget.dayRequest?.addListener(_applyDayRequest);
+    }
+  }
+
+  /// A rhythm-bar tap lands here: clear search/filters first so the day is
+  /// never hidden behind an old query, then show exactly that day.
+  void _applyDayRequest() {
+    final day = widget.dayRequest?.day;
+    if (day == null || !mounted) return;
+    _debounce?.cancel();
+    setState(() {
+      _view = 'entries';
+      _query = '';
+      _searchCtrl.clear();
+      _hasSearchText = false;
+      _type = 'all';
+      _cat = 'all';
+      _dayFilter = DateTime(day.year, day.month, day.day);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _listCtrl.hasClients) _listCtrl.jumpTo(0);
+    });
+  }
+
+  @override
   void dispose() {
+    widget.dayRequest?.removeListener(_applyDayRequest);
     _debounce?.cancel();
     _listCtrl.dispose();
     _searchCtrl.dispose();

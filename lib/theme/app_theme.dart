@@ -19,6 +19,12 @@ abstract final class AppTheme {
       primary: colors.textPrimary,
       secondary: colors.textSecondary,
     );
+    // Button themes set their label style explicitly, bypassing the family
+    // the theme merges in from Typography. Carry that resolved family over so
+    // labels never fall back to a harness font (solid blocks in widget tests).
+    final buttonText = AppType.button.copyWith(
+      fontFamily: Typography.material2021().black.labelLarge?.fontFamily,
+    );
 
     // Press stays invisible; hover/focus are the only overlays, for web.
     final overlay = WidgetStateProperty.resolveWith<Color?>((states) {
@@ -205,7 +211,7 @@ abstract final class AppTheme {
             EdgeInsets.symmetric(horizontal: Spacing.xl),
           ),
           shape: const WidgetStatePropertyAll(StadiumBorder()),
-          textStyle: WidgetStatePropertyAll(AppType.button),
+          textStyle: WidgetStatePropertyAll(buttonText),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -218,7 +224,7 @@ abstract final class AppTheme {
             EdgeInsets.symmetric(horizontal: Spacing.md),
           ),
           shape: const WidgetStatePropertyAll(StadiumBorder()),
-          textStyle: WidgetStatePropertyAll(AppType.button),
+          textStyle: WidgetStatePropertyAll(buttonText),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -228,7 +234,7 @@ abstract final class AppTheme {
           minimumSize: const WidgetStatePropertyAll(Size(64, 48)),
           shape: const WidgetStatePropertyAll(StadiumBorder()),
           side: WidgetStatePropertyAll(BorderSide(color: colors.cardBorder)),
-          textStyle: WidgetStatePropertyAll(AppType.button),
+          textStyle: WidgetStatePropertyAll(buttonText),
         ),
       ),
       chipTheme: ChipThemeData(
