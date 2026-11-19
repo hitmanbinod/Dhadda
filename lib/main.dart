@@ -320,16 +320,17 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         onOpenSync: _openSync,
         onSeeAll: () => _go(1),
       ),
-      const HistoryScreen(),
+      HistoryScreen(onOpenSync: _openSync),
       const LentScreen(),
       MenuScreen(engine: _link),
     ];
     final wide = MediaQuery.widthOf(context) > 900;
+    // Home and History draw their own large titles, so the shared bar
+    // only belongs to the remaining tabs.
+    final ownHeader = _index <= 1;
 
     return Scaffold(
-      // Home owns its greeting and month header, so the shared bar only
-      // belongs to the other tabs.
-      appBar: _index == 0
+      appBar: ownHeader
           ? null
           : AppBar(
               title: Text(_titles[_index]),
@@ -342,7 +343,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
               ],
             ),
       body: SafeArea(
-        top: _index == 0,
+        top: ownHeader,
         bottom: false,
         child: Row(
           children: [
