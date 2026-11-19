@@ -19,7 +19,7 @@ import 'lan_throttle.dart';
 /// POST /snapshot (push its newer snapshot). Guarded by a 6-digit PIN
 /// header. Auto-closes after 5 minutes.
 ///
-/// Phase 5 LAN hardening (behavior, not transport confidentiality Ã¢â‚¬â€
+/// Phase 5 LAN hardening (behavior, not transport confidentiality —
 /// plain HTTP stays observable on hostile networks, see docs/SECURITY_LAN):
 /// - Wrong-PIN attempts are throttled globally (10 free, then HTTP 429
 ///   with Retry-After for 60 s; any success resets). No per-client state
@@ -105,7 +105,7 @@ Future<HostSession> startSendServer({
 
   /// Null when authorized (resets throttle); otherwise the rejection.
   /// PIN failures count toward the throttle; token failures do not
-  /// (128-bit tokens are unguessable Ã¢â‚¬â€ counting them would only let
+  /// (128-bit tokens are unguessable — counting them would only let
   /// log-spam lock out legitimate users).
   Response? checkAuth(Request req) {
     if (req.headers[_pinHeader] == pin) {
