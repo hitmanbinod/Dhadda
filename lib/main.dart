@@ -19,6 +19,7 @@ import 'sync/link_sync.dart';
 import 'sync/reminders.dart';
 import 'sync/sms.dart';
 import 'theme/app_theme.dart';
+import 'widget_bridge.dart';
 
 void main() {
   runApp(const ExpenseApp());
@@ -74,6 +75,7 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
+  String? _quickAction;
   late final LinkEngine _link;
   final HistoryDayRequest _historyDay = HistoryDayRequest();
   bool _smsBootDone = false;
@@ -115,7 +117,38 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     Reminders.refresh(store);
     store.addListener(_maybeAutoSms);
     WidgetsBinding.instance.addObserver(this);
+    _initWidgets();
     _checkLock();
+  }
+
+  void _initWidgets() {
+    WidgetBridge.listen(_onQuickAction);
+    WidgetBridge.takeQuickAction().then(_onQuickAction);
+  }
+
+  void _onQuickAction(String? action) {
+    if (action == null || !mounted) return;
+    setState(() => _quickAction = action);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _applyQuickAction());
+  }
+
+  /// A widget tap never bypasses the PIN gate: it waits until unlock.
+  void _applyQuickAction() {
+    final action = _quickAction;
+    if (action == null || !mounted || _locked) return;
+    _quickAction = null;
+    if (action == 'lent') {
+      setState(() => _index = 3);
+      return;
+    }
+    kRootNavigatorKey.currentState?.push(
+      MaterialPageRoute(
+        builder: (_) => AddScreen(
+          initialIsExpense: action != 'income',
+          onSaved: () => kRootNavigatorKey.currentState?.pop(),
+        ),
+      ),
+    );
   }
 
   /// First store load done: run one SMS auto-import if enabled.
@@ -208,6 +241,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      WidgetBridge.refresh();
       _link.syncNow();
       final store = context.read<ExpenseStore>();
       Reminders.refresh(store);
@@ -264,7 +298,11 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       if (ok && mounted) {
         final v = _vault;
         if (v != null) await PinThrottle(v.prefs).recordSuccess();
-        if (mounted) setState(() => _locked = false);
+        if (mounted) {
+          setState(() => _locked = false);
+          WidgetsBinding.instance
+              .addPostFrameCallback((_) => _applyQuickAction());
+        }
       }
     } catch (_) {
       // No biometrics enrolled - the PIN pad stays.
@@ -321,7 +359,11 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         appBar: AppBar(title: const Text('Dhadda - Locked')),
         body: LockScreen(
           vault: vault,
-          onUnlock: () => setState(() => _locked = false),
+          onUnlock: () {
+            setState(() => _locked = false);
+            WidgetsBinding.instance
+                .addPostFrameCallback((_) => _applyQuickAction());
+          },
         ),
       );
     }

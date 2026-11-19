@@ -14,7 +14,15 @@ import '../widgets/page.dart';
 /// 3-tap entry: amount + category + date. Everything else optional.
 class AddScreen extends StatefulWidget {
   final VoidCallback onSaved;
-  const AddScreen({super.key, required this.onSaved});
+
+  /// Quick-add widgets can open the form with income preselected.
+  final bool initialIsExpense;
+
+  const AddScreen({
+    super.key,
+    required this.onSaved,
+    this.initialIsExpense = true,
+  });
 
   @override
   State<AddScreen> createState() => _AddScreenState();
@@ -36,6 +44,12 @@ class _AddScreenState extends State<AddScreen>
   late final AnimationController _jiggle = AnimationController(
       duration: const Duration(milliseconds: 280), vsync: this)
     ..repeat(reverse: true);
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpense = widget.initialIsExpense;
+  }
 
   @override
   void dispose() {

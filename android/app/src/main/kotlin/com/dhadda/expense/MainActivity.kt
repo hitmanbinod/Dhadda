@@ -1,6 +1,7 @@
 package com.dhadda.expense
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -15,10 +16,44 @@ class MainActivity : FlutterFragmentActivity() {
 
     companion object {
         const val PERM_CODE = 0x5E56
+        /** Set by a widget tap, consumed by Dart on the next unlock/frame. */
+        var pendingQuickAction: String? = null
+        var actionChannel: MethodChannel? = null
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.getStringExtra(QUICK_ACTION_EXTRA)?.let { action ->
+            pendingQuickAction = action
+            actionChannel?.invokeMethod("action", action, null)
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        intent.getStringExtra(QUICK_ACTION_EXTRA)?.let {
+            pendingQuickAction = it
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "expense/widget",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "refresh" -> {
+                    refreshWidgets(this)
+                    result.success(null)
+                }
+                "takeQuickAction" -> {
+                    result.success(pendingQuickAction)
+                    pendingQuickAction = null
+                }
+                else -> result.notImplemented()
+            }
+        }
+        actionChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "expense/widget_actions",
+        )
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "expense/mdns",

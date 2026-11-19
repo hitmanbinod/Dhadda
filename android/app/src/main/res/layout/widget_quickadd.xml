@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card"
+    android:orientation="horizontal"
+    android:padding="6dp">
+
+    <Button
+        android:id="@+id/widget_add_expense"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="@string/widget_expense"
+        android:textSize="12sp" />
+
+    <Button
+        android:id="@+id/widget_add_income"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="@string/widget_income"
+        android:textSize="12sp" />
+
+    <Button
+        android:id="@+id/widget_add_lent"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:text="@string/widget_lent"
+        android:textSize="12sp" />
+</LinearLayout>

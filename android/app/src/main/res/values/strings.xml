@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_label">Dhadda · Today</string>
+    <string name="widget_month_label">Dhadda · Month</string>
+    <string name="widget_quickadd_label">Dhadda · Quick add</string>
+    <string name="widget_lent_label">Dhadda · Lent</string>
+    <string name="widget_today_desc">Today\'s spending at a glance.</string>
+    <string name="widget_month_desc">Spent, income and balance for this month.</string>
+    <string name="widget_quickadd_desc">Open expense, income or lent entry in one tap.</string>
+    <string name="widget_lent_desc">Money still to receive and to return.</string>
+    <string name="widget_expense">Expense</string>
+    <string name="widget_income">Income</string>
+    <string name="widget_lent">Lent</string>
+</resources>
