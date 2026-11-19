@@ -6,7 +6,9 @@ import '../format.dart';
 import '../store.dart';
 import '../sync/reminders.dart';
 import '../theme/palette.dart';
+import '../theme/tokens.dart';
 import '../theme/typography.dart';
+import '../widgets/app_card.dart';
 import '../widgets/page.dart';
 import '../widgets/profile_avatar.dart';
 
@@ -24,6 +26,7 @@ class LentScreen extends StatefulWidget {
 class _LentScreenState extends State<LentScreen> {
   String _dir = 'lent'; // lent | borrowed
   String _filter = 'pending'; // pending | settled | all
+  final Set<String> _expanded = {};
 
   @override
   Widget build(BuildContext context) {
@@ -76,71 +79,33 @@ class _LentScreenState extends State<LentScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Card(
-              color: Theme.of(context).colorScheme.secondaryContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.handshake, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('To receive'),
-                              Text(
-                                money(store.pendingLoansTotal),
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          width: 140,
-                          child: FilledButton(
-                            onPressed: () =>
-                                _personDialog(context, store, borrowed: false),
-                            child: const Text('Lent'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    Row(
-                      children: [
-                        const Icon(Icons.outbox, size: 28),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('To return'),
-                              Text(
-                                money(store.pendingBorrowedTotal),
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(
-                          width: 140,
-                          child: FilledButton(
-                            onPressed: () =>
-                                _personDialog(context, store, borrowed: true),
-                            child: const Text('Borrowed'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            padding: EdgeInsets.fromLTRB(
+              pageGutter(context),
+              Spacing.sm,
+              pageGutter(context),
+              0,
+            ),
+            child: AppCard.group(
+              children: [
+                _summaryRow(
+                  context,
+                  store,
+                  colors,
+                  icon: Icons.handshake_outlined,
+                  label: 'To receive',
+                  value: store.pendingLoansTotal,
+                  borrowed: false,
                 ),
-              ),
+                _summaryRow(
+                  context,
+                  store,
+                  colors,
+                  icon: Icons.outbox_outlined,
+                  label: 'To return',
+                  value: store.pendingBorrowedTotal,
+                  borrowed: true,
+                ),
+              ],
             ),
           ),
           Padding(
@@ -183,117 +148,292 @@ class _LentScreenState extends State<LentScreen> {
     );
   }
 
-  Widget _loanTile(BuildContext context, ExpenseStore store, Loan l) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: ExpansionTile(
-        leading: CircleAvatar(
-          backgroundColor: l.settled
-              ? Colors.green.withValues(alpha: 0.15)
-              : Colors.orange.withValues(alpha: 0.15),
-          child: Icon(
-            l.settled ? Icons.check : Icons.person,
-            color: l.settled ? Colors.green : Colors.orange,
-          ),
-        ),
-        title: Text(
-          l.person,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(
-          '${l.isBorrowed ? 'Borrowed' : 'Lent'} ${money(l.totalLent)} total since ${dayStr(DateTime.fromMillisecondsSinceEpoch(l.dateLent))}',
-        ),
-        trailing: Text(
-          l.settled ? 'Settled' : money(l.pending),
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: l.settled ? Colors.green : Colors.orange,
-          ),
-        ),
+  Widget _summaryRow(
+    BuildContext context,
+    ExpenseStore store,
+    AppColors colors, {
+    required IconData icon,
+    required String label,
+    required double value,
+    required bool borrowed,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.md,
+        Spacing.md,
+        Spacing.md,
+      ),
+      child: Row(
         children: [
-          if (l.note.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Note: ${l.note}'),
-              ),
+          Container(
+            width: Sizes.iconTile,
+            height: Sizes.iconTile,
+            decoration: BoxDecoration(
+              color: colors.accent.withValues(alpha: 0.12),
+              borderRadius: Radii.iconRadius,
             ),
-          // The original amount first, so the full money trail
-          // (principal -> top-ups -> repayments) reads top-down.
-          ListTile(
-            dense: true,
-            leading: Icon(
-              l.isBorrowed ? Icons.arrow_downward : Icons.arrow_upward,
-              size: 18,
-            ),
-            title: Text(
-              '${l.isBorrowed ? 'Borrowed' : 'Lent'} ${money(l.lent)}',
-            ),
-            subtitle: Text(
-              dayStr(DateTime.fromMillisecondsSinceEpoch(l.dateLent)),
-            ),
+            child: Icon(icon, size: Sizes.iconGlyph, color: colors.accent),
           ),
-          for (final r in l.repayments)
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.replay, size: 18),
-              title: Text(
-                '${l.isBorrowed ? 'Paid back' : 'Returned'} ${money(r.amount)}',
-              ),
-              subtitle: Text(
-                '${dayStr(DateTime.fromMillisecondsSinceEpoch(r.date))}${r.note.isEmpty ? '' : ' - ${r.note}'}',
-              ),
-            ),
-          for (final t in l.topups)
-            ListTile(
-              dense: true,
-              leading: const Icon(Icons.add_circle_outline, size: 18),
-              title: Text(
-                '${l.isBorrowed ? 'Borrowed more' : 'Lent more'} ${money(t.amount)}',
-              ),
-              subtitle: Text(
-                '${dayStr(DateTime.fromMillisecondsSinceEpoch(t.date))}${t.note.isEmpty ? '' : ' - ${t.note}'}',
-              ),
-            ),
-          ListTile(
-            dense: true,
-            leading: const Icon(Icons.notifications_outlined, size: 18),
-            title: Text(
-              l.remindAt <= 0
-                  ? 'No reminder'
-                  : 'Once · ${_remindLabel(l.remindAt)}',
-            ),
-            trailing: TextButton(
-              onPressed: () => _remindDialog(context, store, l),
-              child: const Text('Change'),
-            ),
-          ),
-          OverflowBar(
-            children: [
-              TextButton.icon(
-                onPressed: () => _topupDialog(context, store, l),
-                icon: const Icon(Icons.add),
-                label: Text(l.isBorrowed ? 'Borrow more' : 'Lend more'),
-              ),
-              if (!l.settled)
-                TextButton.icon(
-                  onPressed: () => _repaymentDialog(context, store, l),
-                  icon: const Icon(Icons.replay),
-                  label: Text(l.isBorrowed ? 'Paid back' : 'Repayment'),
+          const SizedBox(width: Spacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppType.caption.copyWith(color: colors.textSecondary),
                 ),
-              TextButton.icon(
-                onPressed: () => store.deleteLoan(l.id),
-                icon: const Icon(Icons.delete, color: Colors.red),
-                label: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
+                const SizedBox(height: 2),
+                Text(
+                  money(value),
+                  style: AppType.statValue.copyWith(
+                    fontSize: 20,
+                    color: colors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(width: Spacing.sm),
+          SizedBox(
+            width: 120,
+            child: FilledButton(
+              onPressed: () =>
+                  _personDialog(context, store, borrowed: borrowed),
+              child: Text(borrowed ? 'Borrowed' : 'Lent'),
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _loanTile(BuildContext context, ExpenseStore store, Loan l) {
+    final colors = AppColors.of(context);
+    final open = _expanded.contains(l.id);
+    final ratio = l.totalLent > 0
+        ? ((l.totalLent - l.pending) / l.totalLent).clamp(0.0, 1.0)
+        : 0.0;
+    final statusColor = l.settled ? colors.income : colors.expense;
+    return AppCard(
+      key: ValueKey('loan-${l.id}'),
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          InkWell(
+            key: Key('loan-header-${l.id}'),
+            onTap: () => setState(() {
+              if (open) {
+                _expanded.remove(l.id);
+              } else {
+                _expanded.add(l.id);
+              }
+            }),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                Spacing.md,
+                Spacing.lg,
+                Spacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      ProfileAvatar(name: l.person, size: 40),
+                      const SizedBox(width: Spacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l.person,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppType.title.copyWith(
+                                color: colors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${l.isBorrowed ? 'Borrowed' : 'Lent'} '
+                              '${money(l.totalLent)} · '
+                              '${dayStr(DateTime.fromMillisecondsSinceEpoch(l.dateLent))}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppType.caption.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: Spacing.sm),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            l.settled ? 'Settled' : money(l.pending),
+                            style: AppType.amount.copyWith(color: statusColor),
+                          ),
+                          const SizedBox(height: 2),
+                          Icon(
+                            open ? Icons.expand_less : Icons.expand_more,
+                            size: 18,
+                            color: colors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.sm),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: ratio,
+                      minHeight: 4,
+                      backgroundColor: colors.track,
+                      color: l.settled ? colors.income : colors.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: Motion.of(context, Motion.base),
+            curve: Motion.ease,
+            alignment: Alignment.topCenter,
+            child: open
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Divider(height: 1, color: colors.hairline),
+                      if (l.note.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            Spacing.lg,
+                            Spacing.md,
+                            Spacing.lg,
+                            0,
+                          ),
+                          child: Text(
+                            'Note: ${l.note}',
+                            style: AppType.body.copyWith(
+                              fontSize: 14,
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      // Principal first: the trail reads top-down.
+                      _loanLine(
+                        colors,
+                        icon: l.isBorrowed
+                            ? Icons.arrow_downward
+                            : Icons.arrow_upward,
+                        label: '${l.isBorrowed ? 'Borrowed' : 'Lent'} '
+                            '${money(l.lent)}',
+                        detail: dayStr(
+                          DateTime.fromMillisecondsSinceEpoch(l.dateLent),
+                        ),
+                      ),
+                      for (final r in l.repayments)
+                        _loanLine(
+                          colors,
+                          icon: Icons.replay,
+                          label: '${l.isBorrowed ? 'Paid back' : 'Returned'} '
+                              '${money(r.amount)}',
+                          detail:
+                              '${dayStr(DateTime.fromMillisecondsSinceEpoch(r.date))}${r.note.isEmpty ? '' : ' - ${r.note}'}',
+                        ),
+                      for (final t in l.topups)
+                        _loanLine(
+                          colors,
+                          icon: Icons.add_circle_outline,
+                          label: '${l.isBorrowed ? 'Borrowed more' : 'Lent more'} '
+                              '${money(t.amount)}',
+                          detail:
+                              '${dayStr(DateTime.fromMillisecondsSinceEpoch(t.date))}${t.note.isEmpty ? '' : ' - ${t.note}'}',
+                        ),
+                      ListTile(
+                        dense: true,
+                        leading: Icon(
+                          Icons.notifications_outlined,
+                          size: 18,
+                          color: colors.textSecondary,
+                        ),
+                        title: Text(
+                          l.remindAt <= 0
+                              ? 'No reminder'
+                              : 'Once · ${_remindLabel(l.remindAt)}',
+                          style: AppType.body.copyWith(fontSize: 14),
+                        ),
+                        trailing: TextButton(
+                          onPressed: () => _remindDialog(context, store, l),
+                          child: const Text('Change'),
+                        ),
+                      ),
+                      OverflowBar(
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => _topupDialog(context, store, l),
+                            icon: const Icon(Icons.add),
+                            label: Text(
+                              l.isBorrowed ? 'Borrow more' : 'Lend more',
+                            ),
+                          ),
+                          if (!l.settled)
+                            TextButton.icon(
+                              onPressed: () =>
+                                  _repaymentDialog(context, store, l),
+                              icon: const Icon(Icons.replay),
+                              label: Text(
+                                l.isBorrowed ? 'Paid back' : 'Repayment',
+                              ),
+                            ),
+                          TextButton.icon(
+                            onPressed: () => store.deleteLoan(l.id),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: colors.expense,
+                            ),
+                            label: Text(
+                              'Delete',
+                              style: TextStyle(color: colors.expense),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: Spacing.sm),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _loanLine(
+    AppColors colors, {
+    required IconData icon,
+    required String label,
+    required String detail,
+  }) {
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, size: 18, color: colors.textSecondary),
+      title: Text(label, style: AppType.body.copyWith(fontSize: 14)),
+      subtitle: Text(
+        detail,
+        style: AppType.caption.copyWith(
+          fontSize: 12,
+          color: colors.textSecondary,
+        ),
       ),
     );
   }

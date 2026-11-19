@@ -19,12 +19,13 @@ abstract final class AppTheme {
       primary: colors.textPrimary,
       secondary: colors.textSecondary,
     );
-    // Button themes set their label style explicitly, bypassing the family
-    // the theme merges in from Typography. Carry that resolved family over so
-    // labels never fall back to a harness font (solid blocks in widget tests).
-    final buttonText = AppType.button.copyWith(
-      fontFamily: Typography.material2021().black.labelLarge?.fontFamily,
-    );
+    // Component themes set their label styles explicitly, bypassing the
+    // family the theme merges in from Typography. Carry that resolved family
+    // over so no label falls back to a harness font (solid blocks in tests).
+    final resolvedFamily = Typography.material2021().black.labelLarge?.fontFamily;
+    TextStyle fam(TextStyle style) =>
+        style.copyWith(fontFamily: resolvedFamily);
+    final buttonText = fam(AppType.button);
 
     // Press stays invisible; hover/focus are the only overlays, for web.
     final overlay = WidgetStateProperty.resolveWith<Color?>((states) {
@@ -71,10 +72,10 @@ abstract final class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: AppType.title.copyWith(
+        titleTextStyle: fam(AppType.title.copyWith(
           fontSize: 18,
           color: colors.textPrimary,
-        ),
+        )),
         iconTheme: IconThemeData(color: colors.textPrimary, size: 22),
         actionsIconTheme: IconThemeData(color: colors.textPrimary, size: 22),
       ),
@@ -92,13 +93,13 @@ abstract final class AppTheme {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         shape: const RoundedRectangleBorder(borderRadius: Radii.sheetRadius),
-        titleTextStyle: AppType.sectionTitle.copyWith(
+        titleTextStyle: fam(AppType.sectionTitle.copyWith(
           color: colors.textPrimary,
-        ),
-        contentTextStyle: AppType.body.copyWith(
+        )),
+        contentTextStyle: fam(AppType.body.copyWith(
           fontSize: 14,
           color: colors.textSecondary,
-        ),
+        )),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colors.card,
@@ -114,10 +115,10 @@ abstract final class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: colors.card,
-        contentTextStyle: AppType.body.copyWith(
+        contentTextStyle: fam(AppType.body.copyWith(
           fontSize: 14,
           color: colors.textPrimary,
-        ),
+        )),
         actionTextColor: colors.accent,
         elevation: 0,
         behavior: SnackBarBehavior.floating,
@@ -149,10 +150,10 @@ abstract final class AppTheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return AppType.navLabel.copyWith(
+          return fam(AppType.navLabel.copyWith(
             color: selected ? colors.accent : colors.textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-          );
+          ));
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -165,9 +166,11 @@ abstract final class AppTheme {
           color: colors.textSecondary,
           size: 22,
         ),
-        selectedLabelTextStyle: AppType.navLabel.copyWith(color: colors.accent),
-        unselectedLabelTextStyle: AppType.navLabel.copyWith(
-          color: colors.textSecondary,
+        selectedLabelTextStyle: fam(
+          AppType.navLabel.copyWith(color: colors.accent),
+        ),
+        unselectedLabelTextStyle: fam(
+          AppType.navLabel.copyWith(color: colors.textSecondary),
         ),
       ),
       dividerTheme: DividerThemeData(
@@ -191,7 +194,7 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: colors.cardBorder),
         ),
-        textStyle: AppType.caption.copyWith(color: colors.textPrimary),
+        textStyle: fam(AppType.caption.copyWith(color: colors.textPrimary)),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
@@ -243,8 +246,12 @@ abstract final class AppTheme {
         secondarySelectedColor: colors.accent,
         side: BorderSide(color: colors.cardBorder),
         shape: const RoundedRectangleBorder(borderRadius: Radii.chipRadius),
-        labelStyle: AppType.caption.copyWith(color: colors.textSecondary),
-        secondaryLabelStyle: AppType.caption.copyWith(color: colors.onAccent),
+        labelStyle: fam(
+          AppType.caption.copyWith(color: colors.textSecondary),
+        ),
+        secondaryLabelStyle: fam(
+          AppType.caption.copyWith(color: colors.onAccent),
+        ),
         checkmarkColor: colors.onAccent,
         showCheckmark: false,
         padding: const EdgeInsets.symmetric(

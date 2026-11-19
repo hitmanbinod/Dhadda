@@ -1,4 +1,4 @@
-import 'package:flex_color_picker/flex_color_picker.dart';
+﻿import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
@@ -9,7 +9,12 @@ import '../store.dart';
 import '../sync/sms.dart';
 import '../version.dart';
 import '../format.dart';
+import '../theme/palette.dart';
+import '../theme/tokens.dart';
+import '../theme/typography.dart';
+import '../widgets/app_card.dart';
 import '../widgets/page.dart';
+import '../widgets/profile_avatar.dart';
 import '../widgets/backup_password.dart';
 import '../sync/link_sync.dart';
 import '../sync/backup_crypto.dart';
@@ -123,278 +128,148 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
     final vault = _vault;
+    final colors = AppColors.of(context);
+
     return ListView(
       padding: pageInsets(context),
       children: [
-        Card(
+        AppCard(
           child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.person)),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg,
+              vertical: Spacing.xs,
+            ),
+            leading: ProfileAvatar(name: store.userName),
             title: Text(
               store.userName.isEmpty ? 'Set your name' : store.userName,
+              style: AppType.title.copyWith(color: colors.textPrimary),
             ),
+            subtitle: const Text('Shown in your Home greeting'),
             trailing: IconButton(
               tooltip: 'Edit name',
-              icon: const Icon(Icons.edit),
+              icon: Icon(Icons.edit_outlined, color: colors.textSecondary),
               onPressed: () => _nameDialog(context, store),
             ),
+            minTileHeight: 64,
           ),
         ),
-        const SizedBox(height: 16),
-        // ---------- sync ----------
-        Card(
-          child: ListTile(
-            leading: Icon(
-              store.linked ? Icons.link : Icons.link_off,
-              color: store.linked ? Colors.green : null,
-            ),
-            title: Text(
-              store.linked ? 'Linked with ${store.linkPeer}' : 'Not linked',
-            ),
-            subtitle: Text(
-              store.linked
-                  ? (store.linkStatus.isEmpty
-                        ? 'Auto-sync is on'
-                        : store.linkStatus)
-                  : 'Pair once - then auto-sync on same WiFi',
-            ),
-            trailing: FilledButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => SyncScreen(engine: widget.engine),
-                ),
-              ),
-              child: const Text('Open sync'),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // ---------- backup (top-level copy; Sync keeps its own) ----------
-        Text('Backup', style: Theme.of(context).textTheme.titleMedium),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Your data, your file. Export to share or archive it, import it back on any device.',
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => _exportBackup(context, store),
-                        icon: const Icon(Icons.upload),
-                        label: const Text('Export'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _importBackup(context, store),
-                        icon: const Icon(Icons.download),
-                        label: const Text('Import'),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _exportEncrypted(context, store),
-                    icon: const Icon(Icons.lock_outline),
-                    label: const Text('Encrypted backup…'),
-                  ),
-                ),
-                const Text(
-                  'Encrypted backups need a passphrase (not the app PIN) to open. Import detects them automatically.',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
+
         // ---------- appearance ----------
-        Text('Appearance', style: Theme.of(context).textTheme.titleMedium),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final (v, label, icon) in const [
-                      ('light', 'Light', Icons.light_mode),
-                      ('system', 'Auto', Icons.settings_suggest),
-                      ('dark', 'Dark', Icons.dark_mode),
-                    ])
-                      ChoiceChip(
-                        label: Text(label),
-                        avatar: Icon(icon, size: 18),
-                        showCheckmark: false,
-                        selected: store.themeMode == v,
-                        onSelected: (_) => store.setThemeMode(v),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  key: const Key('settings-hide-balance'),
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text('Hide balance when the app opens'),
-                  subtitle: const Text(
-                    'Home masks amounts until you tap the eye.',
-                  ),
-                  value: store.hideBalance,
-                  onChanged: (v) => store.setHideBalance(v),
-                ),
-                ListTile(
-                  key: const Key('settings-edit-home'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.dashboard_customize_outlined),
-                  title: const Text('Edit Home'),
-                  subtitle: const Text('Choose sections and their order'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const EditHomeScreen()),
-                  ),
-                ),
-                const Divider(height: 1),
-                const SizedBox(height: 4),
-                ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  leading: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: Color(store.accent),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                  ),
-                  title: const Text('Accent colour'),
-                  subtitle: Text(ExpenseStore.accentName(store.accent)),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 4,
-                      ),
-                      child: Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.start,
-                        children: [
-                          if (!ExpenseStore.accentChoices.contains(
-                            store.accent,
-                          ))
-                            _swatch(context, store, store.accent, true),
-                          for (final c in ExpenseStore.accentChoices)
-                            _swatch(context, store, c, false),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: OutlinedButton.icon(
-                        onPressed: () => _pickCustom(context, store),
-                        icon: const Icon(Icons.palette),
-                        label: const Text('Custom colour…'),
-                      ),
-                    ),
-                    if (!kIsWeb &&
-                        defaultTargetPlatform == TargetPlatform.android)
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        title: const Text('Match wallpaper'),
-                        subtitle: const Text('Material You, Android 12+'),
-                        value: store.materialYou,
-                        onChanged: (v) => store.setMaterialYou(v),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        // ---------- security ----------
-        Text('Security', style: Theme.of(context).textTheme.titleMedium),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.lock),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        vault == null
-                            ? 'Checking...'
-                            : (vault.isEnabled
-                                  ? 'PIN lock is ON (4 digits)'
-                                  : 'PIN lock is off'),
-                      ),
-                    ),
-                  ],
-                ),
-                if (vault != null && !vault.isEnabled)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton(
-                        onPressed: () => _enablePin(vault),
-                        child: const Text('Set PIN'),
-                      ),
-                    ),
-                  ),
-                if (vault != null && vault.isEnabled) ...[
-                  OverflowBar(
-                    children: [
-                      TextButton(
-                        onPressed: () => _changePin(vault),
-                        child: const Text('Change'),
-                      ),
-                      TextButton(
-                        onPressed: () => _disablePin(vault),
-                        child: const Text('Disable'),
-                      ),
-                    ],
-                  ),
-                  if (_bioSupported)
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: const Icon(Icons.fingerprint),
-                      title: const Text('Fingerprint'),
-                      subtitle: const Text('Unlock without typing the PIN'),
-                      value: vault.biometric,
-                      onChanged: (v) => _toggleBio(vault, v),
+        _groupTitle('Appearance'),
+        AppCard.group(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                Spacing.md,
+                Spacing.lg,
+                Spacing.md,
+              ),
+              child: Wrap(
+                spacing: Spacing.sm,
+                runSpacing: Spacing.sm,
+                children: [
+                  for (final (v, label, icon) in const [
+                    ('light', 'Light', Icons.light_mode_outlined),
+                    ('system', 'Auto', Icons.settings_suggest_outlined),
+                    ('dark', 'Dark', Icons.dark_mode_outlined),
+                  ])
+                    ChoiceChip(
+                      label: Text(label),
+                      avatar: Icon(icon, size: 18),
+                      showCheckmark: false,
+                      selected: store.themeMode == v,
+                      onSelected: (_) => store.setThemeMode(v),
                     ),
                 ],
-              ],
+              ),
             ),
-          ),
+            _switchRow(
+              key: const Key('settings-hide-balance'),
+              icon: Icons.visibility_off_outlined,
+              title: 'Hide balance when the app opens',
+              subtitle: 'Home masks amounts until you tap the eye.',
+              value: store.hideBalance,
+              onChanged: (v) => store.setHideBalance(v),
+            ),
+            _row(
+              key: const Key('settings-edit-home'),
+              icon: Icons.dashboard_customize_outlined,
+              title: 'Edit Home',
+              subtitle: 'Choose sections and their order',
+              trailing: Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: colors.textSecondary,
+              ),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const EditHomeScreen()),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: Color(store.accent),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: colors.cardBorder),
+                  ),
+                ),
+                title: Text(
+                  'Accent colour',
+                  style: AppType.body.copyWith(fontSize: 15),
+                ),
+                subtitle: Text(ExpenseStore.accentName(store.accent)),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: Spacing.md,
+                      horizontal: Spacing.xs,
+                    ),
+                    child: Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        if (!ExpenseStore.accentChoices.contains(store.accent))
+                          _swatch(context, store, store.accent, true),
+                        for (final c in ExpenseStore.accentChoices)
+                          _swatch(context, store, c, false),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.xs),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: () => _pickCustom(context, store),
+                      icon: const Icon(Icons.palette_outlined),
+                      label: const Text('Custom colour…'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!kIsWeb &&
+                defaultTargetPlatform == TargetPlatform.android)
+              _switchRow(
+                icon: Icons.wallpaper_outlined,
+                title: 'Match wallpaper',
+                subtitle: 'Material You, Android 12+',
+                value: store.materialYou,
+                onChanged: (v) => store.setMaterialYou(v),
+              ),
+          ],
         ),
-        const SizedBox(height: 16),
-        // ---------- currency ----------
-        Text('Currency', style: Theme.of(context).textTheme.titleMedium),
-        Card(
+
+        // ---------- money ----------
+        _groupTitle('Money'),
+        AppCard(
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(Spacing.lg),
             child: DropdownButtonFormField<String>(
               isExpanded: true,
               initialValue: store.currency,
@@ -417,33 +292,180 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 16),
+
+        // ---------- security ----------
+        _groupTitle('Security'),
+        AppCard(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.lg,
+              Spacing.md,
+              Spacing.lg,
+              Spacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: colors.textSecondary),
+                    const SizedBox(width: Spacing.md),
+                    Expanded(
+                      child: Text(
+                        vault == null
+                            ? 'Checking…'
+                            : (vault.isEnabled
+                                ? 'PIN lock is on (4 digits)'
+                                : 'PIN lock is off'),
+                        style: AppType.body.copyWith(fontSize: 15),
+                      ),
+                    ),
+                  ],
+                ),
+                if (vault != null && !vault.isEnabled)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Spacing.md),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton(
+                        onPressed: () => _enablePin(vault),
+                        child: const Text('Set PIN'),
+                      ),
+                    ),
+                  ),
+                if (vault != null && vault.isEnabled) ...[
+                  const SizedBox(height: Spacing.sm),
+                  OverflowBar(
+                    children: [
+                      TextButton(
+                        onPressed: () => _changePin(vault),
+                        child: const Text('Change'),
+                      ),
+                      TextButton(
+                        onPressed: () => _disablePin(vault),
+                        child: const Text('Disable'),
+                      ),
+                    ],
+                  ),
+                  if (_bioSupported)
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      secondary: Icon(
+                        Icons.fingerprint,
+                        color: colors.textSecondary,
+                      ),
+                      title: const Text('Fingerprint'),
+                      subtitle: const Text('Unlock without typing the PIN'),
+                      value: vault.biometric,
+                      onChanged: (v) => _toggleBio(vault, v),
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
+
         // ---------- data ----------
-        Text('Data', style: Theme.of(context).textTheme.titleMedium),
-        if (!kIsWeb)
-          Card(
+        _groupTitle('Data'),
+        AppCard(
+          child: Padding(
+            padding: const EdgeInsets.all(Spacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your data, your file. Export to share or archive it, '
+                  'import it back on any device.',
+                  style: AppType.body.copyWith(
+                    fontSize: 14,
+                    color: colors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: Spacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () => _exportBackup(context, store),
+                        icon: const Icon(Icons.upload_outlined),
+                        label: const Text('Export'),
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.md),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _importBackup(context, store),
+                        icon: const Icon(Icons.download_outlined),
+                        label: const Text('Import'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: Spacing.sm),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _exportEncrypted(context, store),
+                    icon: const Icon(Icons.lock_outline),
+                    label: const Text('Encrypted backup…'),
+                  ),
+                ),
+                const SizedBox(height: Spacing.sm),
+                Text(
+                  'Encrypted backups need a passphrase (not the app PIN) '
+                  'to open. Import detects them automatically.',
+                  style: AppType.caption.copyWith(
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        // ---------- sync ----------
+        _groupTitle('Sync'),
+        AppCard(
+          child: _row(
+            icon: store.linked ? Icons.link : Icons.link_off,
+            iconColor: store.linked ? colors.income : null,
+            title: store.linked ? 'Linked with ${store.linkPeer}' : 'Not linked',
+            subtitle: store.linked
+                ? (store.linkStatus.isEmpty
+                    ? 'Auto-sync is on'
+                    : store.linkStatus)
+                : 'Pair once, then auto-sync on the same WiFi',
+            trailing: FilledButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => SyncScreen(engine: widget.engine),
+                ),
+              ),
+              child: const Text('Open sync'),
+            ),
+          ),
+        ),
+
+        // ---------- SMS ----------
+        if (!kIsWeb) ...[
+          _groupTitle('SMS'),
+          AppCard(
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(Spacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.sms_outlined),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'SMS import',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              'Auto adds on open · Manual asks first',
-                              style: TextStyle(fontSize: 12),
-                            ),
-                          ],
+                      Icon(Icons.sms_outlined, color: colors.textSecondary),
+                      const SizedBox(width: Spacing.md),
+                      Expanded(
+                        child: Text(
+                          'Auto adds on open · Manual asks first',
+                          style: AppType.caption.copyWith(
+                            color: colors.textSecondary,
+                          ),
                         ),
                       ),
                       SegmentedButton<String>(
@@ -460,11 +482,15 @@ class _MenuScreenState extends State<MenuScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Only these senders are scanned - everything else is ignored as junk.',
+                  const SizedBox(height: Spacing.sm),
+                  Text(
+                    'Only these senders are scanned - everything else is '
+                    'ignored as junk.',
+                    style: AppType.caption.copyWith(
+                      color: colors.textSecondary,
+                    ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: Spacing.sm),
                   Row(
                     children: [
                       Expanded(
@@ -487,9 +513,9 @@ class _MenuScreenState extends State<MenuScreen> {
                     ],
                   ),
                   if (store.smsSenders.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: Spacing.xs),
                     Wrap(
-                      spacing: 8,
+                      spacing: Spacing.sm,
                       runSpacing: 0,
                       children: [
                         for (final s in store.smsSenders)
@@ -504,40 +530,30 @@ class _MenuScreenState extends State<MenuScreen> {
                       ],
                     ),
                   ],
-                  const SizedBox(height: 8),
+                  const SizedBox(height: Spacing.md),
                   FilledButton.icon(
                     onPressed: () => _importSms(context, store),
-                    icon: const Icon(Icons.download),
+                    icon: const Icon(Icons.download_outlined),
                     label: const Text('Scan SMS now'),
                   ),
                 ],
               ),
             ),
           ),
-        if (!kIsWeb) const SizedBox(height: 8),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text('Erase all data'),
-            subtitle: const Text('Wipes everything on THIS device only'),
-            trailing: TextButton(
-              onPressed: () => _erase(context, store),
-              child: const Text('Erase', style: TextStyle(color: Colors.red)),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text('About', style: Theme.of(context).textTheme.titleMedium),
-        const Card(
+        ],
+
+        // ---------- about ----------
+        _groupTitle('About'),
+        const AppCard(
           child: Padding(
-            padding: EdgeInsets.all(12),
+            padding: EdgeInsets.all(Spacing.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Icon(Icons.info_outline),
-                    SizedBox(width: 12),
+                    SizedBox(width: Spacing.md),
                     Expanded(
                       child: Text(
                         'Dhadda Expense $kAppVersion',
@@ -546,18 +562,18 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ],
                 ),
-                SizedBox(height: 4),
-                Text('Local-first • offline • free forever'),
+                SizedBox(height: Spacing.xs),
+                Text('Local-first · offline · free forever'),
                 Text(
                   'Built $kBuildStamp',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
                 ),
-                Divider(height: 24),
-                Text(
-                  'Developer',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 4),
+                Divider(height: Spacing.xl),
+                Text('Developer', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: Spacing.xs),
                 Text('Binod Acharya'),
                 SelectableText(
                   'binod.acharya@example.com',
@@ -567,13 +583,124 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Private by design: data lives on your devices. No account, no server fees, ever.',
+
+        const SizedBox(height: Spacing.lg),
+        AppCard(
+          child: _row(
+            icon: Icons.delete_forever_outlined,
+            iconColor: colors.expense,
+            title: 'Erase all data',
+            titleColor: colors.expense,
+            subtitle: 'Wipes everything on THIS device only',
+            trailing: TextButton(
+              onPressed: () => _erase(context, store),
+              child: Text('Erase', style: TextStyle(color: colors.expense)),
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.xl),
+        Text(
+          'Private by design: data lives on your devices. '
+          'No account, no server fees, ever.',
+          style: AppType.caption.copyWith(color: colors.textSecondary),
         ),
       ],
     );
   }
+
+  Widget _groupTitle(String text) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.xs,
+        Spacing.lg,
+        Spacing.xs,
+        Spacing.sm,
+      ),
+      child: Semantics(
+        header: true,
+        child: Text(
+          text,
+          style: AppType.captionStrong.copyWith(color: colors.textSecondary),
+        ),
+      ),
+    );
+  }
+
+  Widget _row({
+    Key? key,
+    IconData? icon,
+    Color? iconColor,
+    required String title,
+    Color? titleColor,
+    String? subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) {
+    final colors = AppColors.of(context);
+    return ListTile(
+      key: key,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: Spacing.lg,
+        vertical: Spacing.xs,
+      ),
+      leading: icon == null
+          ? null
+          : Icon(icon, size: 20, color: iconColor ?? colors.textSecondary),
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: AppType.body.copyWith(
+          fontSize: 15,
+          color: titleColor ?? colors.textPrimary,
+        ),
+      ),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle,
+              style: AppType.caption.copyWith(color: colors.textSecondary),
+            ),
+      trailing: trailing,
+      onTap: onTap,
+      minTileHeight: 56,
+    );
+  }
+
+  Widget _switchRow({
+    Key? key,
+    IconData? icon,
+    required String title,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    final colors = AppColors.of(context);
+    return SwitchListTile(
+      key: key,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: Spacing.lg,
+        vertical: Spacing.xs,
+      ),
+      secondary: icon == null
+          ? null
+          : Icon(icon, size: 20, color: colors.textSecondary),
+      title: Text(
+        title,
+        style: AppType.body.copyWith(fontSize: 15, color: colors.textPrimary),
+      ),
+      subtitle: subtitle == null
+          ? null
+          : Text(
+              subtitle,
+              style: AppType.caption.copyWith(color: colors.textSecondary),
+            ),
+      value: value,
+      onChanged: onChanged,
+    );
+ }
+
 
   Future<void> _nameDialog(BuildContext context, ExpenseStore store) async {
     final ctrl = TextEditingController(text: store.userName);
