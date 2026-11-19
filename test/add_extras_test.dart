@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Step 5: Repeat chips come from frequent recent note+category pairings,
-/// and the in-app keypad feeds the same strict amount field.
+/// Step 5: Repeat chips come from frequent recent note+category pairings.
+/// Amount entry uses the system keyboard and the unchanged strict parser.
 void main() {
   final now = DateTime(2026, 11, 19, 12);
 
@@ -145,12 +145,9 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('keypad writes strict amounts and Save stays visible', (
+    testWidgets('no in-app keypad; amount uses the system keyboard', (
       tester,
     ) async {
-      tester.view.physicalSize = const Size(400, 720);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
       final store = await seededStore();
       await tester.pumpWidget(
         ChangeNotifierProvider<ExpenseStore>.value(
@@ -160,26 +157,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('add-keypad-toggle')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('add-key-7')), findsOneWidget);
+      expect(find.byKey(const Key('add-keypad-toggle')), findsNothing);
+      expect(find.byIcon(Icons.dialpad), findsNothing);
       expect(find.byKey(const Key('add-save')), findsOneWidget);
-      // 52 dp rows keep Save inside the viewport.
-      final save = tester.getRect(find.byKey(const Key('add-save')));
-      expect(save.bottom, lessThanOrEqualTo(720));
-
-      await tester.tap(find.byKey(const Key('add-key-7')));
-      await tester.tap(find.byKey(const Key('add-key-.')));
-      await tester.tap(find.byKey(const Key('add-key-5')));
-      await tester.tap(find.byKey(const Key('add-key-0')));
-      await tester.pumpAndSettle();
-      final amount = tester.widget<TextField>(find.byType(TextField).first);
-      expect(amount.controller!.text, '7.50');
-      // A second dot is ignored; backspace removes the last character.
-      await tester.tap(find.byKey(const Key('add-key-.')));
-      await tester.tap(find.byKey(const Key('add-key-back')));
-      await tester.pumpAndSettle();
-      expect(amount.controller!.text, '7.5');
     });
   });
 }

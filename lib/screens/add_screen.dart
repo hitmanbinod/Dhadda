@@ -40,7 +40,6 @@ class _AddScreenState extends State<AddScreen>
   TimeOfDay _time = TimeOfDay.now();
   String _mode = 'cash';
   bool _reordering = false;
-  bool _keypad = false;
   late final AnimationController _jiggle = AnimationController(
       duration: const Duration(milliseconds: 280), vsync: this)
     ..repeat(reverse: true);
@@ -84,21 +83,13 @@ class _AddScreenState extends State<AddScreen>
         ? store.categories.first.id
         : null;
     final suggestions = repeatSuggestions(store.transactions);
-    // A phone-sized layout is the trigger; the keypad is optional and never
-    // replaces the system keyboard.
-    final phone = MediaQuery.sizeOf(context).width < 600;
-    // Never stack the in-app keypad on top of the system keyboard.
-    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Add expense')),
       backgroundColor: colors.background,
-      body: Column(
+      body: ListView(
+        padding: pageInsets(context),
         children: [
-          Expanded(
-            child: ListView(
-              padding: pageInsets(context),
-              children: [
         SegmentedButton<bool>(
           showSelectedIcon: false,
           segments: const [
@@ -135,23 +126,7 @@ class _AddScreenState extends State<AddScreen>
             prefixText: '${store.currencySymbol} ',
           ),
         ),
-        const SizedBox(height: Spacing.xs),
-        if (phone)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const Key('add-keypad-toggle'),
-              onPressed: () {
-                FocusScope.of(context).unfocus();
-                setState(() => _keypad = !_keypad);
-              },
-              icon: Icon(
-                _keypad ? Icons.keyboard_hide : Icons.dialpad,
-                size: 18,
-              ),
-              label: Text(_keypad ? 'Hide keypad' : 'Use keypad'),
-            ),
-          ),
+        const SizedBox(height: Spacing.md),
         if (suggestions.isNotEmpty) ...[
           Semantics(
             header: true,
@@ -333,33 +308,18 @@ class _AddScreenState extends State<AddScreen>
           ),
         ),
         const SizedBox(height: Spacing.xl),
-              ],
-            ),
+        FilledButton.icon(
+          key: const Key('add-save'),
+          onPressed: _save,
+          icon: const Icon(Icons.check),
+          label: const Padding(
+            padding: EdgeInsets.all(12),
+            child: Text('Save'),
           ),
-          if (phone && _keypad && !keyboardOpen) _keypadPad(colors),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.screen,
-              Spacing.sm,
-              Spacing.screen,
-              Spacing.lg,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                key: const Key('add-save'),
-                onPressed: _save,
-                icon: const Icon(Icons.check),
-                label: const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('Save'),
-                ),
-              ),
-            ),
-          ),
-        ],
-          ),
-        );
+        ),
+      ],
+    ),
+  );
   }
 
   String _amountLabel(double value) => value == value.roundToDouble()
@@ -374,83 +334,7 @@ class _AddScreenState extends State<AddScreen>
       _note.text = s.note;
       _categoryId = s.categoryId;
       _mode = s.mode;
-      _keypad = false;
     });
-  }
-
-  /// Keypad keys only ever write strings [parseAmount] already accepts.
-  void _pressKey(String key) {
-    final text = _amount.text;
-    if (key == 'back') {
-      if (text.isEmpty) return;
-      _amount.text = text.substring(0, text.length - 1);
-    } else if (key == '.') {
-      if (text.contains('.')) return;
-      _amount.text = text.isEmpty ? '0.' : '$text.';
-    } else {
-      final dot = text.indexOf('.');
-      if (dot >= 0 && text.length - dot - 1 >= 2) return;
-      _amount.text = text == '0' ? key : '$text$key';
-    }
-    _amount.selection = TextSelection.collapsed(offset: _amount.text.length);
-  }
-
-  Widget _keypadPad(AppColors colors) {
-    const rows = <List<String>>[
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['.', '0', 'back'],
-    ];
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.card,
-        border: Border(top: BorderSide(color: colors.hairline)),
-      ),
-      padding: const EdgeInsets.only(top: Spacing.xs, bottom: Spacing.sm),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final row in rows)
-            SizedBox(
-              height: 52,
-              child: Row(
-                children: [for (final key in row) Expanded(child: _key(colors, key))],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _key(AppColors colors, String key) {
-    final back = key == 'back';
-    return Semantics(
-      key: Key('add-key-$key'),
-      button: true,
-      label: back ? 'Delete last digit' : key,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _pressKey(key),
-          child: Center(
-            child: back
-                ? Icon(
-                    Icons.backspace_outlined,
-                    size: 20,
-                    color: colors.textSecondary,
-                  )
-                : Text(
-                    key,
-                    style: AppType.title.copyWith(
-                      fontSize: 21,
-                      color: colors.textPrimary,
-                    ),
-                  ),
-          ),
-        ),
-      ),
-    );
   }
 
   /// Event picked from the dropdown - or created inline without
