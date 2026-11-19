@@ -43,11 +43,12 @@ Future<ExpenseStore> _readyStore() async {
 Future<void> _pumpScreen(
   WidgetTester tester,
   ExpenseStore store,
-  Widget screen,
-) async {
+  Widget screen, {
+  Brightness brightness = Brightness.dark,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
-      theme: AppTheme.build(const Color(0xFF009688), Brightness.dark),
+      theme: AppTheme.build(const Color(0xFF009688), brightness),
       home: ChangeNotifierProvider<ExpenseStore>.value(
         value: store,
         child: Scaffold(body: screen),
@@ -150,4 +151,38 @@ void main() {
     await _pumpScreen(tester, store, const HistoryScreen());
     await _pumpScreen(tester, store, const LentScreen());
   });
+
+  testWidgets('every screen survives 1.3x text at phone and desktop widths',
+    (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      for (final size in [const Size(360, 740), const Size(1280, 800)]) {
+        for (final brightness in [Brightness.light, Brightness.dark]) {
+          tester.view.physicalSize = size;
+          final store = await _readyStore();
+          final engine = LinkEngine(store);
+          final screens = <Widget>[
+            HomeScreen(onAdd: () {}, onSync: () async => 'Up to date.'),
+            const InsightsScreen(),
+            const HistoryScreen(),
+            const LentScreen(),
+            MenuScreen(engine: engine),
+            SettingsScreen(engine: engine),
+            SyncScreen(engine: engine),
+            AddScreen(onSaved: () {}),
+          ];
+          for (final screen in screens) {
+            await _pumpScreen(
+              tester,
+              store,
+              screen,
+              brightness: brightness,
+            );
+          }
+          engine.stop();
+        }
+      }
+    });
 }
