@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'app_dates.dart';
+import 'category_rules.dart';
 import 'format.dart';
 import 'analytics.dart';
 import 'home_layout.dart';
@@ -80,6 +81,7 @@ class ExpenseStore extends ChangeNotifier {
   bool hideBalance = false;
   List<HomeSectionSetting> homeLayout = defaultHomeLayout();
   String calendarSystem = 'ad'; // ad | bs — display/grouping only
+  List<CategoryRule> categoryRules = [];
   String smsMode = 'manual'; // manual | auto
   List<String> smsSenders = [];
 
@@ -554,6 +556,11 @@ class ExpenseStore extends ChangeNotifier {
     hideBalance = meta['hideBalance'] == true;
     calendarSystem = meta['calendarSystem'] == 'bs' ? 'bs' : 'ad';
     setAppCalendar(calendarSystem);
+    categoryRules = decodeCategoryRules(
+      meta['category_rules_v1'] is String
+          ? meta['category_rules_v1'] as String
+          : null,
+    );
     homeLayout = decodeHomeLayout(
       meta['home_layout_v1'] is String
           ? meta['home_layout_v1'] as String
@@ -651,6 +658,7 @@ class ExpenseStore extends ChangeNotifier {
         'userName': userName,
         'hideBalance': hideBalance,
         'calendarSystem': calendarSystem,
+        'category_rules_v1': encodeCategoryRules(categoryRules),
         'home_layout_v1': encodeHomeLayout(homeLayout),
         'smsMode': smsMode,
         'smsSenders': smsSenders,
@@ -811,6 +819,67 @@ class ExpenseStore extends ChangeNotifier {
     _saveAll();
     notifyListeners();
   }
+
+  void _commitRules(List<CategoryRule> rules) {
+    categoryRules = rules;
+    _saveAll();
+    notifyListeners();
+  }
+
+  Future<void> addCategoryRule({
+    required String text,
+    required String categoryId,
+    String type = 'any',
+  }) async {
+    final clean = normalizeRuleText(text);
+    if (clean.length < 2) return;
+    final ruleType = CategoryRuleType.values.firstWhere(
+      (t) => t.name == type,
+      orElse: () => CategoryRuleType.any,
+    );
+    if (categoryRules.any(
+      (r) =>
+          normalizeRuleText(r.text) == clean &&
+          r.categoryId == categoryId &&
+          r.type == ruleType,
+    )) {
+      return;
+    }
+    _commitRules([
+      ...categoryRules,
+      CategoryRule(
+        id: const Uuid().v4(),
+        text: clean,
+        categoryId: categoryId,
+        type: ruleType,
+      ),
+    ]);
+  }
+
+  Future<void> updateCategoryRule(String id, CategoryRule rule) async {
+    _commitRules([
+      for (final r in categoryRules) if (r.id == id) rule else r,
+    ]);
+  }
+
+  Future<void> deleteCategoryRule(String id) async {
+    _commitRules([for (final r in categoryRules) if (r.id != id) r]);
+  }
+
+  Future<void> reorderCategoryRule(int oldIndex, int newIndex) async {
+    _commitRules(moveCategoryRule(categoryRules, oldIndex, newIndex));
+  }
+
+  /// First enabled matching rule, or null. Rules are per-device and never
+  /// applied retroactively to stored entries.
+  CategoryRule? categoryRuleFor(String note, String type) => matchCategoryRule(
+        categoryRules,
+        note: note,
+        type: type,
+        validCategoryIds: {
+          for (final c in categories) c.id,
+        },
+      );
 
   /// Applies a Home section order/visibility list immediately. Balance stays
   /// pinned first and unknown sections are added hidden by [normalizeHomeLayout].

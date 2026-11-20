@@ -17,6 +17,7 @@ Future<void> showEntryActions(
           txn.amount.truncateToDouble() == txn.amount ? 0 : 2));
   final note = TextEditingController(text: txn.note);
   var categoryId = txn.categoryId;
+  var categoryChanged = false;
   if (store.categories.isNotEmpty &&
       store.categories.every((c) => c.id != categoryId)) {
     categoryId = store.categories.first.id;
@@ -109,8 +110,10 @@ Future<void> showEntryActions(
                     DropdownMenuItem(
                         value: c.id, child: Text(c.name)),
                 ],
-                onChanged: (v) =>
-                    setD(() => categoryId = v ?? categoryId),
+                onChanged: (v) => setD(() {
+                  if (v != null && v != categoryId) categoryChanged = true;
+                  categoryId = v ?? categoryId;
+                }),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -208,5 +211,26 @@ Future<void> showEntryActions(
   if (saved == true && context.mounted) {
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Saved')));
+    // Learn a rule from an explicit category correction, never silently.
+    final text = note.text.trim();
+    if (categoryChanged &&
+        text.length >= 2 &&
+        store.categories.any((c) => c.id == categoryId)) {
+      final name = store.categoryOf(categoryId).name;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Always put "$text" in $name?'),
+          duration: const Duration(seconds: 6),
+          action: SnackBarAction(
+            label: 'Yes',
+            onPressed: () => store.addCategoryRule(
+              text: text,
+              categoryId: categoryId,
+              type: txn.type,
+            ),
+          ),
+        ),
+      );
+    }
   }
 }

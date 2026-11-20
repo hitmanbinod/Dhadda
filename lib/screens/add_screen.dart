@@ -41,6 +41,8 @@ class _AddScreenState extends State<AddScreen>
   TimeOfDay _time = TimeOfDay.now();
   String _mode = 'cash';
   bool _reordering = false;
+  bool _categoryChosen = false;
+  String? _suggestedCategoryId;
   late final AnimationController _jiggle = AnimationController(
       duration: const Duration(milliseconds: 280), vsync: this)
     ..repeat(reverse: true);
@@ -66,7 +68,11 @@ class _AddScreenState extends State<AddScreen>
       avatar: Icon(c.iconData, size: 18),
       showCheckmark: false,
       selected: _categoryId == c.id,
-      onSelected: (_) => setState(() => _categoryId = c.id),
+      onSelected: (_) => setState(() {
+        _categoryId = c.id;
+        _categoryChosen = true;
+        _suggestedCategoryId = null;
+      }),
     );
     if (!_reordering) return chip;
     return RotationTransition(
@@ -301,6 +307,7 @@ class _AddScreenState extends State<AddScreen>
         TextField(
           controller: _note,
           textInputAction: TextInputAction.done,
+          onChanged: _onNoteChanged,
           onSubmitted: (_) => _save(),
           decoration: const InputDecoration(
             labelText: 'Note (optional)',
@@ -308,6 +315,27 @@ class _AddScreenState extends State<AddScreen>
             prefixIcon: Icon(Icons.note),
           ),
         ),
+        if (_suggestedCategoryId != null)
+          Padding(
+            padding: const EdgeInsets.only(top: Spacing.xs),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ActionChip(
+                key: const Key('add-category-suggestion'),
+                avatar: const Icon(Icons.auto_awesome_outlined, size: 16),
+                label: Text(
+                  '${store.categoryOf(_suggestedCategoryId!).name}?',
+                ),
+                onPressed: () {
+                  setState(() {
+                    _categoryId = _suggestedCategoryId;
+                    _categoryChosen = true;
+                    _suggestedCategoryId = null;
+                  });
+                },
+              ),
+            ),
+          ),
         const SizedBox(height: Spacing.xl),
         FilledButton.icon(
           key: const Key('add-save'),
@@ -334,7 +362,9 @@ class _AddScreenState extends State<AddScreen>
       _amount.text = _amountLabel(s.amount);
       _note.text = s.note;
       _categoryId = s.categoryId;
+      _categoryChosen = true;
       _mode = s.mode;
+      _suggestedCategoryId = null;
     });
   }
 
@@ -431,12 +461,33 @@ class _AddScreenState extends State<AddScreen>
           orElse: () => null,
         );
     if (existing != null) {
-      setState(() => _categoryId = existing.id);
+      setState(() {
+        _categoryId = existing.id;
+        _categoryChosen = true;
+      });
       return;
     }
     final id = await store.addCategory(trimmed);
     if (!mounted) return;
-    setState(() => _categoryId = id);
+    setState(() {
+      _categoryId = id;
+      _categoryChosen = true;
+    });
+  }
+
+  void _onNoteChanged(String value) {
+    if (_categoryChosen) {
+      if (_suggestedCategoryId != null) {
+        setState(() => _suggestedCategoryId = null);
+      }
+      return;
+    }
+    final rule = context.read<ExpenseStore>().categoryRuleFor(
+          value,
+          _isExpense ? 'expense' : 'income',
+        );
+    final next = rule?.categoryId;
+    if (next != _suggestedCategoryId) setState(() => _suggestedCategoryId = next);
   }
 
   Future<void> _save() async {

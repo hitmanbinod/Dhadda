@@ -200,11 +200,15 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         await store.addTransaction(
           type: c.isIncome ? 'income' : 'expense',
           amount: c.amount,
-          categoryId: categorizeSms(
-            merchant: c.merchant,
-            body: c.body,
-            candidates: store.categories,
-          ),
+          categoryId: store.categoryRuleFor(
+                c.merchant.isEmpty ? c.body : c.merchant,
+                c.isIncome ? 'income' : 'expense',
+              )?.categoryId ??
+              categorizeSms(
+                merchant: c.merchant,
+                body: c.body,
+                candidates: store.categories,
+              ),
           date: c.date,
           note: c.merchant.isEmpty ? c.sender : c.merchant,
           mode: c.mode,

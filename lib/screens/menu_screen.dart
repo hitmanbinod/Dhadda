@@ -19,6 +19,7 @@ import '../widgets/backup_password.dart';
 import '../sync/link_sync.dart';
 import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
+import 'category_rules_screen.dart';
 import 'edit_home_screen.dart';
 import 'sync_screen.dart';
 
@@ -335,6 +336,25 @@ class _MenuScreenState extends State<MenuScreen> {
                 await store.setCurrency(v);
                 _say('Currency set to $v.');
               },
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.sm),
+        AppCard(
+          child: _row(
+            key: const Key('settings-auto-category'),
+            icon: Icons.auto_awesome_outlined,
+            title: 'Auto-category rules',
+            subtitle: 'Suggest categories from note text',
+            trailing: Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: colors.textSecondary,
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const CategoryRulesScreen(),
+              ),
             ),
           ),
         ),
@@ -1042,11 +1062,15 @@ class _MenuScreenState extends State<MenuScreen> {
       await store.addTransaction(
         type: c.isIncome ? 'income' : 'expense',
         amount: c.amount,
-        categoryId: categorizeSms(
-          merchant: c.merchant,
-          body: c.body,
-          candidates: store.categories,
-        ),
+        categoryId: store.categoryRuleFor(
+              c.merchant.isEmpty ? c.body : c.merchant,
+              c.isIncome ? 'income' : 'expense',
+            )?.categoryId ??
+            categorizeSms(
+              merchant: c.merchant,
+              body: c.body,
+              candidates: store.categories,
+            ),
         date: c.date,
         note: c.merchant.isEmpty ? c.sender : c.merchant,
         mode: c.mode,
