@@ -241,6 +241,14 @@ class _MenuScreenState extends State<MenuScreen> {
               value: store.hideBalance,
               onChanged: (v) => store.setHideBalance(v),
             ),
+            _switchRow(
+              key: const Key('settings-one-handed'),
+              icon: Icons.front_hand_outlined,
+              title: 'One-handed mode',
+              subtitle: 'Moves the top tabs and toggles to the bottom.',
+              value: store.oneHanded,
+              onChanged: (v) => store.setOneHanded(v),
+            ),
             _row(
               key: const Key('settings-edit-home'),
               icon: Icons.dashboard_customize_outlined,

@@ -80,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _month = appCalendar.periodOf(DateTime.now()).start;
   String? _spotlightId;
   String? _calendarId;
+  double _monthDirection = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -568,17 +569,18 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'Choose month. Swipe left or right to browse months.',
           child: GestureDetector(
             key: const Key('home-month-title'),
-            behavior: HitTestBehavior.opaque,
+            // Only the text itself receives taps; the empty right side is inert.
+            behavior: HitTestBehavior.deferToChild,
             onTap: _pickMonth,
             onHorizontalDragStart: _onMonthDragStart,
             onHorizontalDragUpdate: _onMonthDragUpdate,
             onHorizontalDragEnd: _onMonthDragEnd,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
+              child: Align(
                 alignment: Alignment.centerLeft,
-                child: _monthTitle(colors),
+                widthFactor: 1,
+                child: _animatedMonthTitle(colors),
               ),
             ),
           ),
@@ -598,6 +600,27 @@ class _HomeScreenState extends State<HomeScreen> {
       onPressed: onPressed,
       visualDensity: VisualDensity.compact,
       icon: Icon(icon, size: 20, color: colors.textSecondary),
+    );
+  }
+
+  /// A short, eased slide/fade so paging feels deliberate instead of instant.
+  Widget _animatedMonthTitle(AppColors colors) {
+    final duration = Motion.of(context, Motion.base);
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: Motion.ease,
+      switchOutCurve: Motion.ease,
+      transitionBuilder: (child, animation) => SlideTransition(
+        position: Tween<Offset>(
+          begin: Offset(_monthDirection * 0.25, 0),
+          end: Offset.zero,
+        ).animate(animation),
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: Container(
+        key: ValueKey('month-${appCalendar.periodOf(_month).index}'),
+        child: _monthTitle(colors),
+      ),
     );
   }
 
@@ -1618,6 +1641,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _monthSwiped = true;
     Haptics.selection();
     setState(() {
+      _monthDirection = _monthDragDx < 0 ? 1 : -1;
       final cal = appCalendar.isBs && !appCalendar.supports(_month)
           ? const GregorianCalendarSystem()
           : appCalendar;
@@ -1643,7 +1667,11 @@ class _HomeScreenState extends State<HomeScreen> {
       helpText: 'Jump to month',
     );
     if (picked != null && mounted) {
-      setState(() => _month = DateTime(picked.year, picked.month));
+      final next = DateTime(picked.year, picked.month);
+      setState(() {
+        _monthDirection = next.isBefore(_month) ? -1 : 1;
+        _month = next;
+      });
     }
   }
 

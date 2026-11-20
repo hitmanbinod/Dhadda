@@ -70,7 +70,7 @@ void main() {
   testWidgets('Settings shows grouped lists with Erase at the bottom', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(420, 3200);
+    tester.view.physicalSize = const Size(420, 4200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     final store = await readyStore();

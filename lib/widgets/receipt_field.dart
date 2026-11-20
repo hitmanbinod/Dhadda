@@ -68,36 +68,6 @@ class _ReceiptFieldState extends State<ReceiptField> {
     }
   }
 
-  void _sheet() {
-    final colors = AppColors.of(context);
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.photo_camera_outlined, color: colors.accent),
-              title: const Text('Take photo'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _capture('takePhoto');
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library_outlined, color: colors.accent),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _capture('pickImages');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _view(String relative) {
     final store = _store2;
     if (store == null) return;
@@ -149,7 +119,7 @@ class _ReceiptFieldState extends State<ReceiptField> {
         Semantics(
           header: true,
           child: Text(
-            'Receipts (optional, on this phone only)',
+            'Receipts (optional)',
             style: AppType.caption.copyWith(color: colors.textSecondary),
           ),
         ),
@@ -174,24 +144,25 @@ class _ReceiptFieldState extends State<ReceiptField> {
                   ),
                 ),
               ),
-            if (_paths.length < 3)
-              SizedBox(
-                width: 56,
-                height: 56,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(56, 56),
-                  ),
-                  onPressed: _busy ? null : _sheet,
-                  child: _busy
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.add_photo_alternate_outlined),
-                ),
+            if (_paths.length < 3) ...[
+              OutlinedButton.icon(
+                key: const Key('receipt-gallery'),
+                onPressed: _busy ? null : () => _capture('pickImages'),
+                icon: const Icon(Icons.photo_library_outlined, size: 18),
+                label: const Text('Gallery'),
+              ),
+              OutlinedButton.icon(
+                key: const Key('receipt-camera'),
+                onPressed: _busy ? null : () => _capture('takePhoto'),
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: const Text('Camera'),
+              ),
+            ],
+            if (_busy)
+              const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
           ],
         ),

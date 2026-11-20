@@ -80,6 +80,7 @@ class ExpenseStore extends ChangeNotifier {
   bool materialYou = false; // wallpaper colours (Android 12+)
   String userName = '';
   bool hideBalance = false;
+  bool oneHanded = false; // moves top controls to the bottom when enabled
   List<HomeSectionSetting> homeLayout = defaultHomeLayout();
   String calendarSystem = 'ad'; // ad | bs — display/grouping only
   List<CategoryRule> categoryRules = [];
@@ -558,6 +559,7 @@ class ExpenseStore extends ChangeNotifier {
     materialYou = meta['materialYou'] == true;
     userName = '${meta['userName'] ?? ''}';
     hideBalance = meta['hideBalance'] == true;
+    oneHanded = meta['one_handed_mode'] == true;
     calendarSystem = meta['calendarSystem'] == 'bs' ? 'bs' : 'ad';
     setAppCalendar(calendarSystem);
     categoryRules = decodeCategoryRules(
@@ -666,6 +668,7 @@ class ExpenseStore extends ChangeNotifier {
         'materialYou': materialYou,
         'userName': userName,
         'hideBalance': hideBalance,
+        'one_handed_mode': oneHanded,
         'calendarSystem': calendarSystem,
         'category_rules_v1': encodeCategoryRules(categoryRules),
         'home_layout_v1': encodeHomeLayout(homeLayout),
@@ -815,6 +818,14 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> setHideBalance(bool v) async {
     if (hideBalance == v) return;
     hideBalance = v;
+    _saveAll();
+    notifyListeners();
+  }
+
+  /// Per-device layout toggle: moves top controls toward the thumb.
+  Future<void> setOneHanded(bool value) async {
+    if (oneHanded == value) return;
+    oneHanded = value;
     _saveAll();
     notifyListeners();
   }

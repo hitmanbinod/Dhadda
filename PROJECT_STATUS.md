@@ -45,6 +45,13 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Settings → Money → Accounts (reorder/edit/archive/merge/delete-if-unused); Add/Edit account pickers; History account search + captions.
 - Receipts: native camera/gallery intents, ≤1600 px JPEG q80, EXIF stripped, app-private files only; Add-screen receipt row, viewer, History paperclip, Settings → Data usage + double-confirm clear, startup orphan cleanup.
 
+## One-handed experiment (latest)
+- Additive pref `one_handed_mode` (default false), toggle in Settings → Appearance (`settings-one-handed`).
+- When enabled: History Entries/Categories/Events tabs, Insights period bar and Lent's Lent/Borrowed + Pending/Settled/All toggles move to the bottom of their screens.
+- Root shell supports horizontal swipe between the four tabs.
+- Home month title: swipe now animates (eased slide/fade); only the text itself is tappable — empty space to the right no longer opens the calendar.
+- Add screen: Account picker moved lower; Receipts row shows direct **Gallery** and **Camera** buttons with only "(optional)" as prompt.
+
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,
 `(rev, by)` ordering, tombstone rules, `parseAmount`, `other` category rule,

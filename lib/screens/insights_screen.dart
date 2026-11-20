@@ -70,17 +70,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   children: [
                     _header(colors, store),
                     const SizedBox(height: Spacing.lg),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        child: SegmentedTabs(
-                          labels: [for (final p in _periods) p.label],
-                          selectedIndex: _period.index,
-                          onChanged: _setPeriod,
-                        ),
-                      ),
-                    ),
+                    if (!store.oneHanded) _periodTabs(colors),
                     if (_period == InsightPeriod.fiscal)
                       Padding(
                         padding: const EdgeInsets.only(top: Spacing.sm),
@@ -165,12 +155,37 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   },
                 ),
               ),
-            SliverToBoxAdapter(
-              child: SizedBox(height: tabScrollBottomPadding(context)),
-            ),
+            if (store.oneHanded)
+              SliverPadding(
+                padding: EdgeInsets.fromLTRB(
+                  hPad,
+                  Spacing.sm,
+                  hPad,
+                  tabScrollBottomPadding(context) + Spacing.sm,
+                ),
+                sliver: SliverToBoxAdapter(child: _periodTabs(colors)),
+              )
+            else
+              SliverToBoxAdapter(
+                child: SizedBox(height: tabScrollBottomPadding(context)),
+              ),
           ],
         );
       },
+    );
+  }
+
+  Widget _periodTabs(AppColors colors) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SegmentedTabs(
+          labels: [for (final p in _periods) p.label],
+          selectedIndex: _period.index,
+          onChanged: _setPeriod,
+        ),
+      ),
     );
   }
 

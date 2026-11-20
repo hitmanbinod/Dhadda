@@ -297,33 +297,6 @@ class _AddScreenState extends State<AddScreen>
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Semantics(
-          header: true,
-          child: Text(
-            'Account',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final a in store.activeAccounts)
-              ChoiceChip(
-                key: Key('add-account-${a.id}'),
-                label: Text(a.name),
-                avatar: Icon(_accountIcon(a.type), size: 18),
-                showCheckmark: false,
-                selected: _accountId == a.id,
-                onSelected: (_) => setState(() {
-                  _accountId = a.id;
-                  _mode = modeForAccountType(a.type);
-                }),
-              ),
-          ],
-        ),
         const SizedBox(height: 16),
         TextField(
           controller: _note,
@@ -357,6 +330,33 @@ class _AddScreenState extends State<AddScreen>
               ),
             ),
           ),
+        const SizedBox(height: Spacing.lg),
+        Semantics(
+          header: true,
+          child: Text(
+            'Account',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        const SizedBox(height: Spacing.sm),
+        Wrap(
+          spacing: Spacing.sm,
+          runSpacing: Spacing.sm,
+          children: [
+            for (final a in store.activeAccounts)
+              ChoiceChip(
+                key: Key('add-account-${a.id}'),
+                label: Text(a.name),
+                avatar: Icon(_accountIcon(a.type), size: 18),
+                showCheckmark: false,
+                selected: _accountId == a.id,
+                onSelected: (_) => setState(() {
+                  _accountId = a.id;
+                  _mode = modeForAccountType(a.type);
+                }),
+              ),
+          ],
+        ),
         const SizedBox(height: Spacing.lg),
         ReceiptField(
           initial: const [],

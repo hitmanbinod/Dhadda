@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +12,9 @@ import '../theme/palette.dart';
 import '../theme/tokens.dart';
 import '../theme/typography.dart';
 import '../widgets/app_card.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/page.dart';
+import '../widgets/segmented_tabs.dart';
 import '../widgets/profile_avatar.dart';
 
 /// Lent-money ledger: who owes you, partial repayments, settled history.
@@ -33,6 +37,10 @@ class _LentScreenState extends State<LentScreen> {
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
     final colors = AppColors.of(context);
+    final hPad = math.max(
+      Spacing.screen,
+      (MediaQuery.sizeOf(context).width - kPageMaxWidth) / 2,
+    );
     final loans = store.loans.where((l) {
       if ((l.isBorrowed ? 'borrowed' : 'lent') != _dir) return false;
       if (_filter == 'pending') return !l.settled;
@@ -45,7 +53,7 @@ class _LentScreenState extends State<LentScreen> {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
             child: Row(
               children: [
                 Expanded(
@@ -80,12 +88,7 @@ class _LentScreenState extends State<LentScreen> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              pageGutter(context),
-              Spacing.sm,
-              pageGutter(context),
-              0,
-            ),
+            padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
             child: AppCard.group(
               children: [
                 _summaryRow(
@@ -109,32 +112,25 @@ class _LentScreenState extends State<LentScreen> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedButton<String>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 'lent', label: Text('Lent')),
-                ButtonSegment(value: 'borrowed', label: Text('Borrowed')),
-              ],
-              selected: {_dir},
-              onSelectionChanged: (s) => setState(() => _dir = s.first),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: 'pending', label: Text('Pending')),
-              ButtonSegment(value: 'settled', label: Text('Settled')),
-              ButtonSegment(value: 'all', label: Text('All')),
-            ],
-            selected: {_filter},
-            onSelectionChanged: (s) => setState(() => _filter = s.first),
-          ),
+          if (!store.oneHanded) _toggles(colors, hPad),
           Expanded(
             child: loans.isEmpty
-                ? const Center(child: Text('Nothing here.'))
+                ? Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      hPad,
+                      Spacing.lg,
+                      hPad,
+                      Spacing.lg,
+                    ),
+                    child: AppCard(
+                      child: EmptyState(
+                        icon: Icons.handshake_outlined,
+                        message: _dir == 'lent'
+                            ? 'No lent money here yet.'
+                            : 'No borrowed money here yet.',
+                      ),
+                    ),
+                  )
                 : ListView.builder(
                     padding: EdgeInsets.only(
                       bottom: tabScrollBottomPadding(context),
@@ -143,6 +139,40 @@ class _LentScreenState extends State<LentScreen> {
                     itemBuilder: (ctx, i) =>
                         _loanTile(context, store, loans[i]),
                   ),
+          ),
+          if (store.oneHanded)
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                hPad,
+                Spacing.sm,
+                hPad,
+                tabScrollBottomPadding(context) + Spacing.sm,
+              ),
+              child: _toggles(colors, 0),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggles(AppColors colors, double hPad) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(hPad, Spacing.md, hPad, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SegmentedTabs(
+            labels: const ['Lent', 'Borrowed'],
+            selectedIndex: _dir == 'lent' ? 0 : 1,
+            onChanged: (i) => setState(() => _dir = i == 0 ? 'lent' : 'borrowed'),
+          ),
+          const SizedBox(height: Spacing.sm),
+          SegmentedTabs(
+            labels: const ['Pending', 'Settled', 'All'],
+            selectedIndex: const ['pending', 'settled', 'all'].indexOf(_filter),
+            onChanged: (i) => setState(
+              () => _filter = const ['pending', 'settled', 'all'][i],
+            ),
           ),
         ],
       ),

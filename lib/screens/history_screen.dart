@@ -165,7 +165,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(
             children: [
               _collapsible(_titleBlock(colors, store, filtered)),
-              _segmented(),
+              if (!store.oneHanded) _segmented(),
               if (_view == 'entries') ...[
                 _collapsible(_searchAndFilters(colors, store)),
                 Expanded(
@@ -178,6 +178,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ? _categoriesBody(colors, store)
                         : _projectsBody(colors, store),
                   ),
+                ),
+              if (store.oneHanded)
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    0,
+                    Spacing.sm,
+                    0,
+                    tabScrollBottomPadding(context) + Spacing.sm,
+                  ),
+                  child: _segmented(),
                 ),
             ],
           ),
