@@ -1,5 +1,7 @@
 import 'package:flutter/services.dart';
 
+import 'app_dates.dart';
+
 /// Thin bridge to the native home-screen widgets. All calls are best-effort:
 /// on web, in tests, or on Android versions without widgets they simply no-op.
 class WidgetBridge {
@@ -16,9 +18,26 @@ class WidgetBridge {
   }
 
   /// Ask Android to repaint every widget from the current on-device data.
+  /// The active calendar's period bounds and labels are passed down so the
+  /// native writer never computes Gregorian month boundaries of its own.
   static Future<void> refresh() async {
     try {
-      await _channel.invokeMethod<void>('refresh');
+      final now = DateTime.now();
+      final period = appCalendar.periodOf(now);
+      final dayStart = DateTime(now.year, now.month, now.day);
+      await _channel.invokeMethod<void>('refresh', {
+        'calendar': appCalendar.id,
+        'monthLabel': appMonthStr(now),
+        'todayLabel': appDayStr(now),
+        'monthStart': period.start.millisecondsSinceEpoch,
+        'monthEnd': period.end.millisecondsSinceEpoch,
+        'dayStart': dayStart.millisecondsSinceEpoch,
+        'dayEnd': DateTime(
+          dayStart.year,
+          dayStart.month,
+          dayStart.day + 1,
+        ).millisecondsSinceEpoch,
+      });
     } catch (_) {}
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../app_dates.dart';
 import '../format.dart';
 import '../repeat_suggestions.dart';
 import '../store.dart';
@@ -243,7 +244,7 @@ class _AddScreenState extends State<AddScreen>
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () async {
-                  final picked = await showDatePicker(
+                  final picked = await showAppDatePicker(
                     context: context,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now()

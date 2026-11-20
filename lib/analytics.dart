@@ -11,6 +11,7 @@
 // same month under both views, so membership cannot diverge.
 import 'dart:math' as math;
 
+import 'calendar/period.dart';
 import 'models.dart';
 
 /// One month's dashboard aggregates, computed in a single pass.
@@ -44,8 +45,15 @@ class MonthlyAnalytics {
 
 /// Single-pass monthly aggregates over [txns] (any order; order within
 /// each subset is preserved, matching the historical implementation).
-MonthlyAnalytics computeMonthlyAnalytics(List<Txn> txns, DateTime month) {
-  final (start, end) = monthBounds(month);
+MonthlyAnalytics computeMonthlyAnalytics(
+  List<Txn> txns,
+  DateTime month, {
+  DateTime? periodStart,
+  DateTime? periodEnd,
+}) {
+  final (defaultStart, defaultEnd) = monthBounds(month);
+  final start = periodStart?.millisecondsSinceEpoch ?? defaultStart;
+  final end = periodEnd?.millisecondsSinceEpoch ?? defaultEnd;
   var spend = 0.0;
   var income = 0.0;
   final byCategory = <String, double>{};
@@ -206,14 +214,23 @@ InsightsAnalytics computeInsights(
   InsightPeriod period, {
   DateTime? asOf,
   int topLimit = 8,
+  CalendarSystem? calendar,
 }) {
+  final cal = calendar ?? const GregorianCalendarSystem();
   final now = asOf ?? DateTime.now();
-  final start = DateTime(anchor.year, anchor.month - (period.months - 1), 1);
-  final end = DateTime(anchor.year, anchor.month + 1, 1);
-  final previousStart = DateTime(start.year, start.month - period.months, 1);
+  final window = period == InsightPeriod.year
+      ? [cal.yearPeriod(anchor)]
+      : cal.window(anchor, period.months);
+  final start = window.first.start;
+  final end = window.last.end;
+  final before = DateTime(start.year, start.month, start.day - 1);
+  final previousWindow = period == InsightPeriod.year
+      ? [cal.yearPeriod(before)]
+      : cal.window(before, period.months);
+  final previousStart = previousWindow.first.start;
 
-  final trendMonths = period.trendMonths;
-  final trendStart = DateTime(anchor.year, anchor.month - (trendMonths - 1), 1);
+  final trendPeriods = cal.window(anchor, period.trendMonths);
+  final trendStart = trendPeriods.first.start;
 
   final startMs = start.millisecondsSinceEpoch;
   final endMs = end.millisecondsSinceEpoch;
@@ -221,14 +238,13 @@ InsightsAnalytics computeInsights(
   final trendStartMs = trendStart.millisecondsSinceEpoch;
   final earliestMs = math.min(previousStartMs, trendStartMs);
 
-  int monthKey(DateTime d) => d.year * 12 + d.month - 1;
+  int monthKey(DateTime d) => cal.periodOf(d).index;
 
   final trendSpend = <int, double>{};
   final trendIncome = <int, double>{};
-  for (var i = 0; i < trendMonths; i++) {
-    final m = DateTime(trendStart.year, trendStart.month + i, 1);
-    trendSpend[monthKey(m)] = 0;
-    trendIncome[monthKey(m)] = 0;
+  for (final p in trendPeriods) {
+    trendSpend[p.index] = 0;
+    trendIncome[p.index] = 0;
   }
 
   var spend = 0.0;
@@ -297,14 +313,12 @@ InsightsAnalytics computeInsights(
             : totalDays);
 
   final trend = <MonthTotal>[];
-  for (var i = 0; i < trendMonths; i++) {
-    final month = DateTime(trendStart.year, trendStart.month + i, 1);
-    final key = monthKey(month);
+  for (final p in trendPeriods) {
     trend.add(
       MonthTotal(
-        month: month,
-        spend: trendSpend[key]!,
-        income: trendIncome[key]!,
+        month: p.start,
+        spend: trendSpend[p.index]!,
+        income: trendIncome[p.index]!,
       ),
     );
   }
@@ -343,4 +357,18 @@ double? projectMonthEndSpend(
   if (now.year != month.year || now.month != month.month) return null;
   if (now.day < minDays || now.day <= 0) return null;
   return spent / now.day * daysInMonth(month);
+}
+
+/// Calendar-agnostic projection for the active period (29-32 BS days too).
+double? projectPeriodEndSpend(
+  double spent,
+  Period period, {
+  DateTime? asOf,
+  int minDays = 5,
+}) {
+  final now = asOf ?? DateTime.now();
+  if (!period.contains(now)) return null;
+  final elapsed = daysBetween(period.start, now) + 1;
+  if (elapsed < minDays) return null;
+  return spent / elapsed * period.daysInPeriod;
 }

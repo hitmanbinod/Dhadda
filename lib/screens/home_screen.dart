@@ -6,6 +6,8 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
 import '../analytics.dart';
+import '../app_dates.dart';
+import '../calendar/period.dart';
 import '../format.dart';
 import '../home_layout.dart';
 import '../store.dart';
@@ -75,8 +77,9 @@ class _Slice {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _month = appCalendar.periodOf(DateTime.now()).start;
   String? _spotlightId;
+  String? _calendarId;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +90,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final colors = AppColors.of(context);
     final now = DateTime.now();
-    final isCurrentMonth = _month.year == now.year && _month.month == now.month;
+    // Switching AD/BS re-anchors the pager on today's period in that system.
+    if (_calendarId != null && _calendarId != appCalendar.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _month = appCalendar.periodOf(DateTime.now()).start);
+        }
+      });
+    }
+    _calendarId = appCalendar.id;
+    final fallback = appCalendar.isBs && !appCalendar.supports(_month);
+    final cal = fallback ? const GregorianCalendarSystem() : appCalendar;
+    final period = cal.periodOf(_month);
+    final isCurrentMonth = period.contains(now);
     final hidden = store.hideBalance;
     final layout = store.homeLayout;
     final analytics = store.monthly(_month);
@@ -152,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // The optional rhythm/today sections need one pass over this month's
     // expenses. Other layouts keep the original single-pass analytics only.
-    final days = daysInMonth(_month);
+    final days = period.daysInPeriod;
     final needsDaily = layout.any(
       (s) =>
           s.visible &&
@@ -164,14 +179,14 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final t in store.transactions) {
         if (!t.isExpense) continue;
         final d = t.dateTime;
-        if (d.year != _month.year || d.month != _month.month) continue;
-        daily[d.day - 1] += t.amount;
+        if (!period.contains(d)) continue;
+        daily[period.dayIndex(d)] += t.amount;
       }
     }
-    final todaySpend = isCurrentMonth ? daily[now.day - 1] : 0.0;
+    final todaySpend = isCurrentMonth ? daily[period.dayIndex(now)] : 0.0;
     final budgetTotal = budgets.fold<double>(0, (sum, c) => sum + c.budget);
     final dailyAllowance = budgetTotal > 0 ? budgetTotal / days : 0.0;
-    final projected = projectMonthEndSpend(spend, _month);
+    final projected = projectPeriodEndSpend(spend, period);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -188,6 +203,21 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
             sliver: SliverToBoxAdapter(child: _header(context, store, colors)),
           ),
+          if (fallback)
+            SliverPadding(
+              padding: EdgeInsets.symmetric(horizontal: hPad),
+              sliver: SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: Spacing.sm),
+                  child: Text(
+                    'Outside the BS table — showing Gregorian dates here.',
+                    style: AppType.caption.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ];
         HomeSection? previous;
 
@@ -1291,7 +1321,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final over = budgetTotal > 0 && projected > budgetTotal;
     final delta = (projected - budgetTotal).abs();
-    final daysLeft = daysInMonth(month) - DateTime.now().day;
+    final active = appCalendar.periodOf(month);
+    final daysLeft =
+        active.daysInPeriod - (active.dayIndex(DateTime.now()) + 1);
     final footnote = budgetTotal <= 0
         ? '$daysLeft days left at today’s pace'
         : over
@@ -1586,10 +1618,13 @@ class _HomeScreenState extends State<HomeScreen> {
     _monthSwiped = true;
     Haptics.selection();
     setState(() {
-      _month = DateTime(
-        _month.year,
-        _month.month + (_monthDragDx < 0 ? 1 : -1),
-      );
+      final cal = appCalendar.isBs && !appCalendar.supports(_month)
+          ? const GregorianCalendarSystem()
+          : appCalendar;
+      final current = cal.periodOf(_month);
+      _month = _monthDragDx < 0
+          ? cal.next(current).start
+          : cal.previous(current).start;
     });
   }
 
@@ -1600,7 +1635,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Tapping the month pops a calendar to jump timelines directly.
   Future<void> _pickMonth() async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),

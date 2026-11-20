@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import 'app_dates.dart';
 import 'format.dart';
 import 'analytics.dart';
 import 'home_layout.dart';
@@ -78,6 +79,7 @@ class ExpenseStore extends ChangeNotifier {
   String userName = '';
   bool hideBalance = false;
   List<HomeSectionSetting> homeLayout = defaultHomeLayout();
+  String calendarSystem = 'ad'; // ad | bs — display/grouping only
   String smsMode = 'manual'; // manual | auto
   List<String> smsSenders = [];
 
@@ -550,6 +552,8 @@ class ExpenseStore extends ChangeNotifier {
     materialYou = meta['materialYou'] == true;
     userName = '${meta['userName'] ?? ''}';
     hideBalance = meta['hideBalance'] == true;
+    calendarSystem = meta['calendarSystem'] == 'bs' ? 'bs' : 'ad';
+    setAppCalendar(calendarSystem);
     homeLayout = decodeHomeLayout(
       meta['home_layout_v1'] is String
           ? meta['home_layout_v1'] as String
@@ -646,6 +650,7 @@ class ExpenseStore extends ChangeNotifier {
         'materialYou': materialYou,
         'userName': userName,
         'hideBalance': hideBalance,
+        'calendarSystem': calendarSystem,
         'home_layout_v1': encodeHomeLayout(homeLayout),
         'smsMode': smsMode,
         'smsSenders': smsSenders,
@@ -793,6 +798,16 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> setHideBalance(bool v) async {
     if (hideBalance == v) return;
     hideBalance = v;
+    _saveAll();
+    notifyListeners();
+  }
+
+  /// Switches the display/grouping calendar. Stored dates never change.
+  Future<void> setCalendarSystem(String value) async {
+    if (value != 'ad' && value != 'bs') return;
+    if (calendarSystem == value) return;
+    calendarSystem = value;
+    setAppCalendar(value);
     _saveAll();
     notifyListeners();
   }
@@ -1431,17 +1446,25 @@ class ExpenseStore extends ChangeNotifier {
   MonthlyAnalytics? _analyticsCache;
 
   MonthlyAnalytics monthly(DateTime month) {
-    final key = '$updatedAt|${month.year}|${month.month}';
+    final period = appCalendar.periodOf(month);
+    final key = '$updatedAt|$calendarSystem|${period.index}';
     final hit = _analyticsCache;
     if (hit != null && _analyticsKey == key) return hit;
-    final fresh = computeMonthlyAnalytics(transactions, month);
+    final fresh = computeMonthlyAnalytics(
+      transactions,
+      month,
+      periodStart: period.start,
+      periodEnd: period.end,
+    );
     _analyticsKey = key;
     _analyticsCache = fresh;
     return fresh;
   }
 
   List<Txn> monthTxns(DateTime month) {
-    final (start, end) = monthBounds(month);
+    final period = appCalendar.periodOf(month);
+    final start = period.start.millisecondsSinceEpoch;
+    final end = period.end.millisecondsSinceEpoch;
     return transactions.where((t) => t.date >= start && t.date < end).toList();
   }
 
@@ -1462,14 +1485,21 @@ class ExpenseStore extends ChangeNotifier {
 
   InsightsAnalytics insights(InsightPeriod period) {
     final now = DateTime.now();
-    final revision = '$updatedAt|${now.year}-${now.month}-${now.day}';
+    final revision =
+        '$updatedAt|$calendarSystem|${now.year}-${now.month}-${now.day}';
     if (_insightsRevision != revision) {
       _insightsRevision = revision;
       _insightsCache.clear();
     }
     return _insightsCache.putIfAbsent(
       period,
-      () => computeInsights(transactions, now, period, asOf: now),
+      () => computeInsights(
+        transactions,
+        now,
+        period,
+        asOf: now,
+        calendar: appCalendar,
+      ),
     );
   }
 

@@ -4,9 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../app_dates.dart';
 import '../format.dart';
 import '../store.dart';
 import '../sync/file_sync.dart';
@@ -28,9 +28,6 @@ import '../widgets/section_header.dart';
 import '../widgets/segmented_tabs.dart';
 import 'category_entries_screen.dart';
 
-final _dayHeadFmt = DateFormat('EEE, MMM d');
-final _dayHeadYearFmt = DateFormat('MMM d, yyyy');
-
 /// "Today"/"Yesterday" for recent days, otherwise a short weekday + date.
 String _dayLabel(DateTime d) {
   final now = DateTime.now();
@@ -38,7 +35,7 @@ String _dayLabel(DateTime d) {
   if (DateUtils.isSameDay(d, DateTime(now.year, now.month, now.day - 1))) {
     return 'Yesterday';
   }
-  return d.year == now.year ? _dayHeadFmt.format(d) : _dayHeadYearFmt.format(d);
+  return appDayHead(d, sameYear: d.year == now.year);
 }
 
 /// Searchable history with type/category filters + CSV export.
@@ -1095,7 +1092,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   // ---------- actions ----------
 
   Future<void> _pickDay(BuildContext context) async {
-    final picked = await showDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
+import org.json.JSONObject
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -40,6 +41,16 @@ class MainActivity : FlutterFragmentActivity() {
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "refresh" -> {
+                    val payload = call.arguments
+                    if (payload is Map<*, *>) {
+                        getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
+                            .edit()
+                            .putString(
+                                "flutter.widget_calendar_snapshot_v1",
+                                JSONObject(payload).toString(),
+                            )
+                            .apply()
+                    }
                     refreshWidgets(this)
                     result.success(null)
                 }

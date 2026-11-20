@@ -22,6 +22,8 @@ data class WidgetData(
     val monthIncome: Double,
     val toReceive: Double,
     val toReturn: Double,
+    val monthLabel: String = "This month",
+    val todayLabel: String = "Today",
 ) {
     fun amount(value: Double): String =
         if (hidden) "••••" else "$symbol ${Math.round(value)}"
@@ -31,6 +33,7 @@ object WidgetSnapshot {
     private const val PREFS = "FlutterSharedPreferences"
     private const val PIN_KEY = "flutter.expense_pin_hash_v1"
     private const val META_KEY = "flutter.expense_meta_v1"
+    private const val SNAPSHOT_KEY = "flutter.widget_calendar_snapshot_v1"
 
     // Mirrors ExpenseStore.currencySymbols; never hard-coded in the layouts.
     private val symbols = mapOf(
@@ -64,12 +67,29 @@ object WidgetSnapshot {
         var income = 0.0
         var receive = 0.0
         var ret = 0.0
+        var monthLabel = "This month"
+        var todayLabel = "Today"
+        var snapMonthStart = -1L
+        var snapMonthEnd = -1L
+        var snapDayStart = -1L
+        var snapDayEnd = -1L
 
         try {
             val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             hidden = !prefs.getString(PIN_KEY, "").isNullOrEmpty()
             val meta = JSONObject(prefs.getString(META_KEY, "{}") ?: "{}")
             symbol = symbols[meta.optString("currency", "NPR")] ?: "रू"
+            // Written by WidgetBridge.refresh() from the ACTIVE calendar.
+            val snapRaw = prefs.getString(SNAPSHOT_KEY, "")
+            if (!snapRaw.isNullOrEmpty()) {
+                val snap = JSONObject(snapRaw)
+                monthLabel = snap.optString("monthLabel", monthLabel)
+                todayLabel = snap.optString("todayLabel", todayLabel)
+                snapMonthStart = snap.optLong("monthStart", -1L)
+                snapMonthEnd = snap.optLong("monthEnd", -1L)
+                snapDayStart = snap.optLong("dayStart", -1L)
+                snapDayEnd = snap.optLong("dayEnd", -1L)
+            }
 
             val dbFile = File(context.applicationInfo.dataDir, "app_flutter/dhadda.sqlite")
             if (dbFile.exists()) {
@@ -97,10 +117,15 @@ object WidgetSnapshot {
                         add(Calendar.MONTH, 1)
                     }.timeInMillis
 
+                    val fromDay = if (snapDayStart in 1..snapDayEnd - 1) snapDayStart else dayStart
+                    val toDay = if (snapDayStart in 1..snapDayEnd - 1) snapDayEnd else dayEnd
+                    val fromMonth = if (snapMonthStart in 1..snapMonthEnd - 1) snapMonthStart else monthStart
+                    val toMonth = if (snapMonthStart in 1..snapMonthEnd - 1) snapMonthEnd else monthEnd
+
                     db.rawQuery(
                         "SELECT SUM(amount) FROM transactions " +
                             "WHERE type = 'expense' AND date >= ? AND date < ?",
-                        arrayOf(dayStart.toString(), dayEnd.toString()),
+                        arrayOf(fromDay.toString(), toDay.toString()),
                     ).use { c ->
                         if (c.moveToFirst() && !c.isNull(0)) today = c.getDouble(0)
                     }
@@ -108,7 +133,7 @@ object WidgetSnapshot {
                     db.rawQuery(
                         "SELECT type, SUM(amount) FROM transactions " +
                             "WHERE date >= ? AND date < ? GROUP BY type",
-                        arrayOf(monthStart.toString(), monthEnd.toString()),
+                        arrayOf(fromMonth.toString(), toMonth.toString()),
                     ).use { c ->
                         while (c.moveToNext()) {
                             val value = if (c.isNull(1)) 0.0 else c.getDouble(1)
@@ -142,6 +167,9 @@ object WidgetSnapshot {
             // A widget must never crash the launcher or leak a stack trace.
         }
 
-        return WidgetData(hidden, symbol, today, spent, income, receive, ret)
+        return WidgetData(
+            hidden, symbol, today, spent, income, receive, ret,
+            monthLabel, todayLabel,
+        )
     }
 }

@@ -184,6 +184,52 @@ class _MenuScreenState extends State<MenuScreen> {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                0,
+                Spacing.lg,
+                Spacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Calendar',
+                    style: AppType.caption.copyWith(color: colors.textSecondary),
+                  ),
+                  const SizedBox(height: Spacing.xs),
+                  Wrap(
+                    spacing: Spacing.sm,
+                    children: [
+                      ChoiceChip(
+                        key: const Key('settings-calendar-ad'),
+                        label: const Text('AD'),
+                        showCheckmark: false,
+                        selected: store.calendarSystem == 'ad',
+                        onSelected: (_) => store.setCalendarSystem('ad'),
+                      ),
+                      ChoiceChip(
+                        key: const Key('settings-calendar-bs'),
+                        label: const Text('BS'),
+                        showCheckmark: false,
+                        selected: store.calendarSystem == 'bs',
+                        onSelected: (_) => store.setCalendarSystem('bs'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: Spacing.xs),
+                  Text(
+                    'Calendar data for 2084 onward is an estimate and may '
+                    'be corrected in an update.',
+                    style: AppType.caption.copyWith(
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             _switchRow(
               key: const Key('settings-hide-balance'),
               icon: Icons.visibility_off_outlined,

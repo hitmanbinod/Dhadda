@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../app_dates.dart';
 import '../format.dart';
 import '../store.dart';
 import '../sync/reminders.dart';
@@ -508,7 +509,7 @@ class _LentScreenState extends State<LentScreen> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () async {
-                  final p = await showDatePicker(
+                  final p = await showAppDatePicker(
                     context: ctx,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -608,7 +609,7 @@ class _LentScreenState extends State<LentScreen> {
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () async {
-                  final p = await showDatePicker(
+                  final p = await showAppDatePicker(
                     context: ctx,
                     firstDate: DateTime(2020),
                     lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -683,7 +684,7 @@ class _LentScreenState extends State<LentScreen> {
                     return;
                   }
                   final now = DateTime.now();
-                  final d = await showDatePicker(
+                  final d = await showAppDatePicker(
                     context: ctx,
                     firstDate: now,
                     lastDate: now.add(const Duration(days: 365)),

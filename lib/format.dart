@@ -1,5 +1,7 @@
 import 'package:intl/intl.dart';
 
+import 'app_dates.dart';
+
 export 'models.dart';
 
 /// Display currency symbol. The store sets it at startup and whenever the
@@ -41,11 +43,10 @@ double? parseAmount(String raw) {
   return v;
 }
 
-final _dayFmt = DateFormat.yMMMd();
-final _monthFmt = DateFormat.yMMMM();
-
-String dayStr(DateTime d) => _dayFmt.format(d);
-String monthStr(DateTime m) => _monthFmt.format(m);
+/// All screens use these, so AD keeps the exact Round 1 output while BS mode
+/// follows the active calendar system set by the store.
+String dayStr(DateTime d) => appDayStr(d);
+String monthStr(DateTime m) => appMonthStr(m);
 
 /// Daypart for the home greeting. Pure and unit-tested.
 String daypartFor(DateTime t) {

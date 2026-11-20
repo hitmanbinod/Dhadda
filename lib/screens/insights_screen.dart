@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../analytics.dart';
+import '../app_dates.dart';
 import '../format.dart';
 import '../store.dart';
 import '../theme/palette.dart';
@@ -18,9 +18,6 @@ import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
 import '../widgets/profile_avatar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/segmented_tabs.dart';
-
-final _trendMonthFmt = DateFormat.MMM();
-final _trendMonthFullFmt = DateFormat.yMMMM();
 
 /// Insights: a calm read on the trailing month, 3, 6 or 12 months.
 /// All maths comes from [ExpenseStore.insights], which memoizes by data
@@ -534,7 +531,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           const SizedBox(height: Spacing.sm),
           Text(
             'Highest: ${money(highest.spend)} '
-            '\u00B7 ${_trendMonthFmt.format(highest.month)}',
+            '\u00B7 ${appTrendMonthShort(highest.month)}',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppType.caption.copyWith(
@@ -564,7 +561,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 Expanded(
                   child: Semantics(
                     label:
-                        '${_trendMonthFullFmt.format(data.trend[i].month)}: '
+                        '${appTrendMonthFull(data.trend[i].month)}: '
                         '${money(data.trend[i].spend)}',
                     child: ExcludeSemantics(
                       child: Column(
@@ -596,7 +593,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              _trendMonthFmt.format(data.trend[i].month),
+                              appTrendMonthShort(data.trend[i].month),
                               maxLines: 1,
                               style: AppType.caption.copyWith(
                                 fontSize: 10,

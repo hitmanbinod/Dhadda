@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_dates.dart';
 import '../format.dart';
 import '../store.dart';
 import 'delete.dart';
@@ -147,7 +148,7 @@ Future<void> showEntryActions(
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final picked = await showDatePicker(
+                        final picked = await showAppDatePicker(
                           context: ctx,
                           firstDate: DateTime(2020),
                           lastDate: DateTime.now().add(

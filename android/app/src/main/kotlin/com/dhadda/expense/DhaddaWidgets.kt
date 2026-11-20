@@ -48,6 +48,7 @@ class TodayWidget : AppWidgetProvider() {
         ids: IntArray,
     ) {
         render(context, manager, ids, R.layout.widget_today) { views, data ->
+            views.setTextViewText(R.id.widget_today_label, data.todayLabel)
             views.setTextViewText(R.id.widget_today_amount, data.amount(data.todaySpend))
             views.setTextViewText(
                 R.id.widget_today_note,
@@ -65,6 +66,7 @@ class MonthWidget : AppWidgetProvider() {
         ids: IntArray,
     ) {
         render(context, manager, ids, R.layout.widget_month) { views, data ->
+            views.setTextViewText(R.id.widget_month_label, data.monthLabel)
             views.setTextViewText(R.id.widget_month_spent, data.amount(data.monthSpend))
             views.setTextViewText(R.id.widget_month_income, data.amount(data.monthIncome))
             views.setTextViewText(
