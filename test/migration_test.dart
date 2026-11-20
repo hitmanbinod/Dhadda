@@ -118,6 +118,9 @@ class _TempDb {
 /// Fails replaceAll while armed, delegates otherwise: simulates a crash
 /// before any database write lands.
 class _ThrowingBackend implements DomainStore {
+  @override
+  Future<void> saveAccounts(List<Account> accounts) async {}
+
   final DomainStore inner;
   bool armed = true;
   _ThrowingBackend(this.inner);
@@ -200,6 +203,9 @@ DomainData _synthetic(int n) => DomainData(
 /// Fails exactly the named DomainStore ops, delegates the rest: proves
 /// persist-or-revert semantics without touching real failure modes.
 class _FailingBackend implements DomainStore {
+  @override
+  Future<void> saveAccounts(List<Account> accounts) async {}
+
   final DomainStore inner;
   final Set<String> failOps;
   _FailingBackend(this.inner, this.failOps);
@@ -309,6 +315,9 @@ Future<(_TempDb, DomainSummary)> _seedPopulated(String name) async {
 /// Backend that cannot open: models a corrupt SQLite file (unreadable page,
 /// failed FFI load) reached through the already-migrated marker.
 class _UnopenableBackend implements DomainStore {
+  @override
+  Future<void> saveAccounts(List<Account> accounts) async {}
+
   _UnopenableBackend(this.inner);
   final DomainStore inner;
 

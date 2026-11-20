@@ -53,7 +53,7 @@ void main() {
       expect(report['loans'], 1);
       expect(report['tombstones'], 1);
       expect(report['appVersion'], isNotEmpty);
-      expect(report['dbSchemaVersion'], 2);
+      expect(report['dbSchemaVersion'], 3);
       expect(report['lanServing'], isTrue);
       final blob = '${jsonEncode(report)}\n${DiagnosticsReport.format(report)}';
       for (final secret in [

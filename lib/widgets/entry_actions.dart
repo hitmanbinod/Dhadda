@@ -23,13 +23,13 @@ Future<void> showEntryActions(
     categoryId = store.categories.first.id;
   }
   var mode = _modes.contains(txn.mode) ? txn.mode : 'cash';
+  var accountId = txn.accountId.isEmpty
+      ? accountIdForMode(txn.mode)
+      : txn.accountId;
   var projectId = txn.projectId;
   var date = txn.dateTime;
   var time = TimeOfDay.fromDateTime(txn.dateTime);
   final cat = store.categoryOf(txn.categoryId);
-
-  String cap(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 
   final saved = await showDialog<bool>(
     context: context,
@@ -49,6 +49,7 @@ Future<void> showEntryActions(
                 note: note.text.trim(),
                 categoryId: categoryId,
                 mode: mode,
+                accountId: accountId,
                 date: DateTime(date.year, date.month,
                     date.day, time.hour, time.minute),
                 projectId: projectId);
@@ -117,17 +118,19 @@ Future<void> showEntryActions(
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                initialValue: mode,
+                initialValue: accountId,
+                isExpanded: true,
                 decoration: const InputDecoration(
-                    labelText: 'Paid via',
+                    labelText: 'Account',
                     border: OutlineInputBorder()),
                 items: [
-                  for (final m in _modes)
-                    DropdownMenuItem(
-                        value: m, child: Text(cap(m))),
+                  for (final a in store.activeAccounts)
+                    DropdownMenuItem(value: a.id, child: Text(a.name)),
                 ],
-                onChanged: (v) =>
-                    setD(() => mode = v ?? mode),
+                onChanged: (v) => setD(() {
+                  accountId = v ?? accountId;
+                  mode = modeForAccountType(store.accountOf(accountId).type);
+                }),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

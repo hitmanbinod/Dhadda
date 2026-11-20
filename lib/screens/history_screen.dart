@@ -7,6 +7,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:provider/provider.dart';
 
 import '../app_dates.dart';
+import '../receipts.dart';
 import '../format.dart';
 import '../store.dart';
 import '../sync/file_sync.dart';
@@ -552,9 +553,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
           }
           if (q.isNotEmpty) {
             final c = store.categoryOf(t.categoryId).name.toLowerCase();
+            final account = store.accountName(t.effectiveAccountId);
             if (!t.note.toLowerCase().contains(q) &&
                 !c.contains(q) &&
-                !t.mode.contains(q)) {
+                !t.mode.contains(q) &&
+                !account.toLowerCase().contains(q)) {
               return false;
             }
           }
@@ -710,9 +713,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _entryRow(AppColors colors, ExpenseStore store, Txn txn) {
     final c = store.categoryOf(txn.categoryId);
     final title = txn.note.isEmpty ? c.name : txn.note;
-    final subtitle = txn.note.isEmpty
-        ? _modeLabel(txn.mode)
-        : '${c.name} · ${_modeLabel(txn.mode)}';
+    final account = store.accountName(txn.effectiveAccountId);
+    final subtitle = txn.note.isEmpty ? account : '${c.name} · $account';
+    final receiptMark = FutureBuilder<bool>(
+      future: ReceiptStore.create().then((s) => s.hasFor(txn.id)),
+      builder: (context, snap) => snap.data == true
+          ? Padding(
+              padding: const EdgeInsets.only(left: Spacing.xs),
+              child: Icon(Icons.attach_file, size: 14, color: colors.textSecondary),
+            )
+          : const SizedBox.shrink(),
+    );
 
     return Slidable(
       key: ValueKey(txn.id),
@@ -757,14 +768,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       style: AppType.title.copyWith(fontSize: 15),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.caption.copyWith(
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppType.caption.copyWith(
+                              fontSize: 12,
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                        ),
+                        receiptMark,
+                      ],
                     ),
                   ],
                 ),
@@ -788,13 +806,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
     );
   }
-
-  String _modeLabel(String mode) => switch (mode) {
-    'bank' => 'Bank',
-    'card' => 'Card',
-    'ewallet' => 'E-wallet',
-    _ => 'Cash',
-  };
 
   // ---------- categories ----------
 
@@ -1487,7 +1498,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     ExpenseStore store,
     List<Txn> txns,
   ) async {
-    final csv = FileSync.buildCsv((id) => store.categoryOf(id).name, txns);
+    final csv = FileSync.buildCsv(
+      (id) => store.categoryOf(id).name,
+      txns,
+      accountName: (t) => store.accountName(t.effectiveAccountId),
+    );
     final now = DateTime.now();
     await FileSync.exportJson(
       context,

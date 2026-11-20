@@ -13,6 +13,7 @@ import 'screens/lent_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/sync_screen.dart';
+import 'receipts.dart';
 import 'security.dart';
 import 'store.dart';
 import 'sync/link_sync.dart';
@@ -116,6 +117,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     store.onLoansChanged = () => Reminders.refresh(store);
     Reminders.refresh(store);
     store.addListener(_maybeAutoSms);
+    _cleanReceipts(store);
     WidgetsBinding.instance.addObserver(this);
     _initWidgets();
     _checkLock();
@@ -149,6 +151,15 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  Future<void> _cleanReceipts(ExpenseStore store) async {
+    try {
+      final receipts = await ReceiptStore.create();
+      await receipts.cleanOrphans({
+        for (final t in store.transactions) t.id,
+      });
+    } catch (_) {}
   }
 
   /// First store load done: run one SMS auto-import if enabled.
@@ -200,6 +211,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         await store.addTransaction(
           type: c.isIncome ? 'income' : 'expense',
           amount: c.amount,
+          accountId: store.accountIdForModeOrDefault(c.mode),
           categoryId: store.categoryRuleFor(
                 c.merchant.isEmpty ? c.body : c.merchant,
                 c.isIncome ? 'income' : 'expense',

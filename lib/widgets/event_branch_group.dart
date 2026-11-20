@@ -141,7 +141,8 @@ class _EventBranchGroupState extends State<EventBranchGroup> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${dayStr(t.dateTime)}  ·  ${t.mode.toUpperCase()}',
+                    '${dayStr(t.dateTime)}  ·  '
+                    '${store.accountName(t.effectiveAccountId)}',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],

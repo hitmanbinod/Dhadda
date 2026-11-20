@@ -3,6 +3,892 @@
 part of 'app_db.dart';
 
 // ignore_for_file: type=lint
+class $AccountsTable extends Accounts
+    with TableInfo<$AccountsTable, AccountRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AccountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _colorMeta = const VerificationMeta('color');
+  @override
+  late final GeneratedColumn<int> color = GeneratedColumn<int>(
+    'color',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _archivedMeta = const VerificationMeta(
+    'archived',
+  );
+  @override
+  late final GeneratedColumn<int> archived = GeneratedColumn<int>(
+    'archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revMeta = const VerificationMeta('rev');
+  @override
+  late final GeneratedColumn<int> rev = GeneratedColumn<int>(
+    'rev',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _revByMeta = const VerificationMeta('revBy');
+  @override
+  late final GeneratedColumn<String> revBy = GeneratedColumn<String>(
+    'rev_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    type,
+    color,
+    sortOrder,
+    archived,
+    rev,
+    revBy,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'accounts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AccountRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('color')) {
+      context.handle(
+        _colorMeta,
+        color.isAcceptableOrUnknown(data['color']!, _colorMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('archived')) {
+      context.handle(
+        _archivedMeta,
+        archived.isAcceptableOrUnknown(data['archived']!, _archivedMeta),
+      );
+    }
+    if (data.containsKey('rev')) {
+      context.handle(
+        _revMeta,
+        rev.isAcceptableOrUnknown(data['rev']!, _revMeta),
+      );
+    }
+    if (data.containsKey('rev_by')) {
+      context.handle(
+        _revByMeta,
+        revBy.isAcceptableOrUnknown(data['rev_by']!, _revByMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AccountRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AccountRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      color: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}color'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      archived: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}archived'],
+      )!,
+      rev: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rev'],
+      )!,
+      revBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rev_by'],
+      )!,
+    );
+  }
+
+  @override
+  $AccountsTable createAlias(String alias) {
+    return $AccountsTable(attachedDatabase, alias);
+  }
+}
+
+class AccountRow extends DataClass implements Insertable<AccountRow> {
+  final String id;
+  final String name;
+  final String type;
+  final int color;
+  final int sortOrder;
+  final int archived;
+  final int rev;
+  final String revBy;
+  const AccountRow({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.color,
+    required this.sortOrder,
+    required this.archived,
+    required this.rev,
+    required this.revBy,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['type'] = Variable<String>(type);
+    map['color'] = Variable<int>(color);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['archived'] = Variable<int>(archived);
+    map['rev'] = Variable<int>(rev);
+    map['rev_by'] = Variable<String>(revBy);
+    return map;
+  }
+
+  AccountsCompanion toCompanion(bool nullToAbsent) {
+    return AccountsCompanion(
+      id: Value(id),
+      name: Value(name),
+      type: Value(type),
+      color: Value(color),
+      sortOrder: Value(sortOrder),
+      archived: Value(archived),
+      rev: Value(rev),
+      revBy: Value(revBy),
+    );
+  }
+
+  factory AccountRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AccountRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      type: serializer.fromJson<String>(json['type']),
+      color: serializer.fromJson<int>(json['color']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      archived: serializer.fromJson<int>(json['archived']),
+      rev: serializer.fromJson<int>(json['rev']),
+      revBy: serializer.fromJson<String>(json['revBy']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'type': serializer.toJson<String>(type),
+      'color': serializer.toJson<int>(color),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'archived': serializer.toJson<int>(archived),
+      'rev': serializer.toJson<int>(rev),
+      'revBy': serializer.toJson<String>(revBy),
+    };
+  }
+
+  AccountRow copyWith({
+    String? id,
+    String? name,
+    String? type,
+    int? color,
+    int? sortOrder,
+    int? archived,
+    int? rev,
+    String? revBy,
+  }) => AccountRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    type: type ?? this.type,
+    color: color ?? this.color,
+    sortOrder: sortOrder ?? this.sortOrder,
+    archived: archived ?? this.archived,
+    rev: rev ?? this.rev,
+    revBy: revBy ?? this.revBy,
+  );
+  AccountRow copyWithCompanion(AccountsCompanion data) {
+    return AccountRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      type: data.type.present ? data.type.value : this.type,
+      color: data.color.present ? data.color.value : this.color,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      archived: data.archived.present ? data.archived.value : this.archived,
+      rev: data.rev.present ? data.rev.value : this.rev,
+      revBy: data.revBy.present ? data.revBy.value : this.revBy,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('type: $type, ')
+          ..write('color: $color, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('archived: $archived, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, name, type, color, sortOrder, archived, rev, revBy);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AccountRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.type == this.type &&
+          other.color == this.color &&
+          other.sortOrder == this.sortOrder &&
+          other.archived == this.archived &&
+          other.rev == this.rev &&
+          other.revBy == this.revBy);
+}
+
+class AccountsCompanion extends UpdateCompanion<AccountRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String> type;
+  final Value<int> color;
+  final Value<int> sortOrder;
+  final Value<int> archived;
+  final Value<int> rev;
+  final Value<String> revBy;
+  final Value<int> rowid;
+  const AccountsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.type = const Value.absent(),
+    this.color = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AccountsCompanion.insert({
+    required String id,
+    required String name,
+    required String type,
+    this.color = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.archived = const Value.absent(),
+    this.rev = const Value.absent(),
+    this.revBy = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       type = Value(type);
+  static Insertable<AccountRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? type,
+    Expression<int>? color,
+    Expression<int>? sortOrder,
+    Expression<int>? archived,
+    Expression<int>? rev,
+    Expression<String>? revBy,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (type != null) 'type': type,
+      if (color != null) 'color': color,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (archived != null) 'archived': archived,
+      if (rev != null) 'rev': rev,
+      if (revBy != null) 'rev_by': revBy,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AccountsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<String>? type,
+    Value<int>? color,
+    Value<int>? sortOrder,
+    Value<int>? archived,
+    Value<int>? rev,
+    Value<String>? revBy,
+    Value<int>? rowid,
+  }) {
+    return AccountsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      color: color ?? this.color,
+      sortOrder: sortOrder ?? this.sortOrder,
+      archived: archived ?? this.archived,
+      rev: rev ?? this.rev,
+      revBy: revBy ?? this.revBy,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (color.present) {
+      map['color'] = Variable<int>(color.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (archived.present) {
+      map['archived'] = Variable<int>(archived.value);
+    }
+    if (rev.present) {
+      map['rev'] = Variable<int>(rev.value);
+    }
+    if (revBy.present) {
+      map['rev_by'] = Variable<String>(revBy.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AccountsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('type: $type, ')
+          ..write('color: $color, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('archived: $archived, ')
+          ..write('rev: $rev, ')
+          ..write('revBy: $revBy, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReceiptsTable extends Receipts
+    with TableInfo<$ReceiptsTable, ReceiptRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReceiptsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entryIdMeta = const VerificationMeta(
+    'entryId',
+  );
+  @override
+  late final GeneratedColumn<String> entryId = GeneratedColumn<String>(
+    'entry_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fileNameMeta = const VerificationMeta(
+    'fileName',
+  );
+  @override
+  late final GeneratedColumn<String> fileName = GeneratedColumn<String>(
+    'file_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<int> addedAt = GeneratedColumn<int>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    entryId,
+    fileName,
+    addedAt,
+    width,
+    height,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'receipts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReceiptRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('entry_id')) {
+      context.handle(
+        _entryIdMeta,
+        entryId.isAcceptableOrUnknown(data['entry_id']!, _entryIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entryIdMeta);
+    }
+    if (data.containsKey('file_name')) {
+      context.handle(
+        _fileNameMeta,
+        fileName.isAcceptableOrUnknown(data['file_name']!, _fileNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileNameMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReceiptRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReceiptRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      entryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entry_id'],
+      )!,
+      fileName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_name'],
+      )!,
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}added_at'],
+      )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
+    );
+  }
+
+  @override
+  $ReceiptsTable createAlias(String alias) {
+    return $ReceiptsTable(attachedDatabase, alias);
+  }
+}
+
+class ReceiptRow extends DataClass implements Insertable<ReceiptRow> {
+  final String id;
+  final String entryId;
+  final String fileName;
+  final int addedAt;
+  final int width;
+  final int height;
+  const ReceiptRow({
+    required this.id,
+    required this.entryId,
+    required this.fileName,
+    required this.addedAt,
+    required this.width,
+    required this.height,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['entry_id'] = Variable<String>(entryId);
+    map['file_name'] = Variable<String>(fileName);
+    map['added_at'] = Variable<int>(addedAt);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
+    return map;
+  }
+
+  ReceiptsCompanion toCompanion(bool nullToAbsent) {
+    return ReceiptsCompanion(
+      id: Value(id),
+      entryId: Value(entryId),
+      fileName: Value(fileName),
+      addedAt: Value(addedAt),
+      width: Value(width),
+      height: Value(height),
+    );
+  }
+
+  factory ReceiptRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReceiptRow(
+      id: serializer.fromJson<String>(json['id']),
+      entryId: serializer.fromJson<String>(json['entryId']),
+      fileName: serializer.fromJson<String>(json['fileName']),
+      addedAt: serializer.fromJson<int>(json['addedAt']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'entryId': serializer.toJson<String>(entryId),
+      'fileName': serializer.toJson<String>(fileName),
+      'addedAt': serializer.toJson<int>(addedAt),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
+    };
+  }
+
+  ReceiptRow copyWith({
+    String? id,
+    String? entryId,
+    String? fileName,
+    int? addedAt,
+    int? width,
+    int? height,
+  }) => ReceiptRow(
+    id: id ?? this.id,
+    entryId: entryId ?? this.entryId,
+    fileName: fileName ?? this.fileName,
+    addedAt: addedAt ?? this.addedAt,
+    width: width ?? this.width,
+    height: height ?? this.height,
+  );
+  ReceiptRow copyWithCompanion(ReceiptsCompanion data) {
+    return ReceiptRow(
+      id: data.id.present ? data.id.value : this.id,
+      entryId: data.entryId.present ? data.entryId.value : this.entryId,
+      fileName: data.fileName.present ? data.fileName.value : this.fileName,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReceiptRow(')
+          ..write('id: $id, ')
+          ..write('entryId: $entryId, ')
+          ..write('fileName: $fileName, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('width: $width, ')
+          ..write('height: $height')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, entryId, fileName, addedAt, width, height);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReceiptRow &&
+          other.id == this.id &&
+          other.entryId == this.entryId &&
+          other.fileName == this.fileName &&
+          other.addedAt == this.addedAt &&
+          other.width == this.width &&
+          other.height == this.height);
+}
+
+class ReceiptsCompanion extends UpdateCompanion<ReceiptRow> {
+  final Value<String> id;
+  final Value<String> entryId;
+  final Value<String> fileName;
+  final Value<int> addedAt;
+  final Value<int> width;
+  final Value<int> height;
+  final Value<int> rowid;
+  const ReceiptsCompanion({
+    this.id = const Value.absent(),
+    this.entryId = const Value.absent(),
+    this.fileName = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReceiptsCompanion.insert({
+    required String id,
+    required String entryId,
+    required String fileName,
+    required int addedAt,
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       entryId = Value(entryId),
+       fileName = Value(fileName),
+       addedAt = Value(addedAt);
+  static Insertable<ReceiptRow> custom({
+    Expression<String>? id,
+    Expression<String>? entryId,
+    Expression<String>? fileName,
+    Expression<int>? addedAt,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (entryId != null) 'entry_id': entryId,
+      if (fileName != null) 'file_name': fileName,
+      if (addedAt != null) 'added_at': addedAt,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReceiptsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? entryId,
+    Value<String>? fileName,
+    Value<int>? addedAt,
+    Value<int>? width,
+    Value<int>? height,
+    Value<int>? rowid,
+  }) {
+    return ReceiptsCompanion(
+      id: id ?? this.id,
+      entryId: entryId ?? this.entryId,
+      fileName: fileName ?? this.fileName,
+      addedAt: addedAt ?? this.addedAt,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (entryId.present) {
+      map['entry_id'] = Variable<String>(entryId.value);
+    }
+    if (fileName.present) {
+      map['file_name'] = Variable<String>(fileName.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<int>(addedAt.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReceiptsCompanion(')
+          ..write('id: $id, ')
+          ..write('entryId: $entryId, ')
+          ..write('fileName: $fileName, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $CategoriesTable extends Categories
     with TableInfo<$CategoriesTable, CategoryRow> {
   @override
@@ -538,6 +1424,17 @@ class $TransactionsTable extends Transactions
       'REFERENCES categories (id)',
     ),
   );
+  static const VerificationMeta _accountIdMeta = const VerificationMeta(
+    'accountId',
+  );
+  @override
+  late final GeneratedColumn<String> accountId = GeneratedColumn<String>(
+    'account_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
   @override
   late final GeneratedColumn<int> date = GeneratedColumn<int>(
@@ -602,6 +1499,7 @@ class $TransactionsTable extends Transactions
     type,
     amount,
     categoryId,
+    accountId,
     date,
     note,
     mode,
@@ -649,6 +1547,12 @@ class $TransactionsTable extends Transactions
       );
     } else if (isInserting) {
       context.missing(_categoryIdMeta);
+    }
+    if (data.containsKey('account_id')) {
+      context.handle(
+        _accountIdMeta,
+        accountId.isAcceptableOrUnknown(data['account_id']!, _accountIdMeta),
+      );
     }
     if (data.containsKey('date')) {
       context.handle(
@@ -719,6 +1623,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}category_id'],
       )!,
+      accountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}account_id'],
+      ),
       date: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}date'],
@@ -757,6 +1665,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
   final String type;
   final double amount;
   final String categoryId;
+  final String? accountId;
   final int date;
   final String note;
   final String mode;
@@ -768,6 +1677,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     required this.type,
     required this.amount,
     required this.categoryId,
+    this.accountId,
     required this.date,
     required this.note,
     required this.mode,
@@ -782,6 +1692,9 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     map['type'] = Variable<String>(type);
     map['amount'] = Variable<double>(amount);
     map['category_id'] = Variable<String>(categoryId);
+    if (!nullToAbsent || accountId != null) {
+      map['account_id'] = Variable<String>(accountId);
+    }
     map['date'] = Variable<int>(date);
     map['note'] = Variable<String>(note);
     map['mode'] = Variable<String>(mode);
@@ -797,6 +1710,9 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       type: Value(type),
       amount: Value(amount),
       categoryId: Value(categoryId),
+      accountId: accountId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(accountId),
       date: Value(date),
       note: Value(note),
       mode: Value(mode),
@@ -816,6 +1732,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       type: serializer.fromJson<String>(json['type']),
       amount: serializer.fromJson<double>(json['amount']),
       categoryId: serializer.fromJson<String>(json['categoryId']),
+      accountId: serializer.fromJson<String?>(json['accountId']),
       date: serializer.fromJson<int>(json['date']),
       note: serializer.fromJson<String>(json['note']),
       mode: serializer.fromJson<String>(json['mode']),
@@ -832,6 +1749,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       'type': serializer.toJson<String>(type),
       'amount': serializer.toJson<double>(amount),
       'categoryId': serializer.toJson<String>(categoryId),
+      'accountId': serializer.toJson<String?>(accountId),
       'date': serializer.toJson<int>(date),
       'note': serializer.toJson<String>(note),
       'mode': serializer.toJson<String>(mode),
@@ -846,6 +1764,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     String? type,
     double? amount,
     String? categoryId,
+    Value<String?> accountId = const Value.absent(),
     int? date,
     String? note,
     String? mode,
@@ -857,6 +1776,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     type: type ?? this.type,
     amount: amount ?? this.amount,
     categoryId: categoryId ?? this.categoryId,
+    accountId: accountId.present ? accountId.value : this.accountId,
     date: date ?? this.date,
     note: note ?? this.note,
     mode: mode ?? this.mode,
@@ -872,6 +1792,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
       categoryId: data.categoryId.present
           ? data.categoryId.value
           : this.categoryId,
+      accountId: data.accountId.present ? data.accountId.value : this.accountId,
       date: data.date.present ? data.date.value : this.date,
       note: data.note.present ? data.note.value : this.note,
       mode: data.mode.present ? data.mode.value : this.mode,
@@ -888,6 +1809,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
           ..write('type: $type, ')
           ..write('amount: $amount, ')
           ..write('categoryId: $categoryId, ')
+          ..write('accountId: $accountId, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
           ..write('mode: $mode, ')
@@ -904,6 +1826,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
     type,
     amount,
     categoryId,
+    accountId,
     date,
     note,
     mode,
@@ -919,6 +1842,7 @@ class TxnRow extends DataClass implements Insertable<TxnRow> {
           other.type == this.type &&
           other.amount == this.amount &&
           other.categoryId == this.categoryId &&
+          other.accountId == this.accountId &&
           other.date == this.date &&
           other.note == this.note &&
           other.mode == this.mode &&
@@ -932,6 +1856,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
   final Value<String> type;
   final Value<double> amount;
   final Value<String> categoryId;
+  final Value<String?> accountId;
   final Value<int> date;
   final Value<String> note;
   final Value<String> mode;
@@ -944,6 +1869,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     this.type = const Value.absent(),
     this.amount = const Value.absent(),
     this.categoryId = const Value.absent(),
+    this.accountId = const Value.absent(),
     this.date = const Value.absent(),
     this.note = const Value.absent(),
     this.mode = const Value.absent(),
@@ -957,6 +1883,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     required String type,
     required double amount,
     required String categoryId,
+    this.accountId = const Value.absent(),
     required int date,
     required String note,
     required String mode,
@@ -977,6 +1904,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     Expression<String>? type,
     Expression<double>? amount,
     Expression<String>? categoryId,
+    Expression<String>? accountId,
     Expression<int>? date,
     Expression<String>? note,
     Expression<String>? mode,
@@ -990,6 +1918,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
       if (type != null) 'type': type,
       if (amount != null) 'amount': amount,
       if (categoryId != null) 'category_id': categoryId,
+      if (accountId != null) 'account_id': accountId,
       if (date != null) 'date': date,
       if (note != null) 'note': note,
       if (mode != null) 'mode': mode,
@@ -1005,6 +1934,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     Value<String>? type,
     Value<double>? amount,
     Value<String>? categoryId,
+    Value<String?>? accountId,
     Value<int>? date,
     Value<String>? note,
     Value<String>? mode,
@@ -1018,6 +1948,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
       type: type ?? this.type,
       amount: amount ?? this.amount,
       categoryId: categoryId ?? this.categoryId,
+      accountId: accountId ?? this.accountId,
       date: date ?? this.date,
       note: note ?? this.note,
       mode: mode ?? this.mode,
@@ -1042,6 +1973,9 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
     }
     if (categoryId.present) {
       map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (accountId.present) {
+      map['account_id'] = Variable<String>(accountId.value);
     }
     if (date.present) {
       map['date'] = Variable<int>(date.value);
@@ -1074,6 +2008,7 @@ class TransactionsCompanion extends UpdateCompanion<TxnRow> {
           ..write('type: $type, ')
           ..write('amount: $amount, ')
           ..write('categoryId: $categoryId, ')
+          ..write('accountId: $accountId, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
           ..write('mode: $mode, ')
@@ -3366,6 +4301,8 @@ class TombstonesCompanion extends UpdateCompanion<TombstoneRow> {
 abstract class _$AppDb extends GeneratedDatabase {
   _$AppDb(QueryExecutor e) : super(e);
   $AppDbManager get managers => $AppDbManager(this);
+  late final $AccountsTable accounts = $AccountsTable(this);
+  late final $ReceiptsTable receipts = $ReceiptsTable(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
   late final $ProjectsTable projects = $ProjectsTable(this);
@@ -3385,11 +4322,17 @@ abstract class _$AppDb extends GeneratedDatabase {
     'idx_transactions_project',
     'CREATE INDEX idx_transactions_project ON transactions (project_id)',
   );
+  late final Index idxTransactionsAccount = Index(
+    'idx_transactions_account',
+    'CREATE INDEX idx_transactions_account ON transactions (account_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    accounts,
+    receipts,
     categories,
     transactions,
     projects,
@@ -3400,6 +4343,7 @@ abstract class _$AppDb extends GeneratedDatabase {
     idxTransactionsDate,
     idxTransactionsCategory,
     idxTransactionsProject,
+    idxTransactionsAccount,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3420,6 +4364,482 @@ abstract class _$AppDb extends GeneratedDatabase {
   ]);
 }
 
+typedef $$AccountsTableCreateCompanionBuilder = AccountsCompanion Function({
+  required String id,
+  required String name,
+  required String type,
+  Value<int> color,
+  Value<int> sortOrder,
+  Value<int> archived,
+  Value<int> rev,
+  Value<String> revBy,
+  Value<int> rowid,
+});
+typedef $$AccountsTableUpdateCompanionBuilder = AccountsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String> type,
+  Value<int> color,
+  Value<int> sortOrder,
+  Value<int> archived,
+  Value<int> rev,
+  Value<String> revBy,
+  Value<int> rowid,
+});
+
+class $$AccountsTableFilterComposer extends Composer<_$AppDb, $AccountsTable> {
+  $$AccountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AccountsTableOrderingComposer
+    extends Composer<_$AppDb, $AccountsTable> {
+  $$AccountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get color => $composableBuilder(
+    column: $table.color,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archived => $composableBuilder(
+    column: $table.archived,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rev => $composableBuilder(
+    column: $table.rev,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get revBy => $composableBuilder(
+    column: $table.revBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AccountsTableAnnotationComposer
+    extends Composer<_$AppDb, $AccountsTable> {
+  $$AccountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<int> get color =>
+      $composableBuilder(column: $table.color, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get archived =>
+      $composableBuilder(column: $table.archived, builder: (column) => column);
+
+  GeneratedColumn<int> get rev =>
+      $composableBuilder(column: $table.rev, builder: (column) => column);
+
+  GeneratedColumn<String> get revBy =>
+      $composableBuilder(column: $table.revBy, builder: (column) => column);
+}
+
+class $$AccountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $AccountsTable,
+          AccountRow,
+          $$AccountsTableFilterComposer,
+          $$AccountsTableOrderingComposer,
+          $$AccountsTableAnnotationComposer,
+          $$AccountsTableCreateCompanionBuilder,
+          $$AccountsTableUpdateCompanionBuilder,
+          (AccountRow, BaseReferences<_$AppDb, $AccountsTable, AccountRow>),
+          AccountRow,
+          PrefetchHooks Function()
+        > {
+  $$AccountsTableTableManager(_$AppDb db, $AccountsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AccountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AccountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AccountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<int> color = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> archived = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AccountsCompanion(
+                id: id,
+                name: name,
+                type: type,
+                color: color,
+                sortOrder: sortOrder,
+                archived: archived,
+                rev: rev,
+                revBy: revBy,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required String type,
+                Value<int> color = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> archived = const Value.absent(),
+                Value<int> rev = const Value.absent(),
+                Value<String> revBy = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AccountsCompanion.insert(
+                id: id,
+                name: name,
+                type: type,
+                color: color,
+                sortOrder: sortOrder,
+                archived: archived,
+                rev: rev,
+                revBy: revBy,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AccountsTable, AccountRow>(table),
+                  BaseReferences<_$AppDb, $AccountsTable, AccountRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AccountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $AccountsTable,
+      AccountRow,
+      $$AccountsTableFilterComposer,
+      $$AccountsTableOrderingComposer,
+      $$AccountsTableAnnotationComposer,
+      $$AccountsTableCreateCompanionBuilder,
+      $$AccountsTableUpdateCompanionBuilder,
+      (AccountRow, BaseReferences<_$AppDb, $AccountsTable, AccountRow>),
+      AccountRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ReceiptsTableCreateCompanionBuilder = ReceiptsCompanion Function({
+  required String id,
+  required String entryId,
+  required String fileName,
+  required int addedAt,
+  Value<int> width,
+  Value<int> height,
+  Value<int> rowid,
+});
+typedef $$ReceiptsTableUpdateCompanionBuilder = ReceiptsCompanion Function({
+  Value<String> id,
+  Value<String> entryId,
+  Value<String> fileName,
+  Value<int> addedAt,
+  Value<int> width,
+  Value<int> height,
+  Value<int> rowid,
+});
+
+class $$ReceiptsTableFilterComposer extends Composer<_$AppDb, $ReceiptsTable> {
+  $$ReceiptsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entryId => $composableBuilder(
+    column: $table.entryId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReceiptsTableOrderingComposer
+    extends Composer<_$AppDb, $ReceiptsTable> {
+  $$ReceiptsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entryId => $composableBuilder(
+    column: $table.entryId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileName => $composableBuilder(
+    column: $table.fileName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReceiptsTableAnnotationComposer
+    extends Composer<_$AppDb, $ReceiptsTable> {
+  $$ReceiptsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get entryId =>
+      $composableBuilder(column: $table.entryId, builder: (column) => column);
+
+  GeneratedColumn<String> get fileName =>
+      $composableBuilder(column: $table.fileName, builder: (column) => column);
+
+  GeneratedColumn<int> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
+}
+
+class $$ReceiptsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDb,
+          $ReceiptsTable,
+          ReceiptRow,
+          $$ReceiptsTableFilterComposer,
+          $$ReceiptsTableOrderingComposer,
+          $$ReceiptsTableAnnotationComposer,
+          $$ReceiptsTableCreateCompanionBuilder,
+          $$ReceiptsTableUpdateCompanionBuilder,
+          (ReceiptRow, BaseReferences<_$AppDb, $ReceiptsTable, ReceiptRow>),
+          ReceiptRow,
+          PrefetchHooks Function()
+        > {
+  $$ReceiptsTableTableManager(_$AppDb db, $ReceiptsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReceiptsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReceiptsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReceiptsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> entryId = const Value.absent(),
+                Value<String> fileName = const Value.absent(),
+                Value<int> addedAt = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReceiptsCompanion(
+                id: id,
+                entryId: entryId,
+                fileName: fileName,
+                addedAt: addedAt,
+                width: width,
+                height: height,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String entryId,
+                required String fileName,
+                required int addedAt,
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReceiptsCompanion.insert(
+                id: id,
+                entryId: entryId,
+                fileName: fileName,
+                addedAt: addedAt,
+                width: width,
+                height: height,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$ReceiptsTable, ReceiptRow>(table),
+                  BaseReferences<_$AppDb, $ReceiptsTable, ReceiptRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReceiptsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDb,
+      $ReceiptsTable,
+      ReceiptRow,
+      $$ReceiptsTableFilterComposer,
+      $$ReceiptsTableOrderingComposer,
+      $$ReceiptsTableAnnotationComposer,
+      $$ReceiptsTableCreateCompanionBuilder,
+      $$ReceiptsTableUpdateCompanionBuilder,
+      (ReceiptRow, BaseReferences<_$AppDb, $ReceiptsTable, ReceiptRow>),
+      ReceiptRow,
+      PrefetchHooks Function()
+    >;
 typedef $$CategoriesTableCreateCompanionBuilder = CategoriesCompanion Function({
   required String id,
   required String name,
@@ -3782,6 +5202,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       required String type,
       required double amount,
       required String categoryId,
+      Value<String?> accountId,
       required int date,
       required String note,
       required String mode,
@@ -3796,6 +5217,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<String> type,
       Value<double> amount,
       Value<String> categoryId,
+      Value<String?> accountId,
       Value<int> date,
       Value<String> note,
       Value<String> mode,
@@ -3848,6 +5270,11 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get accountId => $composableBuilder(
+    column: $table.accountId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3929,6 +5356,11 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get accountId => $composableBuilder(
+    column: $table.accountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get date => $composableBuilder(
     column: $table.date,
     builder: (column) => ColumnOrderings(column),
@@ -4000,6 +5432,9 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get accountId =>
+      $composableBuilder(column: $table.accountId, builder: (column) => column);
 
   GeneratedColumn<int> get date =>
       $composableBuilder(column: $table.date, builder: (column) => column);
@@ -4075,6 +5510,7 @@ class $$TransactionsTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<double> amount = const Value.absent(),
                 Value<String> categoryId = const Value.absent(),
+                Value<String?> accountId = const Value.absent(),
                 Value<int> date = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<String> mode = const Value.absent(),
@@ -4087,6 +5523,7 @@ class $$TransactionsTableTableManager
                 type: type,
                 amount: amount,
                 categoryId: categoryId,
+                accountId: accountId,
                 date: date,
                 note: note,
                 mode: mode,
@@ -4101,6 +5538,7 @@ class $$TransactionsTableTableManager
                 required String type,
                 required double amount,
                 required String categoryId,
+                Value<String?> accountId = const Value.absent(),
                 required int date,
                 required String note,
                 required String mode,
@@ -4113,6 +5551,7 @@ class $$TransactionsTableTableManager
                 type: type,
                 amount: amount,
                 categoryId: categoryId,
+                accountId: accountId,
                 date: date,
                 note: note,
                 mode: mode,
@@ -5826,6 +7265,10 @@ typedef $$TombstonesTableProcessedTableManager =
 class $AppDbManager {
   final _$AppDb _db;
   $AppDbManager(this._db);
+  $$AccountsTableTableManager get accounts =>
+      $$AccountsTableTableManager(_db, _db.accounts);
+  $$ReceiptsTableTableManager get receipts =>
+      $$ReceiptsTableTableManager(_db, _db.receipts);
   $$CategoriesTableTableManager get categories =>
       $$CategoriesTableTableManager(_db, _db.categories);
   $$TransactionsTableTableManager get transactions =>

@@ -162,6 +162,99 @@ List<Category> defaultCategories() => [
           color: 0xFF607D8B),
     ];
 
+/// A user-made account. No balance lives here — it is a display/grouping
+/// label for entries. Stable ids let two devices converge on the same set.
+class Account {
+  final String id;
+  final String name;
+  final String type; // cash | bank | card | wallet | other
+  final int color; // 0 = use accent/default
+  final int sortOrder;
+  final bool archived;
+
+  const Account({
+    required this.id,
+    required this.name,
+    required this.type,
+    this.color = 0,
+    this.sortOrder = 0,
+    this.archived = false,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'type': type,
+        'color': color,
+        'sortOrder': sortOrder,
+        'archived': archived,
+      };
+
+  factory Account.fromJson(Map<String, dynamic> json) => Account(
+        id: '${json['id'] ?? ''}',
+        name: '${json['name'] ?? ''}',
+        type: '${json['type'] ?? 'other'}',
+        color: json['color'] is int ? json['color'] as int : 0,
+        sortOrder: json['sortOrder'] is int ? json['sortOrder'] as int : 0,
+        archived: json['archived'] == true,
+      );
+
+  Account copyWith({
+    String? name,
+    String? type,
+    int? color,
+    int? sortOrder,
+    bool? archived,
+  }) => Account(
+        id: id,
+        name: name ?? this.name,
+        type: type ?? this.type,
+        color: color ?? this.color,
+        sortOrder: sortOrder ?? this.sortOrder,
+        archived: archived ?? this.archived,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is Account &&
+      other.id == id &&
+      other.name == name &&
+      other.type == type &&
+      other.color == color &&
+      other.sortOrder == sortOrder &&
+      other.archived == archived;
+
+  @override
+  int get hashCode => Object.hash(id, name, type, color, sortOrder, archived);
+}
+
+/// Deterministic account ids: two devices migrating independently converge.
+String accountIdForMode(String mode) => switch (mode) {
+      'bank' => 'acct_bank',
+      'card' => 'acct_card',
+      'ewallet' => 'acct_ewallet',
+      _ => 'acct_cash',
+    };
+
+String modeForAccountType(String type) => switch (type) {
+      'bank' => 'bank',
+      'card' => 'card',
+      'wallet' => 'ewallet',
+      _ => 'cash',
+    };
+
+List<Account> defaultAccounts() => const [
+      Account(id: 'acct_cash', name: 'Cash', type: 'cash', sortOrder: 0),
+      Account(id: 'acct_bank', name: 'Bank', type: 'bank', sortOrder: 1),
+      Account(id: 'acct_card', name: 'Card', type: 'card', sortOrder: 2),
+      Account(
+        id: 'acct_ewallet',
+        name: 'E-wallet',
+        type: 'wallet',
+        sortOrder: 3,
+      ),
+    ];
+
 class Txn {
   final String id;
   final String type; // 'expense' | 'income'
@@ -169,7 +262,8 @@ class Txn {
   final String categoryId;
   final int date; // epoch millis
   final String note;
-  final String mode; // cash | bank | card | ewallet
+  final String mode; // cash | bank | card | ewallet (kept for old paths)
+  final String accountId; // '' = derive from mode (old data)
   final String projectId; // '' = none
 
   const Txn({
@@ -180,8 +274,14 @@ class Txn {
     required this.date,
     this.note = '',
     this.mode = 'cash',
+    this.accountId = '',
     this.projectId = '',
   });
+
+  /// The account to use for display/grouping, with a deterministic fallback
+  /// for legacy entries that predate accounts.
+  String get effectiveAccountId =>
+      accountId.isEmpty ? accountIdForMode(mode) : accountId;
 
   bool get isExpense => type == 'expense';
   DateTime get dateTime => DateTime.fromMillisecondsSinceEpoch(date);
@@ -194,6 +294,7 @@ class Txn {
         'date': date,
         'note': note,
         'mode': mode,
+        'accountId': accountId,
         'projectId': projectId,
       };
 
@@ -208,6 +309,7 @@ class Txn {
             : DateTime.now().millisecondsSinceEpoch,
         note: '${json['note'] ?? ''}',
         mode: '${json['mode'] ?? 'cash'}',
+        accountId: '${json['accountId'] ?? ''}',
         projectId: '${json['projectId'] ?? ''}',
       );
 }
@@ -418,6 +520,7 @@ class Snapshot {
   final String deviceName;
   final String userName; // display name; '' when absent (older exports)
   final List<Category> categories;
+  final List<Account> accounts;
   final List<Txn> transactions;
   final List<Loan> loans;
   final List<Project> projects;
@@ -429,6 +532,7 @@ class Snapshot {
     required this.deviceName,
     this.userName = '',
     required this.categories,
+    this.accounts = const [],
     required this.transactions,
     required this.loans,
     required this.projects,
@@ -441,6 +545,7 @@ class Snapshot {
         'deviceName': deviceName,
         'userName': userName,
         'categories': categories.map((c) => c.toJson()).toList(),
+        'accounts': accounts.map((a) => a.toJson()).toList(),
         'transactions': transactions.map((t) => t.toJson()).toList(),
         'loans': loans.map((l) => l.toJson()).toList(),
         'projects': projects.map((p) => p.toJson()).toList(),
@@ -459,6 +564,7 @@ class Snapshot {
       deviceName: '${json['deviceName'] ?? 'device'}',
       userName: '${json['userName'] ?? ''}',
       categories: listOf(json['categories'], Category.fromJson),
+      accounts: listOf(json['accounts'], Account.fromJson),
       transactions: listOf(json['transactions'], Txn.fromJson),
       loans: listOf(json['loans'], Loan.fromJson),
       projects: listOf(json['projects'], Project.fromJson),

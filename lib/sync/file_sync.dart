@@ -83,11 +83,21 @@ class FileSync {
   }
 
   static String buildCsv(
-      String Function(String categoryId) categoryName, List<dynamic> txns) {
-    final buf = StringBuffer('date,type,amount,category,mode,note\n');
+    String Function(String categoryId) categoryName,
+    List<dynamic> txns, {
+    String Function(dynamic txn)? accountName,
+  }) {
+    // The six original columns keep their names, order and meaning. The
+    // account column is appended at the END so old readers stay compatible.
+    final buf = StringBuffer(
+      accountName == null
+          ? 'date,type,amount,category,mode,note\n'
+          : 'date,type,amount,category,mode,note,account\n',
+    );
     for (final t in txns) {
-      buf.writeln(
-          '${_csvField(t.dateTime.toIso8601String())},${_csvField(t.type)},${_csvField(t.amount)},${_csvField(categoryName(t.categoryId))},${_csvField(t.mode)},${_csvField(t.note)}');
+      final base =
+          '${_csvField(t.dateTime.toIso8601String())},${_csvField(t.type)},${_csvField(t.amount)},${_csvField(categoryName(t.categoryId))},${_csvField(t.mode)},${_csvField(t.note)}';
+      buf.writeln(accountName == null ? base : '$base,${_csvField(accountName(t))}');
     }
     return buf.toString();
   }

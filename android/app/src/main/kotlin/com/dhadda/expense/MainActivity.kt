@@ -13,6 +13,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterFragmentActivity() {
     private val mdns by lazy { MdnsHelper(this) }
     private val sms by lazy { SmsBridge(this) }
+    private val media by lazy { MediaBridge(this) }
     private var permResult: MethodChannel.Result? = null
 
     companion object {
@@ -103,6 +104,16 @@ class MainActivity : FlutterFragmentActivity() {
         }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
+            "expense/media",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "takePhoto" -> media.takePhoto(result)
+                "pickImages" -> media.pickImages(result)
+                else -> result.notImplemented()
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
             "expense/perm",
         ).setMethodCallHandler { call, result ->
             if (call.method == "ensure") {
@@ -131,6 +142,11 @@ class MainActivity : FlutterFragmentActivity() {
                 result.notImplemented()
             }
         }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (media.onResult(requestCode, resultCode, data)) return
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onRequestPermissionsResult(

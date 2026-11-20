@@ -90,7 +90,8 @@ class CategoryEntriesScreen extends StatelessWidget {
                           title: Text(
                               t.note.isEmpty ? category.name : t.note),
                           subtitle: Text(
-                              '${dayStr(t.dateTime)}  ·  ${t.mode.toUpperCase()}'),
+                              '${dayStr(t.dateTime)}  ·  '
+                              '${store.accountName(t.effectiveAccountId)}'),
                           trailing: Text(
                             '${t.isExpense ? '-' : '+'}${money(t.amount)}',
                             style: TextStyle(

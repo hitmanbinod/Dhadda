@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 
+import '../receipts.dart';
 import '../security.dart';
 import '../store.dart';
 import '../sync/sms.dart';
@@ -19,6 +20,7 @@ import '../widgets/backup_password.dart';
 import '../sync/link_sync.dart';
 import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
+import 'accounts_screen.dart';
 import 'category_rules_screen.dart';
 import 'edit_home_screen.dart';
 import 'sync_screen.dart';
@@ -342,6 +344,23 @@ class _MenuScreenState extends State<MenuScreen> {
         const SizedBox(height: Spacing.sm),
         AppCard(
           child: _row(
+            key: const Key('settings-accounts'),
+            icon: Icons.account_balance_wallet_outlined,
+            title: 'Accounts',
+            subtitle: 'Name the ways you pay, with no balances',
+            trailing: Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: colors.textSecondary,
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AccountsScreen()),
+            ),
+          ),
+        ),
+        const SizedBox(height: Spacing.sm),
+        AppCard(
+          child: _row(
             key: const Key('settings-auto-category'),
             icon: Icons.auto_awesome_outlined,
             title: 'Auto-category rules',
@@ -433,6 +452,31 @@ class _MenuScreenState extends State<MenuScreen> {
 
         // ---------- data ----------
         _groupTitle('Data'),
+        AppCard(
+          child: FutureBuilder(
+            future: ReceiptStore.create().then((s) => s.usage()),
+            builder: (context, snapshot) {
+              final usage = snapshot.data;
+              final label = usage == null
+                  ? 'Receipts'
+                  : 'Receipts: ${usage.count} photos, '
+                      '${formatBytes(usage.bytes)}';
+              return _row(
+                icon: Icons.receipt_long_outlined,
+                title: label,
+                subtitle: 'Receipts stay on this phone and are not '
+                    'included in backups or sync.',
+                trailing: TextButton(
+                  onPressed: usage == null || usage.count == 0
+                      ? null
+                      : () => _clearReceipts(context),
+                  child: const Text('Clear all'),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: Spacing.sm),
         AppCard(
           child: Padding(
             padding: const EdgeInsets.all(Spacing.lg),
@@ -768,6 +812,51 @@ class _MenuScreenState extends State<MenuScreen> {
  }
 
 
+  Future<void> _clearReceipts(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Clear all receipts?'),
+        content: const Text(
+          'This deletes every receipt photo on this phone. Entries and '
+          'amounts are not affected.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Last chance'),
+        content: const Text('There is no undo for deleted photos.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete photos'),
+          ),
+        ],
+      ),
+    );
+    if (sure != true || !context.mounted) return;
+    await (await ReceiptStore.create()).clearAll();
+    if (!context.mounted) return;
+    _say('All receipts cleared.');
+  }
+
   Future<void> _nameDialog(BuildContext context, ExpenseStore store) async {
     final ctrl = TextEditingController(text: store.userName);
     final ok = await showDialog<bool>(
@@ -1062,6 +1151,7 @@ class _MenuScreenState extends State<MenuScreen> {
       await store.addTransaction(
         type: c.isIncome ? 'income' : 'expense',
         amount: c.amount,
+        accountId: store.accountIdForModeOrDefault(c.mode),
         categoryId: store.categoryRuleFor(
               c.merchant.isEmpty ? c.body : c.merchant,
               c.isIncome ? 'income' : 'expense',

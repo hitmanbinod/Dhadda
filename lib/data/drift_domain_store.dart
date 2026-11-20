@@ -10,12 +10,14 @@ import 'package:drift/drift.dart';
 import '../models.dart';
 import '../sync/sync_v2.dart' show SyncType;
 import 'app_db.dart';
+import 'db_recovery.dart';
 import 'db_connection.dart';
 import 'domain_store.dart';
 
 /// Raw SQL table names (verified against generated $name values).
 const _tables = {
   SyncType.cat: 'categories',
+  SyncType.acct: 'accounts',
   SyncType.txn: 'transactions',
   SyncType.proj: 'projects',
   SyncType.loan: 'loans',
@@ -29,8 +31,12 @@ class DriftDomainStore implements DomainStore {
 
   /// Opens the app-private database file. Throws when SQLite is unavailable;
   /// callers fall back to the prefs backend and retry later.
-  static Future<DriftDomainStore> open() async =>
-      DriftDomainStore(AppDb(openDbConnection()));
+  static Future<DriftDomainStore> open() async {
+    // Safety copy before any schema upgrade; the copy is one-time and best
+    // effort. The migration itself is inside a single Drift transaction.
+    await backupDatabaseBeforeMigration();
+    return DriftDomainStore(AppDb(openDbConnection()));
+  }
 
   Future<T> _tx<T>(Future<T> Function() work) => db.transaction(work);
 
@@ -71,12 +77,38 @@ class DriftDomainStore implements DomainStore {
     budget: r.budget,
   );
 
+  Account _toAccount(AccountRow r) => Account(
+        id: r.id,
+        name: r.name,
+        type: r.type,
+        color: r.color,
+        sortOrder: r.sortOrder,
+        archived: r.archived != 0,
+      );
+
+  AccountsCompanion _accountCompanion(
+    Account a,
+    int order,
+    int rev,
+    String by,
+  ) => AccountsCompanion(
+        id: Value(a.id),
+        name: Value(a.name),
+        type: Value(a.type),
+        color: Value(a.color),
+        sortOrder: Value(order),
+        archived: Value(a.archived ? 1 : 0),
+        rev: Value(rev),
+        revBy: Value(by),
+      );
+
   TransactionsCompanion _txnCompanion(Txn t, int rev, String by) =>
       TransactionsCompanion(
         id: Value(t.id),
         type: Value(t.type),
         amount: Value(t.amount),
         categoryId: Value(t.categoryId),
+        accountId: Value(t.accountId.isEmpty ? null : t.accountId),
         date: Value(t.date),
         note: Value(t.note),
         mode: Value(t.mode),
@@ -90,6 +122,7 @@ class DriftDomainStore implements DomainStore {
     type: r.type,
     amount: r.amount,
     categoryId: r.categoryId,
+    accountId: r.accountId ?? '',
     date: r.date,
     note: r.note,
     mode: r.mode,
@@ -221,11 +254,15 @@ class DriftDomainStore implements DomainStore {
     final cats = await (db.select(
       db.categories,
     )..orderBy([(c) => OrderingTerm.asc(c.sortOrder)])).get();
+    final accts = await (db.select(
+      db.accounts,
+    )..orderBy([(a) => OrderingTerm.asc(a.sortOrder)])).get();
     final txns = await db.select(db.transactions).get();
     final projects = await db.select(db.projects).get();
     final loans = await _readLoans();
     return DomainData(
       categories: [for (final r in cats) _toCategory(r)],
+      accounts: [for (final r in accts) _toAccount(r)],
       transactions: [for (final r in txns) _toTxn(r)],
       loans: loans,
       projects: [for (final r in projects) _toProject(r)],
@@ -245,10 +282,16 @@ class DriftDomainStore implements DomainStore {
     await db.delete(db.loans).go();
     await db.delete(db.projects).go();
     await db.delete(db.categories).go();
+    await db.delete(db.accounts).go();
     for (var i = 0; i < data.categories.length; i++) {
       final c = data.categories[i];
       final m = at(SyncType.cat, c.id);
       await db.into(db.categories).insert(_catCompanion(c, i, m.rev, m.by));
+    }
+    for (var i = 0; i < data.accounts.length; i++) {
+      final a = data.accounts[i];
+      final m = at(SyncType.acct, a.id);
+      await db.into(db.accounts).insert(_accountCompanion(a, i, m.rev, m.by));
     }
     for (final p in data.projects) {
       final m = at(SyncType.proj, p.id);
@@ -274,6 +317,18 @@ class DriftDomainStore implements DomainStore {
       final m =
           meta['${SyncType.cat}/${c.id}'] ?? const RecordMeta(rev: 0, by: '');
       await db.into(db.categories).insert(_catCompanion(c, i, m.rev, m.by));
+    }
+  });
+
+  @override
+  Future<void> saveAccounts(List<Account> accounts) => _tx(() async {
+    final meta = await _currentMeta();
+    await db.delete(db.accounts).go();
+    for (var i = 0; i < accounts.length; i++) {
+      final a = accounts[i];
+      final m =
+          meta['${SyncType.acct}/${a.id}'] ?? const RecordMeta(rev: 0, by: '');
+      await db.into(db.accounts).insert(_accountCompanion(a, i, m.rev, m.by));
     }
   });
 
@@ -438,6 +493,7 @@ class DriftDomainStore implements DomainStore {
     await db.delete(db.tombstones).go();
     for (final stmt in [
       'UPDATE categories SET rev = 0, rev_by = \'\'',
+      'UPDATE accounts SET rev = 0, rev_by = \'\'',
       'UPDATE transactions SET rev = 0, rev_by = \'\'',
       'UPDATE projects SET rev = 0, rev_by = \'\'',
       'UPDATE loans SET rev = 0, rev_by = \'\'',
@@ -463,10 +519,16 @@ class DriftDomainStore implements DomainStore {
     await db.delete(db.loans).go();
     await db.delete(db.projects).go();
     await db.delete(db.categories).go();
+    await db.delete(db.accounts).go();
     for (var i = 0; i < data.categories.length; i++) {
       final c = data.categories[i];
       final m = at(SyncType.cat, c.id);
       await db.into(db.categories).insert(_catCompanion(c, i, m.rev, m.by));
+    }
+    for (var i = 0; i < data.accounts.length; i++) {
+      final a = data.accounts[i];
+      final m = at(SyncType.acct, a.id);
+      await db.into(db.accounts).insert(_accountCompanion(a, i, m.rev, m.by));
     }
     for (final p in data.projects) {
       final m = at(SyncType.proj, p.id);

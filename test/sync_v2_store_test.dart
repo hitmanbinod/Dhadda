@@ -98,6 +98,9 @@ class _NoApply extends DriftDomainStore {
 /// where Dart's await-yield used to let a just-saved entry be overwritten by a
 /// wholesale replace computed from older state.
 class _RacingBackend implements DomainStore {
+  @override
+  Future<void> saveAccounts(List<Account> accounts) async {}
+
   _RacingBackend(this.inner);
 
   final DomainStore inner;

@@ -2,15 +2,26 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../app_dates.dart';
 import '../format.dart';
+import '../receipts.dart';
 import '../repeat_suggestions.dart';
 import '../store.dart';
 import '../theme/palette.dart';
 import '../theme/tokens.dart';
 import '../theme/typography.dart';
 import '../widgets/page.dart';
+import '../widgets/receipt_field.dart';
+
+IconData _accountIcon(String type) => switch (type) {
+      'bank' => Icons.account_balance_outlined,
+      'card' => Icons.credit_card_outlined,
+      'wallet' => Icons.account_balance_wallet_outlined,
+      'other' => Icons.account_circle_outlined,
+      _ => Icons.money_outlined,
+    };
 
 /// 3-tap entry: amount + category + date. Everything else optional.
 class AddScreen extends StatefulWidget {
@@ -40,9 +51,12 @@ class _AddScreenState extends State<AddScreen>
   DateTime _date = DateTime.now();
   TimeOfDay _time = TimeOfDay.now();
   String _mode = 'cash';
+  String _accountId = 'acct_cash';
   bool _reordering = false;
   bool _categoryChosen = false;
   String? _suggestedCategoryId;
+  final String _txnId = const Uuid().v4();
+  List<String> _incomingReceipts = [];
   late final AnimationController _jiggle = AnimationController(
       duration: const Duration(milliseconds: 280), vsync: this)
     ..repeat(reverse: true);
@@ -284,24 +298,31 @@ class _AddScreenState extends State<AddScreen>
           ],
         ),
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(isExpanded: true,
-          initialValue: _mode,
-          decoration: const InputDecoration(
-              labelText: 'Paid via',
-              border: OutlineInputBorder()),
-          items: const [
-            DropdownMenuItem(
-                value: 'cash', child: Text('Cash')),
-            DropdownMenuItem(
-                value: 'bank', child: Text('Bank')),
-            DropdownMenuItem(
-                value: 'card', child: Text('Card')),
-            DropdownMenuItem(
-                value: 'ewallet',
-                child: Text('E-wallet')),
+        Semantics(
+          header: true,
+          child: Text(
+            'Account',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final a in store.activeAccounts)
+              ChoiceChip(
+                key: Key('add-account-${a.id}'),
+                label: Text(a.name),
+                avatar: Icon(_accountIcon(a.type), size: 18),
+                showCheckmark: false,
+                selected: _accountId == a.id,
+                onSelected: (_) => setState(() {
+                  _accountId = a.id;
+                  _mode = modeForAccountType(a.type);
+                }),
+              ),
           ],
-          onChanged: (v) =>
-              setState(() => _mode = v ?? 'cash'),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -336,6 +357,11 @@ class _AddScreenState extends State<AddScreen>
               ),
             ),
           ),
+        const SizedBox(height: Spacing.lg),
+        ReceiptField(
+          initial: const [],
+          onChanged: (paths) => _incomingReceipts = paths,
+        ),
         const SizedBox(height: Spacing.xl),
         FilledButton.icon(
           key: const Key('add-save'),
@@ -363,6 +389,7 @@ class _AddScreenState extends State<AddScreen>
       _note.text = s.note;
       _categoryId = s.categoryId;
       _categoryChosen = true;
+      _accountId = s.accountId;
       _mode = s.mode;
       _suggestedCategoryId = null;
     });
@@ -512,7 +539,9 @@ class _AddScreenState extends State<AddScreen>
               _time.hour, _time.minute),
           note: _note.text.trim(),
           mode: _mode,
+          accountId: _accountId,
           projectId: _projectId,
+          id: _txnId,
         );
     if (!ok) {
       if (!mounted) return;
@@ -521,6 +550,11 @@ class _AddScreenState extends State<AddScreen>
               'Could not save — storage failed. Your entry was not added. '
               'Please try again.')));
       return;
+    }
+    if (_incomingReceipts.isNotEmpty) {
+      final receipts = await ReceiptStore.create();
+      await receipts.attach(_txnId, _incomingReceipts);
+      _incomingReceipts = [];
     }
     _amount.clear();
     _note.clear();

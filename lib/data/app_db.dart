@@ -8,7 +8,38 @@
 // written to be resumable — see [_ensureColumns] and onUpgrade below.
 import 'package:drift/drift.dart';
 
+import '../models.dart';
+
 part 'app_db.g.dart';
+
+/// Round 3: user-made payment accounts. No balance is stored here.
+@DataClassName('AccountRow')
+class Accounts extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  TextColumn get type => text()();
+  IntColumn get color => integer().withDefault(const Constant(0))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  IntColumn get archived => integer().withDefault(const Constant(0))();
+  IntColumn get rev => integer().withDefault(const Constant(0))();
+  TextColumn get revBy => text().withDefault(const Constant(''))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Round 3: receipt photos are files on this phone; only their metadata is
+/// indexed here. Never included in sync or JSON backups.
+@DataClassName('ReceiptRow')
+class Receipts extends Table {
+  TextColumn get id => text()();
+  TextColumn get entryId => text()();
+  TextColumn get fileName => text()();
+  IntColumn get addedAt => integer()();
+  IntColumn get width => integer().withDefault(const Constant(0))();
+  IntColumn get height => integer().withDefault(const Constant(0))();
+  @override
+  Set<Column> get primaryKey => {id};
+}
 
 @DataClassName('CategoryRow')
 class Categories extends Table {
@@ -32,11 +63,14 @@ class Categories extends Table {
 @TableIndex(name: 'idx_transactions_date', columns: {#date})
 @TableIndex(name: 'idx_transactions_category', columns: {#categoryId})
 @TableIndex(name: 'idx_transactions_project', columns: {#projectId})
+@TableIndex(name: 'idx_transactions_account', columns: {#accountId})
 class Transactions extends Table {
   TextColumn get id => text()();
   TextColumn get type => text()();
   RealColumn get amount => real()();
   TextColumn get categoryId => text().references(Categories, #id)();
+  // Nullable during migration: old rows are backfilled to a deterministic id.
+  TextColumn get accountId => text().nullable()();
   IntColumn get date => integer()();
   TextColumn get note => text()();
   TextColumn get mode => text()();
@@ -154,6 +188,8 @@ Future<void> _ensureColumns(
 
 @DriftDatabase(
   tables: [
+    Accounts,
+    Receipts,
     Categories,
     Transactions,
     Projects,
@@ -168,7 +204,7 @@ class AppDb extends _$AppDb {
 
   /// Single source for the schema version (used by the database and by
   /// privacy-safe diagnostics alike).
-  static const dbSchemaVersion = 2;
+  static const dbSchemaVersion = 3;
 
   @override
   int get schemaVersion => dbSchemaVersion;
@@ -206,6 +242,41 @@ class AppDb extends _$AppDb {
         ]) {
           await m.database.customStatement(stmt);
         }
+      }
+      if (from < 3) {
+        // Round 3 accounts + receipts. Every step is guarded so an
+        // interrupted upgrade resumes instead of failing forever.
+        final tables = await _existingTables(m);
+        if (!tables.contains('accounts')) await m.createTable(accounts);
+        if (!tables.contains('receipts')) await m.createTable(receipts);
+        await _ensureColumns(m, transactions, [transactions.accountId]);
+        await m.database.customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_transactions_account '
+          'ON transactions (account_id)',
+        );
+        await m.database.customStatement(
+          'CREATE INDEX IF NOT EXISTS idx_receipts_entry '
+          'ON receipts (entry_id)',
+        );
+        // Deterministic defaults: identical on every device, so independent
+        // migrations converge and sync never creates duplicates.
+        for (final a in defaultAccounts()) {
+          await m.database.customStatement(
+            "INSERT OR IGNORE INTO accounts "
+            "(id, name, type, color, sort_order, archived, rev, rev_by) "
+            "VALUES ('${a.id}', '${a.name}', '${a.type}', ${a.color}, "
+            "${a.sortOrder}, 0, 0, '')",
+          );
+        }
+        // Backfill only NULL account ids; never touch an existing choice or
+        // the legacy mode value.
+        await m.database.customStatement(
+          "UPDATE transactions SET account_id = "
+          "CASE mode WHEN 'bank' THEN 'acct_bank' "
+          "WHEN 'card' THEN 'acct_card' "
+          "WHEN 'ewallet' THEN 'acct_ewallet' ELSE 'acct_cash' END "
+          "WHERE account_id IS NULL",
+        );
       }
     },
   );

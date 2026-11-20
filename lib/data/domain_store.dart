@@ -13,12 +13,14 @@ import '../models.dart';
 /// content as a Snapshot's collections (but without sync metadata).
 class DomainData {
   final List<Category> categories;
+  final List<Account> accounts;
   final List<Txn> transactions;
   final List<Loan> loans;
   final List<Project> projects;
 
   const DomainData({
     required this.categories,
+    this.accounts = const [],
     required this.transactions,
     required this.loans,
     required this.projects,
@@ -146,6 +148,10 @@ abstract class DomainStore {
   Future<DomainData> loadDomain();
   Future<void> replaceAll(DomainData data);
   Future<void> saveCategories(List<Category> categories);
+
+  /// Default no-op keeps older test fakes source-compatible; real backends
+  /// override it.
+  Future<void> saveAccounts(List<Account> accounts) async {}
   Future<void> saveTransactions(List<Txn> transactions);
   Future<void> upsertTransaction(Txn txn, {int? rev, String? by});
   Future<void> deleteTransaction(String id);
@@ -205,11 +211,15 @@ List<T> _decodeList<T>(String? raw, T Function(Map<String, dynamic>) fromJson) {
 /// load path and migration input.
 DomainData decodeLegacyDomain({
   required String? cats,
+  String? accts,
   required String? txns,
   required String? loans,
   required String? projects,
 }) => DomainData(
   categories: _decodeList(cats, Category.fromJson),
+  accounts: accts == null || accts.isEmpty
+      ? defaultAccounts()
+      : _decodeList(accts, Account.fromJson),
   transactions: _decodeList(txns, Txn.fromJson),
   loans: _decodeList(loans, Loan.fromJson),
   projects: _decodeList(projects, Project.fromJson),

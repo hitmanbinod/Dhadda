@@ -11,6 +11,7 @@ import 'domain_store.dart';
 
 class PrefsDomainStore implements DomainStore {
   static const kCats = 'expense_cats_v1';
+  static const kAccts = 'expense_accounts_v1';
   static const kTxns = 'expense_txns_v1';
   static const kLoans = 'expense_loans_v1';
   static const kProjects = 'expense_projects_v1';
@@ -40,6 +41,7 @@ class PrefsDomainStore implements DomainStore {
   @override
   Future<DomainData> loadDomain() async => decodeLegacyDomain(
     cats: prefs.getString(kCats),
+    accts: prefs.getString(kAccts),
     txns: prefs.getString(kTxns),
     loans: prefs.getString(kLoans),
     projects: prefs.getString(kProjects),
@@ -50,6 +52,10 @@ class PrefsDomainStore implements DomainStore {
     await _put(
       kCats,
       jsonEncode([for (final c in data.categories) c.toJson()]),
+    );
+    await _put(
+      kAccts,
+      jsonEncode([for (final a in data.accounts) a.toJson()]),
     );
     await _put(
       kTxns,
@@ -71,6 +77,11 @@ class PrefsDomainStore implements DomainStore {
       kCats,
       jsonEncode([for (final c in categories) c.toJson()]),
     );
+  }
+
+  @override
+  Future<void> saveAccounts(List<Account> accounts) async {
+    await _put(kAccts, jsonEncode([for (final a in accounts) a.toJson()]));
   }
 
   @override

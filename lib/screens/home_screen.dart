@@ -1531,7 +1531,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 2),
                     Text(
                       '${dayStr(txn.dateTime)} · ${c.name} · '
-                      '${txn.mode.toUpperCase()}',
+                      '${store.accountName(txn.effectiveAccountId)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppType.caption.copyWith(

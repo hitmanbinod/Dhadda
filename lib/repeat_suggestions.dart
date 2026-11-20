@@ -6,6 +6,7 @@ class RepeatSuggestion {
   final String note;
   final String categoryId;
   final String mode;
+  final String accountId;
   final double amount;
   final bool isExpense;
   final int count;
@@ -15,6 +16,7 @@ class RepeatSuggestion {
     required this.note,
     required this.categoryId,
     required this.mode,
+    required this.accountId,
     required this.amount,
     required this.isExpense,
     required this.count,
@@ -57,6 +59,7 @@ List<RepeatSuggestion> repeatSuggestions(
         note: t.note.trim(),
         categoryId: t.categoryId,
         mode: t.mode,
+        accountId: t.effectiveAccountId,
         amount: t.amount,
         isExpense: t.isExpense,
         lastDate: d,
@@ -67,6 +70,7 @@ List<RepeatSuggestion> repeatSuggestions(
       acc
         ..note = t.note.trim()
         ..mode = t.mode
+        ..accountId = t.effectiveAccountId
         ..amount = t.amount
         ..lastDate = d;
     }
@@ -86,6 +90,7 @@ List<RepeatSuggestion> repeatSuggestions(
         note: a.note,
         categoryId: a.categoryId,
         mode: a.mode,
+        accountId: a.accountId,
         amount: a.amount,
         isExpense: a.isExpense,
         count: a.count,
@@ -98,6 +103,7 @@ class _Accum {
   String note;
   final String categoryId;
   String mode;
+  String accountId;
   double amount;
   final bool isExpense;
   DateTime lastDate;
@@ -107,6 +113,7 @@ class _Accum {
     required this.note,
     required this.categoryId,
     required this.mode,
+    required this.accountId,
     required this.amount,
     required this.isExpense,
     required this.lastDate,

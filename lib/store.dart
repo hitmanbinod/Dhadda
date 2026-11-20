@@ -66,6 +66,7 @@ class ExpenseStore extends ChangeNotifier {
   ExpenseStore({this._domainOverride});
 
   List<Category> categories = [];
+  List<Account> accounts = defaultAccounts();
   List<Txn> transactions = [];
   List<Loan> loans = [];
   List<Project> projects = [];
@@ -220,6 +221,7 @@ class ExpenseStore extends ChangeNotifier {
     try {
       final d = await _domain!.loadDomain();
       categories = d.categories;
+      accounts = d.accounts.isEmpty ? defaultAccounts() : d.accounts;
       transactions = d.transactions;
       loans = d.loans;
       projects = d.projects;
@@ -394,6 +396,7 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> _migrateLegacyToDb(SharedPreferences p) async {
     final source = DomainData(
       categories: List.of(categories),
+      accounts: List.of(accounts),
       transactions: List.of(transactions),
       loans: List.of(loans),
       projects: List.of(projects),
@@ -427,6 +430,7 @@ class ExpenseStore extends ChangeNotifier {
 
   void _restoreDomain(DomainData snap, String prevUpdatedAt) {
     categories = snap.categories;
+    accounts = snap.accounts.isEmpty ? defaultAccounts() : snap.accounts;
     transactions = snap.transactions;
     loans = snap.loans;
     projects = snap.projects;
@@ -586,6 +590,11 @@ class ExpenseStore extends ChangeNotifier {
   /// behavior; doubles as migration input on native platforms.
   void _readLegacyDomain(SharedPreferences p) {
     categories = _decodeList(p.getString(_kCats), Category.fromJson);
+    final savedAccounts = p.getString('expense_accounts_v1');
+    accounts = savedAccounts == null
+        ? defaultAccounts()
+        : _decodeList(savedAccounts, Account.fromJson);
+    if (accounts.isEmpty) accounts = defaultAccounts();
     transactions = _decodeList(p.getString(_kTxns), Txn.fromJson);
     loans = _decodeList(p.getString(_kLoans), Loan.fromJson);
     projects = _decodeList(p.getString(_kProjects), Project.fromJson);
@@ -986,18 +995,21 @@ class ExpenseStore extends ChangeNotifier {
     required DateTime date,
     String note = '',
     String mode = 'cash',
+    String accountId = '',
     String projectId = '',
+    String? id,
   }) async {
     final before = _snapshotDomain();
     final prevUpdated = updatedAt;
     final txn = Txn(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       type: type,
       amount: amount,
       categoryId: categoryId,
       date: date.millisecondsSinceEpoch,
       note: note,
       mode: mode,
+      accountId: accountId,
       projectId: projectId,
     );
     transactions.add(txn);
@@ -1020,6 +1032,7 @@ class ExpenseStore extends ChangeNotifier {
     String? note,
     String? categoryId,
     String? mode,
+    String? accountId,
     DateTime? date,
     String? projectId,
   }) async {
@@ -1036,6 +1049,7 @@ class ExpenseStore extends ChangeNotifier {
       date: date?.millisecondsSinceEpoch ?? t.date,
       note: note ?? t.note,
       mode: mode ?? t.mode,
+      accountId: accountId ?? t.accountId,
       projectId: projectId ?? t.projectId,
     );
     transactions[i] = updated;
@@ -1079,6 +1093,193 @@ class ExpenseStore extends ChangeNotifier {
       final rm = _reviveRev(SyncType.txn, txn.id);
       await d.upsertTransaction(txn, rev: rm.rev, by: rm.by);
       await d.deleteTombstone(SyncType.txn, txn.id);
+    });
+    notifyListeners();
+  }
+
+  // ---------- accounts (Round 3) ----------
+
+  List<Account> get activeAccounts {
+    final list = accounts.where((a) => !a.archived).toList()
+      ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    return list;
+  }
+
+  Account accountOf(String idOrMode) {
+    for (final a in accounts) {
+      if (a.id == idOrMode) return a;
+    }
+    final legacy = accountIdForMode(idOrMode);
+    for (final a in accounts) {
+      if (a.id == legacy) return a;
+    }
+    return accounts.isEmpty ? defaultAccounts().first : accounts.first;
+  }
+
+  String accountName(String idOrMode) => accountOf(idOrMode).name;
+
+  /// SMS/legacy modes map to the first active account of the matching type,
+  /// with a graceful fallback to the first active account.
+  String accountIdForModeOrDefault(String mode) {
+    final wanted = modeForAccountType(mode);
+    for (final a in activeAccounts) {
+      if (a.type == wanted) return a.id;
+    }
+    return activeAccounts.isEmpty ? defaultAccounts().first.id : activeAccounts.first.id;
+  }
+
+  Future<void> _writeAccounts(
+    List<Account> next,
+    Future<void> Function(DomainStore d) persist,
+  ) async {
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
+    accounts = next;
+    _touch();
+    await _persistDomain(before, prevUpdated, (d) async {
+      await d.saveAccounts(next);
+      await persist(d);
+    });
+    notifyListeners();
+  }
+
+  Future<String> addAccount(String name, String type, {int color = 0}) async {
+    final clean = name.trim();
+    if (clean.isEmpty) return '';
+    final id = _uuid.v4();
+    final next = [
+      ...accounts,
+      Account(
+        id: id,
+        name: clean,
+        type: type,
+        color: color,
+        sortOrder: accounts.length,
+      ),
+    ];
+    await _writeAccounts(next, (d) async {
+      final rm = _bumpRev(SyncType.acct, id);
+      // Re-write so the new row carries its own revision.
+      await d.saveAccounts(next);
+      await d.saveRecordMeta(SyncType.acct, id, rm.rev, rm.by);
+    });
+    return id;
+  }
+
+  Future<void> updateAccount(Account account) async {
+    final next = [
+      for (final a in accounts) if (a.id == account.id) account else a,
+    ];
+    await _writeAccounts(next, (d) async {
+      final rm = _bumpRev(SyncType.acct, account.id);
+      await d.saveRecordMeta(SyncType.acct, account.id, rm.rev, rm.by);
+    });
+  }
+
+  Future<void> reorderAccounts(int oldIndex, int newIndex) async {
+    final order = activeAccounts;
+    if (oldIndex < 0 || oldIndex >= order.length) return;
+    final moved = order.removeAt(oldIndex);
+    order.insert(newIndex.clamp(0, order.length), moved);
+    final byId = {for (final a in accounts) a.id: a};
+    final next = [
+      for (var i = 0; i < accounts.length; i++)
+        (byId[accounts[i].id] ?? accounts[i]).copyWith(sortOrder: i),
+    ];
+    final reordered = <Account>[
+      ...next.where((a) => !byId[a.id]!.archived),
+      ...next.where((a) => byId[a.id]!.archived),
+    ];
+    await _writeAccounts(reordered, (d) async {});
+  }
+
+  Future<bool> archiveAccount(String id) async {
+    final a = accountOf(id);
+    if (a.archived || activeAccounts.length <= 1) return false;
+    await updateAccount(a.copyWith(archived: true));
+    return true;
+  }
+
+  Future<bool> deleteAccount(String id) async {
+    final a = accountOf(id);
+    if (a.archived == false && activeAccounts.length <= 1) return false;
+    if (transactions.any((t) => t.effectiveAccountId == a.id)) return false;
+    final next = [for (final acc in accounts) if (acc.id != a.id) acc];
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
+    accounts = next;
+    _touch();
+    await _persistDomain(before, prevUpdated, (d) async {
+      await d.saveTombstone(_makeTomb(SyncType.acct, a.id));
+      await d.saveAccounts(next);
+    });
+    notifyListeners();
+    return true;
+  }
+
+  /// Re-points entries to [targetId], archives the source account (keeping its
+  /// history and tombstone semantics) and never loses a transaction.
+  Future<void> mergeAccount(String sourceId, String targetId) async {
+    if (sourceId == targetId) return;
+    final target = accountOf(targetId);
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
+    final mode = modeForAccountType(target.type);
+    transactions = [
+      for (final t in transactions)
+        t.effectiveAccountId == sourceId
+            ? Txn(
+                id: t.id,
+                type: t.type,
+                amount: t.amount,
+                categoryId: t.categoryId,
+                date: t.date,
+                note: t.note,
+                mode: mode,
+                accountId: target.id,
+                projectId: t.projectId,
+              )
+            : t,
+    ];
+    accounts = [
+      for (final a in accounts)
+        if (a.id == sourceId)
+          a.copyWith(archived: true)
+        else
+          a,
+    ];
+    _touch();
+    await _persistDomain(before, prevUpdated, (d) async {
+      await d.saveTombstone(_makeTomb(SyncType.acct, sourceId));
+      await d.saveAccounts(accounts);
+      await d.saveTransactions(transactions);
+    });
+    notifyListeners();
+  }
+
+  Future<void> setEntryAccount(String txnId, String accountId) async {
+    final i = transactions.indexWhere((t) => t.id == txnId);
+    if (i < 0) return;
+    final a = accountOf(accountId);
+    final t = transactions[i];
+    final updated = Txn(
+      id: t.id,
+      type: t.type,
+      amount: t.amount,
+      categoryId: t.categoryId,
+      date: t.date,
+      note: t.note,
+      mode: modeForAccountType(a.type),
+      accountId: a.id,
+      projectId: t.projectId,
+    );
+    transactions[i] = updated;
+    _touch();
+    final before = _snapshotDomain();
+    final prevUpdated = updatedAt;
+    await _persistDomain(before, prevUpdated, (d) async {
+      final rm = _bumpRev(SyncType.txn, txnId);
+      await d.upsertTransaction(updated, rev: rm.rev, by: rm.by);
     });
     notifyListeners();
   }
@@ -1699,6 +1900,7 @@ class ExpenseStore extends ChangeNotifier {
     deviceName: deviceName,
     userName: userName,
     categories: List<Category>.from(categories),
+    accounts: List<Account>.from(accounts),
     transactions: List<Txn>.from(transactions),
     loans: List<Loan>.from(loans),
     projects: List<Project>.from(projects),
@@ -1740,11 +1942,15 @@ class ExpenseStore extends ChangeNotifier {
     categories = remote.categories.isEmpty
         ? defaultCategories()
         : remote.categories;
+    // Old snapshots carry no accounts: seed the deterministic defaults so
+    // every device derives the same ids from the same legacy modes.
+    accounts = remote.accounts.isEmpty ? defaultAccounts() : remote.accounts;
     transactions = remote.transactions;
     loans = remote.loans;
     projects = remote.projects;
     final present = <String>{
       for (final c in categories) _mkey(SyncType.cat, c.id),
+      for (final a in accounts) _mkey(SyncType.acct, a.id),
       for (final t in transactions) _mkey(SyncType.txn, t.id),
       for (final p in projects) _mkey(SyncType.proj, p.id),
       for (final l in loans) ...[
@@ -1964,6 +2170,11 @@ class ExpenseStore extends ChangeNotifier {
     'sortOrder': order,
   };
 
+  static Map<String, dynamic> _acctContent(Account a, int order) => {
+        ...a.toJson(),
+        'sortOrder': order,
+      };
+
   static Map<String, dynamic> _loanContent(Loan l) => {
     'id': l.id,
     'person': l.person,
@@ -1989,6 +2200,19 @@ class ExpenseStore extends ChangeNotifier {
           rev: m.rev,
           by: m.by,
           data: _catContent(c, i),
+        ),
+      );
+    }
+    for (var i = 0; i < accounts.length; i++) {
+      final a = accounts[i];
+      final m = _metaFor(SyncType.acct, a.id);
+      out.add(
+        SyncRecord(
+          type: SyncType.acct,
+          id: a.id,
+          rev: m.rev,
+          by: m.by,
+          data: _acctContent(a, i),
         ),
       );
     }
@@ -2085,6 +2309,18 @@ class ExpenseStore extends ChangeNotifier {
           rev: 0,
           by: '',
           data: _catContent(c, i),
+        ),
+      );
+    }
+    for (var i = 0; i < snap.accounts.length; i++) {
+      final a = snap.accounts[i];
+      out.add(
+        SyncRecord(
+          type: SyncType.acct,
+          id: a.id,
+          rev: 0,
+          by: '',
+          data: _acctContent(a, i),
         ),
       );
     }
@@ -2192,6 +2428,44 @@ class ExpenseStore extends ChangeNotifier {
     catRecs.add(other);
     final catIds = {for (final r in catRecs) r.id};
 
+    // Accounts: deterministic defaults are added when a peer has none, so
+    // two devices converging from old snapshots never create duplicates.
+    final acctRecs = <SyncRecord>[
+      for (final r in result.records.values)
+        if (r.type == SyncType.acct && !r.dead) r,
+    ];
+    for (final d in defaultAccounts()) {
+      if (!acctRecs.any((r) => r.id == d.id)) {
+        acctRecs.add(
+          SyncRecord(
+            type: SyncType.acct,
+            id: d.id,
+            rev: 0,
+            by: '',
+            data: _acctContent(d, d.sortOrder),
+          ),
+        );
+      }
+    }
+    acctRecs.sort((a, b) {
+      final s = sortOf(a).compareTo(sortOf(b));
+      return s != 0 ? s : a.id.compareTo(b.id);
+    });
+    var mergedAccounts = [
+      for (final r in acctRecs)
+        Account.fromJson(Map<String, dynamic>.from(r.data ?? {'id': r.id})),
+    ];
+    if (mergedAccounts.isEmpty ||
+        mergedAccounts.every((a) => a.archived)) {
+      mergedAccounts = [
+        for (var i = 0; i < mergedAccounts.length; i++)
+          i == 0
+              ? mergedAccounts[i].copyWith(archived: false)
+              : mergedAccounts[i],
+      ];
+      if (mergedAccounts.isEmpty) mergedAccounts = defaultAccounts();
+    }
+
     final categories = <Category>[];
     final meta = <String, RecordMeta>{};
     for (final r in catRecs) {
@@ -2260,6 +2534,7 @@ class ExpenseStore extends ChangeNotifier {
       meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
     }
 
+    final acctIds = {for (final a in mergedAccounts) a.id};
     final transactions = <Txn>[];
     for (final r in result.records.values) {
       if (r.type != SyncType.txn || r.dead) continue;
@@ -2281,10 +2556,16 @@ class ExpenseStore extends ChangeNotifier {
               : DateTime.now().millisecondsSinceEpoch,
           note: '${d['note'] ?? ''}',
           mode: '${d['mode'] ?? 'cash'}',
+          accountId: acctIds.contains('${d['accountId'] ?? ''}')
+              ? '${d['accountId']}'
+              : '',
           projectId: projId,
         ),
       );
       meta[_mkey(r.type, r.id)] = RecordMeta(rev: r.rev, by: r.by);
+    }
+    for (final r in acctRecs) {
+      meta[_mkey(SyncType.acct, r.id)] = RecordMeta(rev: r.rev, by: r.by);
     }
 
     final tombs = <TombEntry>[];
@@ -2297,6 +2578,7 @@ class ExpenseStore extends ChangeNotifier {
     return (
       data: DomainData(
         categories: categories,
+        accounts: mergedAccounts,
         transactions: transactions,
         loans: loans,
         projects: projects,
@@ -2365,6 +2647,7 @@ class ExpenseStore extends ChangeNotifier {
     try {
       await d.applyV2(data: mat.data, meta: mat.meta, tombs: mat.tombs);
       categories = mat.data.categories;
+      accounts = mat.data.accounts.isEmpty ? defaultAccounts() : mat.data.accounts;
       transactions = mat.data.transactions;
       loans = mat.data.loans;
       projects = mat.data.projects;

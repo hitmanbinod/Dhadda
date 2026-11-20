@@ -19,11 +19,12 @@ const int kSnapshotV2Format = 2;
 class SyncType {
   static const txn = 'txn';
   static const cat = 'cat';
+  static const acct = 'acct';
   static const proj = 'proj';
   static const loan = 'loan';
   static const topup = 'topup';
   static const repay = 'repay';
-  static const known = {txn, cat, proj, loan, topup, repay};
+  static const known = {txn, cat, acct, proj, loan, topup, repay};
 }
 
 /// One versioned record. Live records carry [data] (v1-shaped JSON);
