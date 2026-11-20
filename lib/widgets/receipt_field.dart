@@ -151,12 +151,6 @@ class _ReceiptFieldState extends State<ReceiptField> {
                 icon: const Icon(Icons.photo_library_outlined, size: 18),
                 label: const Text('Gallery'),
               ),
-              OutlinedButton.icon(
-                key: const Key('receipt-camera'),
-                onPressed: _busy ? null : () => _capture('takePhoto'),
-                icon: const Icon(Icons.photo_camera_outlined, size: 18),
-                label: const Text('Camera'),
-              ),
             ],
             if (_busy)
               const SizedBox(

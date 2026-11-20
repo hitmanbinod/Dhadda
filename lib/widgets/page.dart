@@ -1,5 +1,7 @@
 import 'package:flutter/widgets.dart';
 
+import '../theme/tokens.dart';
+
 /// Caps content width on wide (desktop) screens so rows don't stretch
 /// edge-to-edge, while phones keep comfortable 16dp margins.
 const double kPageMaxWidth = 880.0;
@@ -15,6 +17,14 @@ const double kNavBarHeight = 64.0;
 double tabScrollBottomPadding(BuildContext context) {
   final wide = MediaQuery.widthOf(context) > 900;
   return (wide ? 0 : kNavBarHeight) + kAddPillHeight + 16;
+}
+
+/// Bottom inset for controls pinned under one-handed mode. Unlike the scroll
+/// inset above, the floating Add pill is only on Home, so these bars sit
+/// immediately above the bottom navigation bar with a small thumb gap.
+double oneHandedBottomPadding(BuildContext context) {
+  final wide = MediaQuery.widthOf(context) > 900;
+  return (wide ? 0 : kNavBarHeight) + Spacing.sm;
 }
 
 /// Full padding for scrollable pages (ListView etc).

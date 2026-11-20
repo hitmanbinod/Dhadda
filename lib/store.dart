@@ -80,7 +80,12 @@ class ExpenseStore extends ChangeNotifier {
   bool materialYou = false; // wallpaper colours (Android 12+)
   String userName = '';
   bool hideBalance = false;
-  bool oneHanded = false; // moves top controls to the bottom when enabled
+  // One-handed layout is on by default (One UI style): the top tabs and
+  // toggles sit just above the bottom navigation for thumb reach.
+  bool oneHanded = true;
+  /// Guards the one-time default migration: once the user has touched the
+  /// toggle, their persisted choice wins on every later load.
+  bool _oneHandedChosen = false;
   List<HomeSectionSetting> homeLayout = defaultHomeLayout();
   String calendarSystem = 'ad'; // ad | bs — display/grouping only
   List<CategoryRule> categoryRules = [];
@@ -559,7 +564,11 @@ class ExpenseStore extends ChangeNotifier {
     materialYou = meta['materialYou'] == true;
     userName = '${meta['userName'] ?? ''}';
     hideBalance = meta['hideBalance'] == true;
-    oneHanded = meta['one_handed_mode'] == true;
+    _oneHandedChosen = meta['one_handed_choice_v1'] == true;
+    // Older installs stored false without an explicit choice (the setting
+    // used to default off). Move them to the new default once; a real user
+    // choice, recorded by setOneHanded, is never overwritten.
+    oneHanded = _oneHandedChosen ? meta['one_handed_mode'] == true : true;
     calendarSystem = meta['calendarSystem'] == 'bs' ? 'bs' : 'ad';
     setAppCalendar(calendarSystem);
     categoryRules = decodeCategoryRules(
@@ -572,6 +581,20 @@ class ExpenseStore extends ChangeNotifier {
           ? meta['home_layout_v1'] as String
           : null,
     );
+    // Events used to default off. Existing installs get one migration to the
+    // new default so tagged events (all of them, not just one) show on Home;
+    // after that, any explicit Edit Home choice is kept as stored.
+    if (meta['home_events_v1'] != true) {
+      homeLayout = [
+        for (final s in homeLayout)
+          s.section == HomeSection.events
+              ? const HomeSectionSetting(
+                  section: HomeSection.events,
+                  visible: true,
+                )
+              : s,
+      ];
+    }
     smsMode = '${meta['smsMode'] ?? 'manual'}' == 'auto' ? 'auto' : 'manual';
     final senders = meta['smsSenders'];
     smsSenders = senders is List
@@ -669,9 +692,11 @@ class ExpenseStore extends ChangeNotifier {
         'userName': userName,
         'hideBalance': hideBalance,
         'one_handed_mode': oneHanded,
+        'one_handed_choice_v1': _oneHandedChosen,
         'calendarSystem': calendarSystem,
         'category_rules_v1': encodeCategoryRules(categoryRules),
         'home_layout_v1': encodeHomeLayout(homeLayout),
+        'home_events_v1': true,
         'smsMode': smsMode,
         'smsSenders': smsSenders,
         'linkId': linkId,
@@ -825,6 +850,7 @@ class ExpenseStore extends ChangeNotifier {
   /// Per-device layout toggle: moves top controls toward the thumb.
   Future<void> setOneHanded(bool value) async {
     if (oneHanded == value) return;
+    _oneHandedChosen = true;
     oneHanded = value;
     _saveAll();
     notifyListeners();

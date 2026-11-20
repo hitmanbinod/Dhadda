@@ -2,6 +2,8 @@ import 'package:expense/format.dart';
 import 'package:expense/screens/home_screen.dart';
 import 'package:expense/store.dart';
 import 'package:expense/theme/app_theme.dart';
+import 'package:expense/theme/palette.dart';
+import 'package:expense/theme/typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -126,6 +128,48 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('See all'));
     expect(seeAll, 1);
+  });
+
+  testWidgets('balance shows a magnitude tinted by direction, no minus sign', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    SharedPreferences.setMockInitialValues({});
+    final store = ExpenseStore();
+    await store.load();
+    final now = DateTime.now();
+    await store.addTransaction(
+      type: 'expense',
+      amount: 450,
+      categoryId: 'food',
+      date: DateTime(now.year, now.month, 4),
+      note: 'Daal',
+      mode: 'cash',
+    );
+    await tester.pumpWidget(shell(store));
+    await tester.pumpAndSettle();
+
+    final colors = AppColors.of(tester.element(find.byType(HomeScreen)));
+    Text hero(String amount) => tester.widgetList<Text>(find.text(amount)).firstWhere(
+          (t) => t.style?.fontSize == AppType.heroAmount.fontSize,
+        );
+    // Shortfall: magnitude only, in the expense (red) role.
+    expect(hero(money(450)).style?.color, colors.expense);
+    expect(find.text(money(-450)), findsNothing);
+
+    // Surplus: same magnitude display, in the income (green) role.
+    await store.addTransaction(
+      type: 'income',
+      amount: 1000,
+      categoryId: 'other',
+      date: DateTime(now.year, now.month, 5),
+      note: 'Pay',
+      mode: 'bank',
+    );
+    await tester.pumpAndSettle();
+    expect(hero(money(550)).style?.color, colors.income);
   });
 
   testWidgets('recent rows swipe-delete with Undo', (tester) async {

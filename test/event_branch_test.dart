@@ -1,4 +1,3 @@
-import 'package:expense/home_layout.dart';
 import 'package:expense/screens/history_screen.dart';
 import 'package:expense/screens/home_screen.dart';
 import 'package:expense/store.dart';
@@ -79,17 +78,24 @@ void main() {
     expect(find.text('Momo'), findsOneWidget);
   });
 
-  testWidgets('Home shows collapsed event branches for the month',
-      (tester) async {
-    tester.view.physicalSize = const Size(400, 900);
+  testWidgets('Home shows every tagged event for the month by default', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     final store = await storeWithEvent();
-    // Events is off by default in Round 2; opt in for this branch test.
-    await store.setHomeLayout([
-      for (final section in HomeSection.values)
-        HomeSectionSetting(section: section, visible: true),
-    ]);
+    // A second event proves the section lists all of them, not just one.
+    final outingId = await store.addProject('Outing', 'Day trip');
+    await store.addTransaction(
+      type: 'expense',
+      amount: 300,
+      categoryId: 'travel',
+      date: DateTime(DateTime.now().year, DateTime.now().month, 13, 8),
+      note: 'Cab',
+      projectId: outingId,
+    );
+    // No setHomeLayout: Events is visible by default now.
 
     await tester.pumpWidget(app(
         store,
@@ -97,9 +103,10 @@ void main() {
             onAdd: () {}, onSync: () async => 'Up to date.')));
     await tester.pumpAndSettle();
 
-    // Collapsed by default: header visible, entries hidden.
+    // Collapsed by default: both headers visible, entries hidden.
     expect(find.text('Events'), findsWidgets);
     expect(find.text('Trek'), findsOneWidget);
+    expect(find.text('Outing'), findsOneWidget);
     expect(find.text('Momo'), findsNothing);
 
     // Tap to expand the branch.

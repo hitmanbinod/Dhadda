@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:expense/screens/history_screen.dart';
 import 'package:expense/screens/insights_screen.dart';
 import 'package:expense/screens/lent_screen.dart';
@@ -10,11 +12,11 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  Future<ExpenseStore> ready({bool oneHanded = false}) async {
+  Future<ExpenseStore> ready({bool oneHanded = true}) async {
     SharedPreferences.setMockInitialValues({});
     final store = ExpenseStore();
     await store.load();
-    if (oneHanded) await store.setOneHanded(true);
+    if (!oneHanded) await store.setOneHanded(false);
     return store;
   }
 
@@ -27,15 +29,25 @@ void main() {
         ),
       );
 
-  testWidgets('one-handed pref is additive and persisted', (tester) async {
+  test('one-handed mode is on by default and persists an explicit choice',
+      () async {
     final store = await ready();
-    expect(store.oneHanded, isFalse);
-    await store.setOneHanded(true);
+    expect(store.oneHanded, isTrue);
+    await store.setOneHanded(false);
     final reloaded = ExpenseStore();
     await reloaded.load();
-    expect(reloaded.oneHanded, isTrue);
-    await reloaded.setOneHanded(false);
     expect(reloaded.oneHanded, isFalse);
+    await reloaded.setOneHanded(true);
+    expect(reloaded.oneHanded, isTrue);
+  });
+
+  test('an old stored false migrates to the new default once', () async {
+    SharedPreferences.setMockInitialValues({
+      'expense_meta_v1': jsonEncode({'one_handed_mode': false}),
+    });
+    final store = ExpenseStore();
+    await store.load();
+    expect(store.oneHanded, isTrue);
   });
 
   testWidgets('History tabs move to the bottom in one-handed mode', (

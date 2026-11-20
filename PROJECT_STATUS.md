@@ -15,7 +15,7 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **321/321 passing**
+- `flutter test` → **328/328 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
 - Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.4.0 / code 2003 — **must be rebuilt and reinstalled for 1.5.0**.
@@ -45,12 +45,15 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Settings → Money → Accounts (reorder/edit/archive/merge/delete-if-unused); Add/Edit account pickers; History account search + captions.
 - Receipts: native camera/gallery intents, ≤1600 px JPEG q80, EXIF stripped, app-private files only; Add-screen receipt row, viewer, History paperclip, Settings → Data usage + double-confirm clear, startup orphan cleanup.
 
-## One-handed experiment (latest)
-- Additive pref `one_handed_mode` (default false), toggle in Settings → Appearance (`settings-one-handed`).
-- When enabled: History Entries/Categories/Events tabs, Insights period bar and Lent's Lent/Borrowed + Pending/Settled/All toggles move to the bottom of their screens.
-- Root shell supports horizontal swipe between the four tabs.
-- Home month title: swipe now animates (eased slide/fade); only the text itself is tappable — empty space to the right no longer opens the calendar.
-- Add screen: Account picker moved lower; Receipts row shows direct **Gallery** and **Camera** buttons with only "(optional)" as prompt.
+## One-handed layout + gesture polish (latest)
+- Additive pref `one_handed_mode` is **on by default** (one-time migration for older installs; Settings → Appearance can still turn it off and that explicit choice persists via `one_handed_choice_v1`).
+- One-handed mode puts History Entries/Categories/Events tabs, Insights period bar and Lent's Lent/Borrowed + Pending/Settled/All toggles **just above the bottom navigation bar** (not mid-screen).
+- **Removed** root-shell horizontal swipe between tabs; tab switching is NavigationBar/rail only.
+- Home month paging: direction-aware slide (old label exits opposite the incoming one) with subtle scale, eased over 300 ms, reduced-motion aware; only the date text opens the picker.
+- Home balance: magnitude only (no minus sign), tinted red when negative / green when positive; hidden state stays neutral.
+- Home Events: on by default for new installs and migrated on for existing ones, so **every** tagged event this month gets its own group.
+- Add screen: Account picker stays low; the Repeat suggestion section is removed; Receipts row has **Gallery only** — the Camera button no longer launches the camera.
+- Lent summary amounts shrink to fit instead of overlapping the Borrowed/Lent button; pending amounts in loan headers are bounded too.
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,

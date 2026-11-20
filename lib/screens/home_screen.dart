@@ -603,24 +603,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// A short, eased slide/fade so paging feels deliberate instead of instant.
+  /// Direction-aware month paging. The outgoing label leaves on the side
+  /// opposite to where the incoming one enters, so the date reads as one
+  /// surface sliding across instead of two independent fades. Eased in and
+  /// out over the slow motion token, and fully off for reduced-motion users.
   Widget _animatedMonthTitle(AppColors colors) {
-    final duration = Motion.of(context, Motion.base);
+    final monthKey = ValueKey('month-${appCalendar.periodOf(_month).index}');
+    final direction = _monthDirection;
     return AnimatedSwitcher(
-      duration: duration,
-      switchInCurve: Motion.ease,
-      switchOutCurve: Motion.ease,
-      transitionBuilder: (child, animation) => SlideTransition(
-        position: Tween<Offset>(
-          begin: Offset(_monthDirection * 0.25, 0),
+      duration: Motion.of(context, Motion.slow),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          ...previousChildren,
+          ?currentChild,
+        ],
+      ),
+      transitionBuilder: (child, animation) {
+        // AnimatedSwitcher drives the outgoing child with a reversed
+        // animation (1 -> 0). Both tweens therefore end at the resting
+        // value: the incoming child starts offset and settles, the outgoing
+        // child starts at rest and leaves on the opposite side.
+        final incoming = child.key == monthKey;
+        final slide = Tween<Offset>(
+          begin: Offset((incoming ? direction : -direction) * 0.4, 0),
           end: Offset.zero,
-        ).animate(animation),
-        child: FadeTransition(opacity: animation, child: child),
-      ),
-      child: Container(
-        key: ValueKey('month-${appCalendar.periodOf(_month).index}'),
-        child: _monthTitle(colors),
-      ),
+        ).animate(animation);
+        final scale = Tween<double>(begin: 0.98, end: 1).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: slide,
+            child: ScaleTransition(scale: scale, child: child),
+          ),
+        );
+      },
+      child: Container(key: monthKey, child: _monthTitle(colors)),
     );
   }
 
@@ -656,6 +676,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _balanceHero(ExpenseStore store, AppColors colors, double balance) {
     final hidden = store.hideBalance;
+    // Direction is carried by colour alone: a shortfall is shown as a
+    // magnitude in the expense (red) role, a surplus in the income (green)
+    // role. No minus sign, and no colour hint while the amount is hidden.
+    final balanceColor = balance < 0
+        ? colors.expense
+        : balance > 0
+        ? colors.income
+        : colors.textPrimary;
     return Padding(
       padding: const EdgeInsets.only(top: Spacing.xl, bottom: Spacing.lg),
       child: Column(
@@ -674,12 +702,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      hidden ? hiddenMoney() : money(balance),
+                      hidden ? hiddenMoney() : money(balance.abs()),
                       maxLines: 1,
                       style: AppType.heroAmount.copyWith(
-                        color: hidden || balance >= 0
-                            ? colors.textPrimary
-                            : colors.expense,
+                        color: hidden ? colors.textPrimary : balanceColor,
                       ),
                     ),
                   ),

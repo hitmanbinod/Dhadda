@@ -14,7 +14,8 @@ import '../widgets/app_card.dart';
 import '../widgets/category_tile.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/entry_actions.dart';
-import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
+import '../widgets/page.dart'
+    show kPageMaxWidth, oneHandedBottomPadding, tabScrollBottomPadding;
 import '../widgets/profile_avatar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/segmented_tabs.dart';
@@ -161,7 +162,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   hPad,
                   Spacing.sm,
                   hPad,
-                  tabScrollBottomPadding(context) + Spacing.sm,
+                  oneHandedBottomPadding(context),
                 ),
                 sliver: SliverToBoxAdapter(child: _periodTabs(colors)),
               )

@@ -87,6 +87,7 @@ void main() {
         HomeSection.stats,
         HomeSection.categories,
         HomeSection.budgets,
+        HomeSection.events,
         HomeSection.recent,
       ]) {
         expect(
@@ -96,7 +97,6 @@ void main() {
         );
       }
       for (final section in [
-        HomeSection.events,
         HomeSection.todayRing,
         HomeSection.rhythm,
         HomeSection.forecast,
@@ -109,18 +109,45 @@ void main() {
       }
     });
 
-    test('saved Events-on layout is never migrated by the new default', () {
-      final saved = decodeHomeLayout(encodeHomeLayout([
+    test('saved layout decodes as stored; fresh layout shows Events', () {
+      final savedOff = decodeHomeLayout(encodeHomeLayout([
         const HomeSectionSetting(section: HomeSection.balance, visible: true),
-        const HomeSectionSetting(section: HomeSection.events, visible: true),
+        const HomeSectionSetting(section: HomeSection.events, visible: false),
       ]));
       expect(
-        saved.firstWhere((s) => s.section == HomeSection.events).visible,
-        isTrue,
+        savedOff.firstWhere((s) => s.section == HomeSection.events).visible,
+        isFalse,
       );
-      // Only a fresh install / Reset to default applies the new default.
       expect(
         defaultHomeLayout()
+            .firstWhere((s) => s.section == HomeSection.events)
+            .visible,
+        isTrue,
+      );
+    });
+
+    test('store migrates an old Events-off layout once', () async {
+      final oldLayout = encodeHomeLayout(layoutWith(
+        hidden: const {HomeSection.events},
+      ));
+      SharedPreferences.setMockInitialValues({
+        'expense_meta_v1': jsonEncode({'home_layout_v1': oldLayout}),
+      });
+      final store = ExpenseStore();
+      await store.load();
+      expect(
+        store.homeLayout
+            .firstWhere((s) => s.section == HomeSection.events)
+            .visible,
+        isTrue,
+      );
+      await store.setHomeLayout(layoutWith(
+        hidden: const {HomeSection.events},
+      ));
+      final reloaded = ExpenseStore();
+      await reloaded.load();
+      expect(
+        reloaded.homeLayout
             .firstWhere((s) => s.section == HomeSection.events)
             .visible,
         isFalse,

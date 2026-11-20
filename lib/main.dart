@@ -76,8 +76,6 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
-  double? _tabDragStartX;
-  double? _tabDragLastX;
   String? _quickAction;
   late final LinkEngine _link;
   final HistoryDayRequest _historyDay = HistoryDayRequest();
@@ -329,30 +327,6 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
 
   void _go(int i) => setState(() => _index = i);
 
-  /// Natural horizontal tab paging. Child gestures (Slidable, the Home date
-  /// strip) win their own arena; this only acts on a deliberate wide swipe.
-  void _onTabDragStart(DragStartDetails details) {
-    _tabDragStartX = details.globalPosition.dx;
-    _tabDragLastX = details.globalPosition.dx;
-  }
-
-  void _onTabDragUpdate(DragUpdateDetails details) =>
-      _tabDragLastX = details.globalPosition.dx;
-
-  void _onTabDragEnd(DragEndDetails details) {
-    final start = _tabDragStartX;
-    final last = _tabDragLastX;
-    _tabDragStartX = null;
-    _tabDragLastX = null;
-    if (start == null || last == null) return;
-    final dx = details.primaryVelocity ?? 0;
-    final distance = last - start;
-    if (distance.abs() < 90 && dx.abs() < 500) return;
-    final forward = distance < 0 || (distance == 0 && dx < 0);
-    final next = (_index + (forward ? 1 : -1)).clamp(0, _destinations.length - 1);
-    if (next != _index) _go(next);
-  }
-
   /// Home's rhythm strip: filter History to that day, then switch tabs.
   void _openHistoryDay(DateTime day) {
     _historyDay.open(day);
@@ -458,13 +432,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
                   ],
                 ),
               Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.deferToChild,
-                  onHorizontalDragStart: _onTabDragStart,
-                  onHorizontalDragUpdate: _onTabDragUpdate,
-                  onHorizontalDragEnd: _onTabDragEnd,
-                  child: IndexedStack(index: _index, children: pages),
-                ),
+                child: IndexedStack(index: _index, children: pages),
               ),
             ],
           ),

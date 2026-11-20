@@ -7,11 +7,9 @@ import 'package:uuid/uuid.dart';
 import '../app_dates.dart';
 import '../format.dart';
 import '../receipts.dart';
-import '../repeat_suggestions.dart';
 import '../store.dart';
 import '../theme/palette.dart';
 import '../theme/tokens.dart';
-import '../theme/typography.dart';
 import '../widgets/page.dart';
 import '../widgets/receipt_field.dart';
 
@@ -103,7 +101,6 @@ class _AddScreenState extends State<AddScreen>
     _categoryId ??= store.categories.isNotEmpty
         ? store.categories.first.id
         : null;
-    final suggestions = repeatSuggestions(store.transactions);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Add expense')),
@@ -147,40 +144,6 @@ class _AddScreenState extends State<AddScreen>
             prefixText: '${store.currencySymbol} ',
           ),
         ),
-        const SizedBox(height: Spacing.md),
-        if (suggestions.isNotEmpty) ...[
-          Semantics(
-            header: true,
-            child: Text(
-              'Repeat',
-              style: AppType.captionStrong.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
-          ),
-          const SizedBox(height: Spacing.xs),
-          Wrap(
-            spacing: Spacing.sm,
-            runSpacing: Spacing.xs,
-            children: [
-              for (final s in suggestions)
-                InputChip(
-                  key: Key('add-repeat-${s.categoryId}-${s.note}'),
-                  avatar: const Icon(Icons.replay, size: 16),
-                  label: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 160),
-                    child: Text(
-                      s.note,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  tooltip: 'Reuse ${s.note} · ${_amountLabel(s.amount)}',
-                  onPressed: () => _applySuggestion(s),
-                ),
-            ],
-          ),
-        ],
         const SizedBox(height: Spacing.md),
         if (_reordering) ...[
           Row(
@@ -375,24 +338,6 @@ class _AddScreenState extends State<AddScreen>
       ],
     ),
   );
-  }
-
-  String _amountLabel(double value) => value == value.roundToDouble()
-      ? value.toStringAsFixed(0)
-      : value.toStringAsFixed(2);
-
-  void _applySuggestion(RepeatSuggestion s) {
-    FocusScope.of(context).unfocus();
-    setState(() {
-      _isExpense = s.isExpense;
-      _amount.text = _amountLabel(s.amount);
-      _note.text = s.note;
-      _categoryId = s.categoryId;
-      _categoryChosen = true;
-      _accountId = s.accountId;
-      _mode = s.mode;
-      _suggestedCategoryId = null;
-    });
   }
 
   /// Event picked from the dropdown - or created inline without

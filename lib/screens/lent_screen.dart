@@ -146,7 +146,7 @@ class _LentScreenState extends State<LentScreen> {
                 hPad,
                 Spacing.sm,
                 hPad,
-                tabScrollBottomPadding(context) + Spacing.sm,
+                oneHandedBottomPadding(context),
               ),
               child: _toggles(colors, 0),
             ),
@@ -213,22 +213,31 @@ class _LentScreenState extends State<LentScreen> {
               children: [
                 Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppType.caption.copyWith(color: colors.textSecondary),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  money(value),
-                  style: AppType.statValue.copyWith(
-                    fontSize: 20,
-                    color: colors.textPrimary,
+                // Large amounts must shrink to the space left by the
+                // button instead of running underneath it on narrow phones.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    money(value),
+                    maxLines: 1,
+                    style: AppType.statValue.copyWith(
+                      fontSize: 20,
+                      color: colors.textPrimary,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: Spacing.sm),
-          SizedBox(
-            width: 120,
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 120),
             child: FilledButton(
               onPressed: () =>
                   _personDialog(context, store, borrowed: borrowed),
@@ -307,9 +316,19 @@ class _LentScreenState extends State<LentScreen> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text(
-                            l.settled ? 'Settled' : money(l.pending),
-                            style: AppType.amount.copyWith(color: statusColor),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 104),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                l.settled ? 'Settled' : money(l.pending),
+                                maxLines: 1,
+                                style: AppType.amount.copyWith(
+                                  color: statusColor,
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Icon(

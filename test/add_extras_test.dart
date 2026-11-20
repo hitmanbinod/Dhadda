@@ -7,8 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Step 5: Repeat chips come from frequent recent note+category pairings.
-/// Amount entry uses the system keyboard and the unchanged strict parser.
+/// Repeat suggestions are still a pure helper, but the Add screen no longer
+/// shows the Repeat chip section. Amount entry uses the system keyboard and
+/// the unchanged strict parser.
 void main() {
   final now = DateTime(2026, 11, 19, 12);
 
@@ -92,7 +93,9 @@ void main() {
       return store;
     }
 
-    testWidgets('repeat chip pre-fills the form', (tester) async {
+    testWidgets('Add has no Repeat section, even with repeated entries', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(420, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -105,22 +108,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Repeat'), findsOneWidget);
-      final chip = find.byKey(const Key('add-repeat-food-Momo'));
-      expect(chip, findsOneWidget);
-      await tester.tap(chip);
-      await tester.pumpAndSettle();
-
-      final fields = tester.widgetList<TextField>(find.byType(TextField)).toList();
-      expect(fields.first.controller!.text, '250');
-      expect(fields.last.controller!.text, 'Momo');
-      final food = tester.widget<ChoiceChip>(
-        find.widgetWithText(ChoiceChip, 'Food'),
-      );
-      expect(food.selected, isTrue);
+      expect(find.text('Repeat'), findsNothing);
+      expect(find.byKey(const Key('add-repeat-food-Momo')), findsNothing);
+      expect(find.byKey(const Key('add-save')), findsOneWidget);
     });
 
-    testWidgets('same note in two categories gets unique repeat chips', (
+    testWidgets('same note in two categories still shows no repeat chips', (
       tester,
     ) async {
       final store = await seededStore();
@@ -140,8 +133,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('add-repeat-food-Momo')), findsOneWidget);
-      expect(find.byKey(const Key('add-repeat-travel-Momo')), findsOneWidget);
+      expect(find.byKey(const Key('add-repeat-food-Momo')), findsNothing);
+      expect(find.byKey(const Key('add-repeat-travel-Momo')), findsNothing);
       expect(tester.takeException(), isNull);
     });
 

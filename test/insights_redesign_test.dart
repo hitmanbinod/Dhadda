@@ -15,6 +15,9 @@ void main() {
     final store = ExpenseStore();
     await store.load();
     await store.setUserName('Ram');
+    // These audits tap the period tabs in their classic top position;
+    // bottom placement is covered in one_handed_test.dart.
+    await store.setOneHanded(false);
     final now = DateTime.now();
     DateTime day(int monthsAgo, int d) =>
         DateTime(now.year, now.month - monthsAgo, d, 12);

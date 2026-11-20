@@ -19,6 +19,9 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final store = ExpenseStore();
     await store.load();
+    // This audit is about the top search block; one-handed placement is
+    // covered separately in one_handed_test.dart.
+    await store.setOneHanded(false);
     for (var i = 0; i < 30; i++) {
       await store.addTransaction(
         type: 'expense',

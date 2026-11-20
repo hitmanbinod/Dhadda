@@ -23,7 +23,8 @@ import '../widgets/empty_state.dart';
 import '../widgets/entry_actions.dart';
 import '../widgets/event_branch_group.dart';
 import '../widgets/event_share.dart';
-import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
+import '../widgets/page.dart'
+    show kPageMaxWidth, oneHandedBottomPadding, tabScrollBottomPadding;
 import '../widgets/profile_avatar.dart';
 import '../widgets/section_header.dart';
 import '../widgets/segmented_tabs.dart';
@@ -181,11 +182,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
               if (store.oneHanded)
                 Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    0,
-                    Spacing.sm,
-                    0,
-                    tabScrollBottomPadding(context) + Spacing.sm,
+                  padding: EdgeInsets.only(
+                    top: Spacing.sm,
+                    bottom: oneHandedBottomPadding(context),
                   ),
                   child: _segmented(),
                 ),
