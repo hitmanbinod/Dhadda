@@ -87,7 +87,6 @@ void main() {
         HomeSection.stats,
         HomeSection.categories,
         HomeSection.budgets,
-        HomeSection.events,
         HomeSection.recent,
       ]) {
         expect(
@@ -97,6 +96,7 @@ void main() {
         );
       }
       for (final section in [
+        HomeSection.events,
         HomeSection.todayRing,
         HomeSection.rhythm,
         HomeSection.forecast,
@@ -107,6 +107,24 @@ void main() {
           reason: section.id,
         );
       }
+    });
+
+    test('saved Events-on layout is never migrated by the new default', () {
+      final saved = decodeHomeLayout(encodeHomeLayout([
+        const HomeSectionSetting(section: HomeSection.balance, visible: true),
+        const HomeSectionSetting(section: HomeSection.events, visible: true),
+      ]));
+      expect(
+        saved.firstWhere((s) => s.section == HomeSection.events).visible,
+        isTrue,
+      );
+      // Only a fresh install / Reset to default applies the new default.
+      expect(
+        defaultHomeLayout()
+            .firstWhere((s) => s.section == HomeSection.events)
+            .visible,
+        isFalse,
+      );
     });
 
     test('normalize pins balance and appends missing sections hidden', () {

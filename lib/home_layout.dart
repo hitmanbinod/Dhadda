@@ -54,6 +54,7 @@ extension HomeSectionInfo on HomeSection {
   };
 
   bool get defaultVisible => switch (this) {
+    HomeSection.events ||
     HomeSection.todayRing ||
     HomeSection.rhythm ||
     HomeSection.forecast => false,
@@ -108,8 +109,10 @@ const _defaultOrder = [
   HomeSection.forecast,
 ];
 
-/// Clean first-run layout: header, balance, stats, categories, recent, with
-/// budgets and events appearing only when they have content.
+/// Clean first-run layout: header, balance, stats, categories, recent.
+/// Budgets render only when they have content; Events stays off until the
+/// user enables it. This affects new installs and Reset to default only —
+/// a saved layout is decoded exactly as stored, never migrated here.
 List<HomeSectionSetting> defaultHomeLayout() => [
   for (final section in _defaultOrder)
     HomeSectionSetting(section: section, visible: section.defaultVisible),

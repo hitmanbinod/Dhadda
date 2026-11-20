@@ -1,3 +1,4 @@
+import 'package:expense/home_layout.dart';
 import 'package:expense/screens/history_screen.dart';
 import 'package:expense/screens/home_screen.dart';
 import 'package:expense/store.dart';
@@ -84,6 +85,11 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     final store = await storeWithEvent();
+    // Events is off by default in Round 2; opt in for this branch test.
+    await store.setHomeLayout([
+      for (final section in HomeSection.values)
+        HomeSectionSetting(section: section, visible: true),
+    ]);
 
     await tester.pumpWidget(app(
         store,
