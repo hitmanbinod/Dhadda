@@ -4,7 +4,9 @@ What this is, its Phases 0–8 history, the September 17, 2026 audit changes,
 build artifacts, and remaining release work. Historical phase completion does
 not mean production certification; see sections 14–19 for current status.
 Repository: `https://github.com/hitmanbinod/Dhadda` · License: Apache-2.0 ·
-Release line: **1.4.0+3** (`com.dhadda.expense`).
+Release line: **1.5.0+4** (`com.dhadda.expense`). For current status,
+recent Rounds 1-3 work, versioning notes and next steps, read
+`PROJECT_STATUS.md` first — it is maintained alongside code changes.
 
 ---
 

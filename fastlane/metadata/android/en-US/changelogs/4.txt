@@ -1,0 +1,13 @@
+Dhadda 1.5.0: quieter ledger, Nepali dates, accounts and local receipts.
+
+Round 1 - redesigned Home, Insights, History and Lent with grouped cards,
+large titles, customizable Home sections and a hide-balance eye. Adds the
+four-tab navigation, pushed Settings, profile header and four home-screen
+widgets.
+
+Round 2 - optional Bikram Sambat calendar everywhere (AD remains unchanged),
+fiscal-year chip in Insights, and ordered per-device auto-category rules.
+
+Round 3 - user-made accounts replace the four fixed payment modes, with a
+safe additive schema migration. Optional receipt photos are kept only on
+this phone, never in backups or sync.

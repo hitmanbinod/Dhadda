@@ -3,6 +3,18 @@
 All notable user-facing changes. Dhadda is distributed via GitHub
 Releases + F-Droid only.
 
+## 1.5.0 (versionCode 4)
+
+Rounds 1-3: redesigned UI, Insights and customizable Home; Nepali (BS)
+calendar option and fiscal-year chip; ordered auto-category rules;
+user-made accounts and phone-only receipt photos. Existing data is
+preserved by additive, guarded migrations; AD mode is unchanged.
+
+Note on Android version codes: split APKs add `1000 x ABI` to the
+pubspec build number (arm64 = +2000), so `+4` installs as **2004** on
+arm64, **1004** on armeabi-v7a and **3004** on x86_64. This is expected
+and documented in `PROJECT_STATUS.md`.
+
 ## 1.4.0 (versionCode 3)
 
 First public open-source release line (Apache-2.0).
