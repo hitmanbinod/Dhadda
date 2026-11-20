@@ -61,6 +61,23 @@ String appTrendMonthShort(DateTime d) =>
 
 String appTrendMonthFull(DateTime d) => appMonthStr(d);
 
+/// The fiscal-year range line under the chip: AD dates in AD mode, BS dates
+/// in BS mode, with the same "FY 2083/84" label in both.
+String appFiscalRange(Period p) {
+  final last = DateTime(p.end.year, p.end.month, p.end.day - 1);
+  if (!_active.isBs) {
+    final f = DateFormat('d MMM y');
+    return '${p.label} · ${f.format(p.start)} to ${f.format(last)}';
+  }
+  final first = bs.adToBs(p.start);
+  final end = bs.adToBs(last);
+  return '${p.label} · ${first.day} ${bs.bsMonthName(first.month)} ${first.year}'
+      ' to ${end.day} ${bs.bsMonthName(end.month)} ${end.year}';
+}
+
+/// FY is defined from the BS table, so hide the chip outside that range.
+bool appFiscalSupported(DateTime date) => bs.isSupported(date);
+
 /// Dispatches to the built-in BS picker in BS mode, else the platform picker.
 Future<DateTime?> showAppDatePicker({
   required BuildContext context,

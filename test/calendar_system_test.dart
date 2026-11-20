@@ -132,6 +132,31 @@ void main() {
       );
     });
 
+    test('previous fiscal year comparison uses the same-point rule', () {
+      final now = DateTime(2026, 11, 20);
+      final txns = [
+        txn('this-fy', 300, DateTime(2026, 11, 1)),
+        txn('prev-fy', 100, DateTime(2025, 11, 1)),
+      ];
+      for (final cal in <CalendarSystem>[
+        const GregorianCalendarSystem(),
+        const BsCalendarSystem(),
+      ]) {
+        final data = computeInsights(
+          txns,
+          now,
+          InsightPeriod.fiscal,
+          asOf: now,
+          calendar: cal,
+        );
+        expect(data.start, DateTime(2026, 7, 17));
+        expect(data.previousStart, DateTime(2025, 7, 17));
+        expect(data.spend, 300);
+        expect(data.previousSpend, 100);
+        expect(data.spendChange, closeTo(2.0, 1e-12));
+      }
+    });
+
     test('forecast scales with 29/30/31/32-day periods', () {
       final seen = <int>{};
       for (var year = bsFirstYear; year <= bsLastYear; year++) {

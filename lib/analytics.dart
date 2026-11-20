@@ -79,7 +79,7 @@ MonthlyAnalytics computeMonthlyAnalytics(
 /// The three trailing windows offered by the Insights tab.
 /// The four windows offered by the Insights tab. `year` is a trailing
 /// 12-month window, not a calendar year.
-enum InsightPeriod { month, quarter, half, year }
+enum InsightPeriod { month, quarter, half, year, fiscal }
 
 extension InsightPeriodInfo on InsightPeriod {
   /// Number of calendar months in the selected window.
@@ -88,6 +88,7 @@ extension InsightPeriodInfo on InsightPeriod {
     InsightPeriod.quarter => 3,
     InsightPeriod.half => 6,
     InsightPeriod.year => 12,
+    InsightPeriod.fiscal => 12,
   };
 
   String get label => switch (this) {
@@ -95,6 +96,7 @@ extension InsightPeriodInfo on InsightPeriod {
     InsightPeriod.quarter => '3 months',
     InsightPeriod.half => '6 months',
     InsightPeriod.year => 'Year',
+    InsightPeriod.fiscal => 'Fiscal year',
   };
 
   /// "Spent this month" / "Spent in the last 6 months".
@@ -103,6 +105,7 @@ extension InsightPeriodInfo on InsightPeriod {
     InsightPeriod.quarter => 'Spent in the last 3 months',
     InsightPeriod.half => 'Spent in the last 6 months',
     InsightPeriod.year => 'Spent in the last 12 months',
+    InsightPeriod.fiscal => 'Spent this fiscal year',
   };
 
   /// "than last month" / "than the previous 6 months".
@@ -111,10 +114,12 @@ extension InsightPeriodInfo on InsightPeriod {
     InsightPeriod.quarter => 'the previous 3 months',
     InsightPeriod.half => 'the previous 6 months',
     InsightPeriod.year => 'the previous 12 months',
+    InsightPeriod.fiscal => 'the previous fiscal year',
   };
 
   /// Bars stay readable at six; a trailing year gets one bar per month.
-  int get trendMonths => this == InsightPeriod.year ? 12 : 6;
+  int get trendMonths =>
+      this == InsightPeriod.year || this == InsightPeriod.fiscal ? 12 : 6;
 }
 
 /// One month inside the rhythm strip.
@@ -218,13 +223,17 @@ InsightsAnalytics computeInsights(
 }) {
   final cal = calendar ?? const GregorianCalendarSystem();
   final now = asOf ?? DateTime.now();
-  final window = period == InsightPeriod.year
+  final window = period == InsightPeriod.fiscal
+      ? [cal.fiscalYearOf(anchor)]
+      : period == InsightPeriod.year
       ? [cal.yearPeriod(anchor)]
       : cal.window(anchor, period.months);
   final start = window.first.start;
   final end = window.last.end;
   final before = DateTime(start.year, start.month, start.day - 1);
-  final previousWindow = period == InsightPeriod.year
+  final previousWindow = period == InsightPeriod.fiscal
+      ? [cal.fiscalYearOf(before)]
+      : period == InsightPeriod.year
       ? [cal.yearPeriod(before)]
       : cal.window(before, period.months);
   final previousStart = previousWindow.first.start;

@@ -89,18 +89,27 @@ void main() {
     expect(data.elapsedDays, 76);
   });
 
-  test('period metadata offers Month, 3, 6 and Year', () {
+  test('period metadata offers Month, 3, 6, Year and Fiscal year', () {
     expect(InsightPeriod.values.map((p) => p.label), [
       'Month',
       '3 months',
       '6 months',
       'Year',
+      'Fiscal year',
     ]);
-    expect(InsightPeriod.values.map((p) => p.months), [1, 3, 6, 12]);
+    expect(InsightPeriod.values.map((p) => p.months), [1, 3, 6, 12, 12]);
     expect(InsightPeriod.half.spentLabel, 'Spent in the last 6 months');
     expect(InsightPeriod.half.compareLabel, 'the previous 6 months');
     expect(InsightPeriod.year.spentLabel, 'Spent in the last 12 months');
-    expect(InsightPeriod.values.map((p) => p.trendMonths), [6, 6, 6, 12]);
+    expect(InsightPeriod.fiscal.spentLabel, 'Spent this fiscal year');
+    expect(InsightPeriod.fiscal.compareLabel, 'the previous fiscal year');
+    expect(InsightPeriod.values.map((p) => p.trendMonths), [
+      6,
+      6,
+      6,
+      12,
+      12,
+    ]);
   });
 
   test('six months spans the anchor and five months back', () {

@@ -33,9 +33,11 @@ class InsightsScreen extends StatefulWidget {
 
 class _InsightsScreenState extends State<InsightsScreen> {
   InsightPeriod _period = InsightPeriod.month;
+  List<InsightPeriod> _periods = InsightPeriod.values;
 
   void _setPeriod(int index) {
-    final next = InsightPeriod.values[index];
+    if (index < 0 || index >= _periods.length) return;
+    final next = _periods[index];
     if (next == _period) return;
     setState(() => _period = next);
   }
@@ -44,6 +46,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
     final colors = AppColors.of(context);
+    final now = DateTime.now();
+    _periods = [
+      for (final p in InsightPeriod.values)
+        if (p != InsightPeriod.fiscal || appFiscalSupported(now)) p,
+    ];
     final data = store.insights(_period);
     final top = data.topExpenses;
 
@@ -68,14 +75,22 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 420),
                         child: SegmentedTabs(
-                          labels: [
-                            for (final p in InsightPeriod.values) p.label,
-                          ],
+                          labels: [for (final p in _periods) p.label],
                           selectedIndex: _period.index,
                           onChanged: _setPeriod,
                         ),
                       ),
                     ),
+                    if (_period == InsightPeriod.fiscal)
+                      Padding(
+                        padding: const EdgeInsets.only(top: Spacing.sm),
+                        child: Text(
+                          appFiscalRange(appCalendar.fiscalYearOf(now)),
+                          style: AppType.caption.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ),
                     const SizedBox(height: Spacing.lg),
                     if (data.txnCount == 0)
                       AppCard(

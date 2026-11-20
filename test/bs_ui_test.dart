@@ -1,4 +1,5 @@
 import 'package:expense/screens/home_screen.dart';
+import 'package:expense/screens/insights_screen.dart';
 import 'package:expense/screens/settings_screen.dart';
 import 'package:expense/store.dart';
 import 'package:expense/sync/link_sync.dart';
@@ -85,6 +86,27 @@ void main() {
     await tester.tap(find.widgetWithText(ChoiceChip, 'Kartik').last);
     await tester.pumpAndSettle();
     expect(find.text('Kartik 2083'), findsWidgets);
+  });
+
+  testWidgets('Insights fiscal chip works in both calendar modes', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 1800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    for (final mode in ['ad', 'bs']) {
+      final store = await readyStore();
+      await store.setCalendarSystem(mode);
+      await tester.pumpWidget(shell(store, const InsightsScreen()));
+      await tester.pumpAndSettle();
+
+      final chip = find.bySemanticsLabel('Fiscal year');
+      expect(chip, findsOneWidget, reason: mode);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('FY 2083/84'), findsWidgets, reason: mode);
+      expect(tester.takeException(), isNull, reason: mode);
+    }
   });
 
   testWidgets('Settings toggles AD/BS and persists the choice', (tester) async {
