@@ -244,6 +244,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ],
           SettingsAvatarButton(
             name: store.userName,
+            style: store.avatarStyle,
             onTap: widget.onOpenSettings,
           ),
         ],

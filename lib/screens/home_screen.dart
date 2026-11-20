@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -81,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _spotlightId;
   String? _calendarId;
   double _monthDirection = 1;
+  bool _showTopBar = false;
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
     for (final t in store.transactions) {
       if (t.projectId.isEmpty) continue;
       final d = t.dateTime;
-      if (d.year != _month.year || d.month != _month.month) continue;
+      // Use the active calendar's period, not raw Gregorian month fields:
+      // in BS mode _month is the BS period's start, not a Gregorian month.
+      if (!period.contains(d)) continue;
       final p = store.projectOf(t.projectId);
       if (p.id.isEmpty) continue;
       (monthEvents[p] ??= []).add(t);
@@ -201,7 +205,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final slivers = <Widget>[
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
+            // A touch more breathing room under the status bar keeps the
+            // profile row comfortable for one-handed reach.
+            padding: EdgeInsets.fromLTRB(hPad, Spacing.lg, hPad, 0),
             sliver: SliverToBoxAdapter(child: _header(context, store, colors)),
           ),
           if (fallback)
@@ -477,11 +483,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   .copyWith(statusBarColor: Colors.transparent),
           child: Stack(
             children: [
-              RefreshIndicator(
-                onRefresh: _doSync,
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  slivers: slivers,
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is ScrollUpdateNotification) {
+                    final show = notification.metrics.pixels > 120;
+                    if (show != _showTopBar) {
+                      setState(() => _showTopBar = show);
+                    }
+                  }
+                  return false;
+                },
+                child: RefreshIndicator(
+                  onRefresh: _doSync,
+                  child: CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    slivers: slivers,
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                // Mounted only while needed, so the compact name and sync
+                // button never duplicate their full-header counterparts.
+                child: AnimatedSwitcher(
+                  duration: Motion.of(context, Motion.fast),
+                  switchInCurve: Motion.ease,
+                  switchOutCurve: Motion.ease,
+                  child: _showTopBar
+                      ? KeyedSubtree(
+                          key: const ValueKey('home-sticky-top-bar'),
+                          child: _stickyTopBar(context, store, colors, hPad),
+                        )
+                      : null,
                 ),
               ),
               Positioned(
@@ -522,7 +557,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
                     child: Row(
                       children: [
-                        ProfileAvatar(name: name),
+                        ProfileAvatar(name: name, style: store.avatarStyle),
                         const SizedBox(width: Spacing.md),
                         Expanded(
                           child: Column(
@@ -586,6 +621,51 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Compact profile bar revealed once the big header scrolls away. A
+  /// translucent, blurred surface keeps the content readable underneath.
+  Widget _stickyTopBar(
+    BuildContext context,
+    ExpenseStore store,
+    AppColors colors,
+    double hPad,
+  ) {
+    final name = store.userName.trim();
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, Spacing.sm),
+          decoration: BoxDecoration(
+            color: colors.card.withValues(alpha: 0.78),
+            border: Border(
+              bottom: BorderSide(color: colors.hairline, width: 0.5),
+            ),
+          ),
+          child: Row(
+            children: [
+              ProfileAvatar(name: name, size: 30, style: store.avatarStyle),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: Text(
+                  name.isEmpty ? 'Set your name' : name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.title.copyWith(color: colors.textPrimary),
+                ),
+              ),
+              _headerIcon(
+                colors,
+                Icons.sync,
+                'Sync',
+                widget.onOpenSync ?? () => _doSync(),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

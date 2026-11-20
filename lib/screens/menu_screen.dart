@@ -142,12 +142,14 @@ class _MenuScreenState extends State<MenuScreen> {
               horizontal: Spacing.lg,
               vertical: Spacing.xs,
             ),
-            leading: ProfileAvatar(name: store.userName),
+            leading: ProfileAvatar(
+              name: store.userName,
+              style: store.avatarStyle,
+            ),
             title: Text(
               store.userName.isEmpty ? 'Set your name' : store.userName,
               style: AppType.title.copyWith(color: colors.textPrimary),
             ),
-            subtitle: const Text('Shown in your Home greeting'),
             trailing: IconButton(
               tooltip: 'Edit name',
               icon: Icon(Icons.edit_outlined, color: colors.textSecondary),
@@ -184,6 +186,47 @@ class _MenuScreenState extends State<MenuScreen> {
                       selected: store.themeMode == v,
                       onSelected: (_) => store.setThemeMode(v),
                     ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.lg,
+                0,
+                Spacing.lg,
+                Spacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Profile picture',
+                    style: AppType.caption.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: Spacing.xs),
+                  Wrap(
+                    spacing: Spacing.sm,
+                    children: [
+                      ChoiceChip(
+                        key: const Key('settings-avatar-minimal'),
+                        label: const Text('Minimal'),
+                        avatar: const Icon(Icons.text_fields, size: 18),
+                        showCheckmark: false,
+                        selected: store.avatarStyle == 'minimal',
+                        onSelected: (_) => store.setAvatarStyle('minimal'),
+                      ),
+                      ChoiceChip(
+                        key: const Key('settings-avatar-classic'),
+                        label: const Text('Classic'),
+                        avatar: const Icon(Icons.person, size: 18),
+                        showCheckmark: false,
+                        selected: store.avatarStyle == 'classic',
+                        onSelected: (_) => store.setAvatarStyle('classic'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -876,7 +919,7 @@ class _MenuScreenState extends State<MenuScreen> {
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(
-            labelText: 'Shown in the home greeting',
+            labelText: 'Your name',
             border: OutlineInputBorder(),
           ),
         ),

@@ -215,6 +215,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
         ),
         SettingsAvatarButton(
           name: store.userName,
+          style: store.avatarStyle,
           onTap: widget.onOpenSettings,
         ),
       ],

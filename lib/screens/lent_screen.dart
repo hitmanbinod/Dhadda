@@ -82,6 +82,7 @@ class _LentScreenState extends State<LentScreen> {
                 ),
                 SettingsAvatarButton(
                   name: store.userName,
+                  style: store.avatarStyle,
                   onTap: widget.onOpenSettings,
                 ),
               ],
@@ -284,7 +285,11 @@ class _LentScreenState extends State<LentScreen> {
                 children: [
                   Row(
                     children: [
-                      ProfileAvatar(name: l.person, size: 40),
+                      ProfileAvatar(
+                        name: l.person,
+                        size: 40,
+                        style: store.avatarStyle,
+                      ),
                       const SizedBox(width: Spacing.md),
                       Expanded(
                         child: Column(

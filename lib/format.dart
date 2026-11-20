@@ -51,6 +51,7 @@ String monthStr(DateTime m) => appMonthStr(m);
 /// Daypart for the home greeting. Pure and unit-tested.
 String daypartFor(DateTime t) {
   final h = t.hour;
+  if (h >= 21 || h < 5) return 'night';
   if (h < 12) return 'morning';
   if (h < 17) return 'afternoon';
   return 'evening';

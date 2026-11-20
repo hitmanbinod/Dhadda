@@ -443,6 +443,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.textContaining('Shown in the home'), findsNothing);
+      expect(find.textContaining('Shown in your Home'), findsNothing);
+      final classic = find.byKey(const Key('settings-avatar-classic'));
+      await tester.ensureVisible(classic);
+      await tester.pumpAndSettle();
+      await tester.tap(classic);
+      await tester.pumpAndSettle();
+      expect(store.avatarStyle, 'classic');
+
       final hide = find.byKey(const Key('settings-hide-balance'));
       await tester.ensureVisible(hide);
       await tester.pumpAndSettle();

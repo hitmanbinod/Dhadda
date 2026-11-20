@@ -79,6 +79,8 @@ class ExpenseStore extends ChangeNotifier {
   int accent = 0xFF009688;
   bool materialYou = false; // wallpaper colours (Android 12+)
   String userName = '';
+  /// Profile picture style: 'minimal' (initial) or 'classic' (person glyph).
+  String avatarStyle = 'minimal';
   bool hideBalance = false;
   // One-handed layout is on by default (One UI style): the top tabs and
   // toggles sit just above the bottom navigation for thumb reach.
@@ -563,6 +565,7 @@ class ExpenseStore extends ChangeNotifier {
     accent = ac is int ? ac : 0xFF009688;
     materialYou = meta['materialYou'] == true;
     userName = '${meta['userName'] ?? ''}';
+    avatarStyle = meta['avatar_style_v1'] == 'classic' ? 'classic' : 'minimal';
     hideBalance = meta['hideBalance'] == true;
     _oneHandedChosen = meta['one_handed_choice_v1'] == true;
     // Older installs stored false without an explicit choice (the setting
@@ -690,6 +693,7 @@ class ExpenseStore extends ChangeNotifier {
         'accent': accent,
         'materialYou': materialYou,
         'userName': userName,
+        'avatar_style_v1': avatarStyle,
         'hideBalance': hideBalance,
         'one_handed_mode': oneHanded,
         'one_handed_choice_v1': _oneHandedChosen,
@@ -834,6 +838,15 @@ class ExpenseStore extends ChangeNotifier {
 
   Future<void> setUserName(String v) async {
     userName = v.trim();
+    _saveAll();
+    notifyListeners();
+  }
+
+  /// Per-device profile-picture style; never enters sync snapshots.
+  Future<void> setAvatarStyle(String v) async {
+    if (v != 'minimal' && v != 'classic') return;
+    if (avatarStyle == v) return;
+    avatarStyle = v;
     _saveAll();
     notifyListeners();
   }

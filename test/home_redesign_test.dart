@@ -172,6 +172,45 @@ void main() {
     expect(hero(money(550)).style?.color, colors.income);
   });
 
+  testWidgets('compact profile bar appears only after scrolling down', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 800);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final store = await readyStore();
+    await store.setUserName('Ram');
+    await tester.pumpWidget(shell(store));
+    await tester.pumpAndSettle();
+
+    final sticky = find.byKey(const Key('home-sticky-top-bar'));
+    expect(sticky, findsNothing);
+
+    await tester.drag(find.byType(CustomScrollView).first, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(sticky, findsOneWidget);
+
+    await tester.drag(find.byType(CustomScrollView).first, const Offset(0, 400));
+    await tester.pumpAndSettle();
+    expect(sticky, findsNothing);
+  });
+
+  testWidgets('classic avatar replaces the initial when selected', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final store = await readyStore();
+    await store.setUserName('Ram');
+    await store.setAvatarStyle('classic');
+    await tester.pumpWidget(shell(store));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.person_rounded), findsWidgets);
+    expect(find.text('R'), findsNothing);
+  });
+
   testWidgets('recent rows swipe-delete with Undo', (tester) async {
     tester.view.physicalSize = const Size(420, 1600);
     tester.view.devicePixelRatio = 1.0;

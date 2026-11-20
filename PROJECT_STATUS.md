@@ -15,10 +15,10 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **328/328 passing**
+- `flutter test` → **330/330 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
-- Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.4.0 / code 2003 — **must be rebuilt and reinstalled for 1.5.0**.
+- Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.5.0 / code 2004, installed 2026-11-21 — **the latest UI-polish changes below are not yet rebuilt/reinstalled**.
 
 ## What exists now
 ### Round 1 (UI foundation)
@@ -54,6 +54,14 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Home Events: on by default for new installs and migrated on for existing ones, so **every** tagged event this month gets its own group.
 - Add screen: Account picker stays low; the Repeat suggestion section is removed; Receipts row has **Gallery only** — the Camera button no longer launches the camera.
 - Lent summary amounts shrink to fit instead of overlapping the Borrowed/Lent button; pending amounts in loan headers are bounded too.
+
+## Profile + Home chrome polish (latest)
+- Home profile row sits slightly lower; scrolling past ~120 px reveals a compact avatar/name bar with a translucent blurred backdrop (`BackdropFilter`).
+- Home Events filtering now uses the active calendar period, so tagged entries also show in BS mode.
+- One-handed inset uses the real Material 3 NavigationBar height (80 dp) plus the system bottom inset, putting tab bars just above the nav bar.
+- Greeting has a real night part (21:00–04:59 → "Good night").
+- Settings no longer says "Shown in (the) home greeting"; username dialog label is just "Your name".
+- Additive `avatar_style_v1` pref with **Minimal** (initial) / **Classic** (person glyph) choices in Settings → Appearance; applied everywhere ProfileAvatar is used.
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,

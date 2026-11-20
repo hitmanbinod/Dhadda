@@ -7,24 +7,26 @@ import '../theme/tokens.dart';
 const double kPageMaxWidth = 880.0;
 const double kPageMargin = 16.0;
 
-/// Height of the floating Add pill and the phone navigation bar.
+/// Height of the floating Add pill and the Material 3 NavigationBar.
 const double kAddPillHeight = 50.0;
-const double kNavBarHeight = 64.0;
+const double kNavBarHeight = 80.0;
 
 /// Bottom breathing room for tab scroll views. It keeps the floating Add
-/// pill (and the phone navigation bar) from covering the last tappable row.
-/// Wide layouts swap the navigation bar for a rail, so only the pill counts.
+/// pill (and the phone navigation bar plus its system inset) from covering
+/// the last tappable row. Wide layouts swap the bar for a rail.
 double tabScrollBottomPadding(BuildContext context) {
   final wide = MediaQuery.widthOf(context) > 900;
-  return (wide ? 0 : kNavBarHeight) + kAddPillHeight + 16;
+  final systemBottom = MediaQuery.paddingOf(context).bottom;
+  return (wide ? 0 : kNavBarHeight + systemBottom) + kAddPillHeight + 16;
 }
 
-/// Bottom inset for controls pinned under one-handed mode. Unlike the scroll
-/// inset above, the floating Add pill is only on Home, so these bars sit
-/// immediately above the bottom navigation bar with a small thumb gap.
+/// Bottom inset for controls pinned under one-handed mode. The floating Add
+/// pill only exists on Home, so these bars sit immediately above the bottom
+/// navigation bar (including the system gesture inset) with a small gap.
 double oneHandedBottomPadding(BuildContext context) {
   final wide = MediaQuery.widthOf(context) > 900;
-  return (wide ? 0 : kNavBarHeight) + Spacing.sm;
+  if (wide) return Spacing.sm;
+  return kNavBarHeight + MediaQuery.paddingOf(context).bottom + Spacing.xs;
 }
 
 /// Full padding for scrollable pages (ListView etc).
