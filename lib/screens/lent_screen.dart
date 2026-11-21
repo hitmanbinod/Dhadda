@@ -59,27 +59,13 @@ class _LentScreenState extends State<LentScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Lent',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.largeTitle.copyWith(
-                          color: colors.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Money lent and borrowed',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppType.caption.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'Lent',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppType.largeTitle.copyWith(
+                      color: colors.textPrimary,
+                    ),
                   ),
                 ),
                 SettingsAvatarButton(
@@ -239,10 +225,13 @@ class _LentScreenState extends State<LentScreen> {
             ),
           ),
           const SizedBox(width: Spacing.sm),
-          SizedBox(
-            width: 84,
-            height: 36,
-            child: Material(
+          Flexible(
+            flex: 0,
+            fit: FlexFit.loose,
+            child: SizedBox(
+              width: 84,
+              height: 36,
+              child: Material(
               color: colors.accent.withValues(alpha: 0.14),
               borderRadius: Radii.chipRadius,
               clipBehavior: Clip.antiAlias,
@@ -265,6 +254,7 @@ class _LentScreenState extends State<LentScreen> {
                     ),
                   ),
                 ),
+              ),
               ),
             ),
           ),
