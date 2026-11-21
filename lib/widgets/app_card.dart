@@ -44,6 +44,7 @@ class AppCard extends StatelessWidget {
           ? child
           : Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 for (var i = 0; i < rows.length; i++) ...[
                   rows[i],
