@@ -16,6 +16,7 @@ import '../widgets/app_card.dart';
 import '../widgets/category_tile.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/entry_actions.dart';
+import '../widgets/money_text.dart';
 import '../widgets/page.dart'
     show kPageMaxWidth, oneHandedBottomPadding, tabScrollBottomPadding;
 import '../widgets/profile_avatar.dart';
@@ -258,10 +259,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(
-                money(data.spend),
-                maxLines: 1,
-                style: AppType.heroAmount.copyWith(color: colors.expense),
+              child: MoneyText(
+                value: data.spend,
+                digitsStyle: AppType.heroAmount.copyWith(color: colors.expense),
+                semanticsLabel: money(data.spend),
               ),
             ),
           ),
