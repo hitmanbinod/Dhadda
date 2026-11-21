@@ -1,6 +1,6 @@
 # Android <-> Web design parity
 
-Last synced Android commit: `2f19667` (2026-11-21)
+Last synced Android commit: `86a74ee` (2026-11-21)
 
 Both platforms are one Flutter codebase. "Android file" and "Web file" are
 often the same file; that is expected and listed under Intentional differences.
