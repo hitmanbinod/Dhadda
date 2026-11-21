@@ -14,9 +14,18 @@ void setDisplaySymbol(String s) {
 // Cached formatters: NumberFormat construction is expensive and money()
 // runs per list row, so one instance per symbol is kept for good.
 final _fmtCache = <String, NumberFormat>{};
+final _numberFmt = NumberFormat.decimalPatternDigits(decimalDigits: 0);
+
+/// The plain grouped number, without a currency symbol. Used by widgets that
+/// style the symbol separately from the digits (Quiet Ledger hero/stat type).
+String moneyNumber(double v) => _numberFmt.format(v);
+
+/// The active display symbol without any digits.
+String displaySymbol([String? symbol]) =>
+    (symbol == null || symbol.isEmpty) ? _displaySymbol : symbol;
 
 String money(double v, [String? symbol]) {
-  final sym = (symbol == null || symbol.isEmpty) ? _displaySymbol : symbol;
+  final sym = displaySymbol(symbol);
   var f = _fmtCache[sym];
   f ??= _fmtCache[sym] = NumberFormat.currency(
     symbol: '$sym ',

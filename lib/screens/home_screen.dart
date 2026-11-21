@@ -21,6 +21,7 @@ import '../widgets/app_card.dart';
 import '../widgets/category_tile.dart';
 import '../widgets/delete.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/money_text.dart';
 import '../widgets/entry_actions.dart';
 import '../widgets/event_branch_group.dart';
 import '../widgets/page.dart' show kPageMaxWidth, tabScrollBottomPadding;
@@ -167,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // only untagged activity.
     final recent = store.transactions
         .where((t) => t.projectId.isEmpty)
-        .take(8)
+        .take(5)
         .toList(growable: false);
 
     // The optional rhythm/today sections need one pass over this month's
@@ -595,6 +596,12 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: Spacing.xs),
             _headerIcon(
               colors,
+              Icons.dashboard_customize_outlined,
+              'Edit Home',
+              _openEditHome,
+            ),
+            _headerIcon(
+              colors,
               Icons.sync,
               'Sync',
               widget.onOpenSync ?? () => _doSync(),
@@ -746,7 +753,7 @@ class _HomeScreenState extends State<HomeScreen> {
           TextSpan(text: label.substring(0, split)),
           TextSpan(
             text: label.substring(split),
-            style: TextStyle(color: colors.textSecondary),
+            style: AppType.yearTitle.copyWith(color: colors.textSecondary),
           ),
         ],
       ),
@@ -784,13 +791,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   alignment: Alignment.centerLeft,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      hidden ? hiddenMoney() : money(balance.abs()),
-                      maxLines: 1,
-                      style: AppType.heroAmount.copyWith(
-                        color: hidden ? colors.textPrimary : balanceColor,
-                      ),
-                    ),
+                    child: hidden
+                        ? Text(
+                            hiddenMoney(),
+                            maxLines: 1,
+                            style: AppType.heroAmount.copyWith(
+                              color: colors.textPrimary,
+                            ),
+                          )
+                        : MoneyText(
+                            value: balance.abs(),
+                            digitsStyle: AppType.heroAmount.copyWith(
+                              color: balanceColor,
+                            ),
+                            semanticsLabel:
+                                'Balance ${money(balance.abs())}',
+                          ),
                   ),
                 ),
               ),
@@ -871,11 +887,17 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: Spacing.xs + 2),
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                masked ? hiddenMoney() : money(value),
-                maxLines: 1,
-                style: AppType.statValue.copyWith(color: color),
-              ),
+              child: masked
+                  ? Text(
+                      hiddenMoney(),
+                      maxLines: 1,
+                      style: AppType.statValue.copyWith(color: color),
+                    )
+                  : MoneyText(
+                      value: value,
+                      digitsStyle: AppType.statValue.copyWith(color: color),
+                      semanticsLabel: money(value),
+                    ),
             ),
           ],
         ),
@@ -997,22 +1019,24 @@ class _HomeScreenState extends State<HomeScreen> {
               slices,
               spend,
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                height: 12,
-                child: Row(
-                  children: [
-                    for (final slice in slices)
-                      Expanded(
-                        flex: math.max(
-                          1,
-                          (slice.value / spend * 10000).round(),
-                        ),
-                        child: ColoredBox(color: slice.color),
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: [
+                  for (var i = 0; i < slices.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 3),
+                    Expanded(
+                      flex: math.max(
+                        1,
+                        (slices[i].value / spend * 10000).round(),
                       ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: ColoredBox(color: slices[i].color),
+                      ),
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
           ),
@@ -1074,14 +1098,16 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               Container(
-                width: 8,
-                height: 8,
+                width: Sizes.iconTile,
+                height: Sizes.iconTile,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: slice.color,
-                  shape: BoxShape.circle,
+                  color: slice.color.withValues(alpha: 0.14),
+                  borderRadius: Radii.iconRadius,
                 ),
+                child: Icon(slice.icon, size: Sizes.iconGlyph, color: slice.color),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: Spacing.md),
               Expanded(
                 child: Text(
                   slice.name,

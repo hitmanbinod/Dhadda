@@ -270,14 +270,20 @@ void main() {
 
       await tester.pumpWidget(homeShell(store));
       await tester.pumpAndSettle();
-      expect(find.text(money(1200)), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Balance ${money(1200)}'),
+        findsOneWidget,
+      );
       expect(find.byTooltip('Hide balance'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('home-balance-eye')));
       await tester.pumpAndSettle();
 
       expect(store.hideBalance, isTrue);
-      expect(find.text(money(1200)), findsNothing);
+      expect(
+        find.bySemanticsLabel('Balance ${money(1200)}'),
+        findsNothing,
+      );
       // Hero and three stat cells mask; the budget line masks too. Category
       // and entry amounts stay visible.
       expect(find.text(hiddenMoney()), findsNWidgets(4));
@@ -290,7 +296,10 @@ void main() {
       await tester.tap(find.byKey(const Key('home-balance-eye')));
       await tester.pumpAndSettle();
       expect(store.hideBalance, isFalse);
-      expect(find.text(money(1200)), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Balance ${money(1200)}'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('default Home stays clean and opens Edit Home', (tester) async {

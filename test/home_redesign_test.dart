@@ -93,7 +93,7 @@ void main() {
 
     // One hero balance (income 2000 - spend 800) and three equal stats.
     expect(find.text('Balance'), findsOneWidget);
-    expect(find.text(money(1200)), findsOneWidget);
+    expect(find.bySemanticsLabel('Balance ${money(1200)}'), findsOneWidget);
     expect(find.text('Spent'), findsOneWidget);
     expect(find.text('Income'), findsOneWidget);
     expect(find.text('Lent out'), findsOneWidget);
@@ -152,11 +152,18 @@ void main() {
     await tester.pumpAndSettle();
 
     final colors = AppColors.of(tester.element(find.byType(HomeScreen)));
-    Text hero(String amount) => tester.widgetList<Text>(find.text(amount)).firstWhere(
-          (t) => t.style?.fontSize == AppType.heroAmount.fontSize,
-        );
+    Color heroColor(double amount) {
+      final rich = tester.widget<RichText>(
+        find.descendant(
+          of: find.bySemanticsLabel('Balance ${money(amount)}'),
+          matching: find.byType(RichText),
+        ),
+      );
+      return (rich.text as TextSpan).children!.last.style!.color!;
+    }
+
     // Shortfall: magnitude only, in the expense (red) role.
-    expect(hero(money(450)).style?.color, colors.expense);
+    expect(heroColor(450), colors.expense);
     expect(find.text(money(-450)), findsNothing);
 
     // Surplus: same magnitude display, in the income (green) role.
@@ -169,7 +176,7 @@ void main() {
       mode: 'bank',
     );
     await tester.pumpAndSettle();
-    expect(hero(money(550)).style?.color, colors.income);
+    expect(heroColor(550), colors.income);
   });
 
   testWidgets('compact profile bar appears only after scrolling down', (
