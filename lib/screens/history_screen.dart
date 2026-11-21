@@ -232,6 +232,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: hPad),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _collapsible(_titleBlock(colors, store, filtered)),
               if (!store.oneHanded) _segmented(),

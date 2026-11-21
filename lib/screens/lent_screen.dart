@@ -52,6 +52,7 @@ class _LentScreenState extends State<LentScreen> {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: pageGutter(context)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
