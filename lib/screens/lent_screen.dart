@@ -237,9 +237,17 @@ class _LentScreenState extends State<LentScreen> {
             ),
           ),
           const SizedBox(width: Spacing.sm),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 120),
+          SizedBox(
+            width: 82,
             child: FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                maximumSize: const Size(82, 36),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                textStyle: AppType.caption.copyWith(fontSize: 12),
+              ),
               onPressed: () =>
                   _personDialog(context, store, borrowed: borrowed),
               child: Text(borrowed ? 'Borrowed' : 'Lent'),

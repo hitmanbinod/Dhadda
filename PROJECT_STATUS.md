@@ -15,7 +15,7 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **355/355 passing**
+- `flutter test` → **356/356 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
 - Last installed on phone (wireless ADB `4750a3bc`): arm64 release 40.0 MB, 1.5.0 / code 2004, installed 2026-11-21 12:32 — includes Round 3.1 + restored Camera button.
@@ -98,7 +98,8 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 ## Post-Round-3.1: camera restoration + web bundle
 - Receipt row shows **Gallery and Camera side by side** again (the earlier removal was a misread: the user wanted the button working, not removed).
 - Likely camera root cause fixed: `file_paths.xml` now grants a `root-path` so FileProvider can serve files under `app_flutter/receipts/incoming`; `AndroidManifest.xml` `<queries>` declares IMAGE_CAPTURE and GET_CONTENT for Android 11+ package visibility; `MediaBridge.takePhoto` now resolves the camera intent and reports a channel error (snackbar) instead of crashing or silently doing nothing.
-- 1 new widget test asserts the two buttons share a row; 355/355 tests pass.
+- 1 new widget test asserts the two buttons share a row; 356/356 tests pass.
+- Fixed a Lent summary-row RenderFlex overflow seen only at narrow web widths (compact fixed-width action button) with a 320 dp regression test. Web bundle and phone APK rebuilt after the fix.
 - Phone installs are now via wireless ADB device id `4750a3bc` (old `192.168.1.64:37655` port is closed; paired via pairing code).
 
 ## Untouched / frozen

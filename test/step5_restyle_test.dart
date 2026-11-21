@@ -67,6 +67,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('Lent summary fits at a narrow web width', (tester) async {
+    tester.view.physicalSize = const Size(320, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final store = await readyStore();
+    await tester.pumpWidget(shell(store, const LentScreen()));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byKey(Key('account-delete-${store.loans.first.id}')), findsNothing);
+    expect(find.text('To receive'), findsOneWidget);
+  });
+
   testWidgets('Settings shows grouped lists with Erase at the bottom', (
     tester,
   ) async {
