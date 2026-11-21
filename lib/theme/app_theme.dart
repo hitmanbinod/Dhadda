@@ -157,9 +157,10 @@ abstract final class AppTheme {
         }),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: colors.background,
+        backgroundColor: colors.card,
         elevation: 0,
         minWidth: 72,
+        minExtendedWidth: 224,
         useIndicator: false,
         selectedIconTheme: IconThemeData(color: colors.accent, size: 22),
         unselectedIconTheme: IconThemeData(

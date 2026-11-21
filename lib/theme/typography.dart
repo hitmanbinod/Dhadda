@@ -13,10 +13,26 @@ abstract final class AppType {
   );
 
   static const TextStyle heroAmount = TextStyle(
-    fontSize: 52,
-    height: 1.0,
+    fontSize: 56,
+    height: 1.05,
     fontWeight: FontWeight.w700,
     letterSpacing: -2,
+    fontFeatures: tabular,
+  );
+
+  /// The year beside a large month title: 22/500, quieter than the month.
+  static const TextStyle yearTitle = TextStyle(
+    fontSize: 22,
+    height: 1.2,
+    fontWeight: FontWeight.w500,
+  );
+
+  /// The big amount in the Add/Edit editor.
+  static const TextStyle editorAmount = TextStyle(
+    fontSize: 48,
+    height: 1.1,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -1.5,
     fontFeatures: tabular,
   );
 

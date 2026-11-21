@@ -20,6 +20,10 @@ import 'sync/link_sync.dart';
 import 'sync/reminders.dart';
 import 'sync/sms.dart';
 import 'theme/app_theme.dart';
+import 'theme/palette.dart';
+import 'theme/tokens.dart';
+import 'theme/typography.dart';
+import 'widgets/profile_avatar.dart';
 import 'widget_bridge.dart';
 
 void main() {
@@ -357,9 +361,130 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         .push(MaterialPageRoute(builder: (_) => SettingsScreen(engine: _link)));
   }
 
+  /// Desktop sidebar brand block: logo + name + quiet tagline.
+  Widget _sidebarBrand(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.sm,
+        Spacing.sm,
+        Spacing.sm,
+        Spacing.lg,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: colors.accent,
+              borderRadius: BorderRadius.circular(Radii.card),
+            ),
+            child: Icon(Icons.auto_graph, size: 20, color: colors.onAccent),
+          ),
+          const SizedBox(width: Spacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Dhadda',
+                  style: AppType.title.copyWith(color: colors.textPrimary),
+                ),
+                Text(
+                  'a quiet ledger',
+                  style: AppType.caption.copyWith(color: colors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sidebarFooter(BuildContext context) {
+    final colors = AppColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Spacing.sm),
+      child: Text(
+        'Dhadda 1.5 · offline',
+        textAlign: TextAlign.center,
+        style: AppType.caption.copyWith(color: colors.textSecondary),
+      ),
+    );
+  }
+
+  /// Desktop top bar: page title, search, theme toggle, Add, avatar.
+  Widget _topBar(BuildContext context, ExpenseStore store, AppColors colors) {
+    final titles = ['Home', 'History', 'Insights', 'Lent'];
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: Spacing.xl),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.hairline)),
+      ),
+      child: Row(
+        children: [
+          Text(
+            titles[_index],
+            style: AppType.title.copyWith(color: colors.textPrimary),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: 220,
+            child: TextField(
+              key: const Key('web-topbar-search'),
+              onTap: () => _go(1),
+              readOnly: true,
+              decoration: InputDecoration(
+                isDense: true,
+                prefixIcon: const Icon(Icons.search, size: 18),
+                hintText: 'Search entries',
+                filled: true,
+                fillColor: colors.surface2,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(Radii.input),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: Spacing.sm),
+          IconButton(
+            key: const Key('web-theme-toggle'),
+            tooltip: 'Toggle theme',
+            icon: const Icon(Icons.brightness_6_outlined, size: 20),
+            onPressed: () => store.setThemeMode(
+              store.themeMode == 'light'
+                  ? 'dark'
+                  : store.themeMode == 'dark'
+                  ? 'system'
+                  : 'light',
+            ),
+          ),
+          const SizedBox(width: Spacing.xs),
+          FilledButton.icon(
+            key: const Key('web-topbar-add'),
+            onPressed: _openAdd,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Add'),
+          ),
+          const SizedBox(width: Spacing.sm),
+          SettingsAvatarButton(
+            name: store.userName,
+            style: store.avatarStyle,
+            onTap: _openSettings,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
+    final colors = AppColors.of(context);
     // Never fall through to the app when the database would not open: an
     // empty tracker is indistinguishable from deleted data.
     if (store.databaseProblem.isNotEmpty) {
@@ -427,21 +552,33 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
           child: Row(
             children: [
               if (wide)
-                NavigationRail(
-                  selectedIndex: _index,
-                  onDestinationSelected: _go,
-                  labelType: NavigationRailLabelType.all,
-                  destinations: [
-                    for (final d in _destinations)
-                      NavigationRailDestination(
-                        icon: d.icon,
-                        selectedIcon: d.selectedIcon,
-                        label: Text(d.label),
-                      ),
-                  ],
+                SizedBox(
+                  width: 224,
+                  child: NavigationRail(
+                    extended: true,
+                    selectedIndex: _index,
+                    onDestinationSelected: _go,
+                    leading: _sidebarBrand(context),
+                    trailing: _sidebarFooter(context),
+                    destinations: [
+                      for (final d in _destinations)
+                        NavigationRailDestination(
+                          icon: d.icon,
+                          selectedIcon: d.selectedIcon,
+                          label: Text(d.label),
+                        ),
+                    ],
+                  ),
                 ),
               Expanded(
-                child: IndexedStack(index: _index, children: pages),
+                child: Column(
+                  children: [
+                    if (wide) _topBar(context, store, colors),
+                    Expanded(
+                      child: IndexedStack(index: _index, children: pages),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

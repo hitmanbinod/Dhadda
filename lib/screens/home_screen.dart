@@ -519,11 +519,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       : null,
                 ),
               ),
-              Positioned(
-                right: hPad,
-                bottom: Spacing.xl,
-                child: _addPill(context, colors),
-              ),
+              // On desktop, Add lives in the top bar; the floating pill is
+              // a phone-only affordance (mock: .fab hidden >= 900px).
+              if (constraints.maxWidth < 900)
+                Positioned(
+                  right: hPad,
+                  bottom: Spacing.xl,
+                  child: _addPill(context, colors),
+                ),
             ],
           ),
         );

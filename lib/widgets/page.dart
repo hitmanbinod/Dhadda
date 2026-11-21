@@ -4,7 +4,7 @@ import '../theme/tokens.dart';
 
 /// Caps content width on wide (desktop) screens so rows don't stretch
 /// edge-to-edge, while phones keep comfortable 16dp margins.
-const double kPageMaxWidth = 880.0;
+const double kPageMaxWidth = 960.0;
 const double kPageMargin = 16.0;
 
 /// Height of the floating Add pill and the Material 3 NavigationBar.

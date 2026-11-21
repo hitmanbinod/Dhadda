@@ -18,12 +18,12 @@ void main() {
     final light = AppTheme.build(seed, Brightness.light);
     final lightColors = light.extension<AppColors>()!;
 
-    expect(dark.scaffoldBackgroundColor, const Color(0xFF0E1413));
-    expect(darkColors.background, const Color(0xFF0E1413));
-    expect(darkColors.card, const Color(0xFF141D1C));
-    expect(darkColors.expense, const Color(0xFFF0948A));
-    expect(darkColors.income, const Color(0xFF86D0A6));
-    expect(light.scaffoldBackgroundColor, const Color(0xFFF4F7F6));
+    expect(dark.scaffoldBackgroundColor, const Color(0xFF0B100F));
+    expect(darkColors.background, const Color(0xFF0B100F));
+    expect(darkColors.card, const Color(0xFF121A18));
+    expect(darkColors.expense, const Color(0xFFF2A092));
+    expect(darkColors.income, const Color(0xFF8FD3A9));
+    expect(light.scaffoldBackgroundColor, const Color(0xFFF5F3EE));
 
     for (final colors in [darkColors, lightColors]) {
       expect(
@@ -49,7 +49,7 @@ void main() {
     }
 
     final card = dark.cardTheme.shape! as RoundedRectangleBorder;
-    expect(card.borderRadius, BorderRadius.circular(16));
+    expect(card.borderRadius, BorderRadius.circular(18));
     expect(card.side.color, darkColors.cardBorder);
     expect(
       AppType.heroAmount.fontFeatures,

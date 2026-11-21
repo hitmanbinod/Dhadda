@@ -19,15 +19,17 @@ abstract final class Spacing {
 /// Corner radii. Small surfaces (icon tiles, segmented controls) use
 /// tighter corners than cards; buttons and chips are pills.
 abstract final class Radii {
+  /// Quiet Ledger tokens: tile 10, chip 999, card 18, sheet 24, input 12.
   static const double icon = 10;
-  static const double chip = 16;
-  static const double card = 16;
+  static const double chip = 999;
+  static const double card = 18;
+  static const double sheet = 24;
+  static const double input = 12;
   static const double segmented = 10;
   static const double segmentInset = 3;
   static const double segment = segmented - segmentInset;
-  static const double field = 12;
-  static const double sheet = 24;
-  static const double pill = 999;
+  static const double field = input;
+  static const double pill = chip;
 
   static const BorderRadius iconRadius = BorderRadius.all(
     Radius.circular(icon),
@@ -68,9 +70,11 @@ abstract final class Sizes {
 /// animation eases out; reduced-motion users get instant changes.
 abstract final class Motion {
   static const Duration fast = Duration(milliseconds: 150);
-  static const Duration base = Duration(milliseconds: 200);
-  static const Duration slow = Duration(milliseconds: 300);
+  static const Duration base = Duration(milliseconds: 250);
+  static const Duration slow = Duration(milliseconds: 350);
   static const Curve ease = Curves.easeOutCubic;
+  /// Spring-in for sheets and newly added rows.
+  static const Curve spring = Curves.easeOutBack;
 
   /// [duration], or zero when the platform asks for reduced motion.
   static Duration of(BuildContext context, [Duration duration = base]) {
