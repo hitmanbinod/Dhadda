@@ -1,13 +1,11 @@
 package com.dhadda.expense
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.MediaStore
-import android.widget.Toast
 import androidx.core.content.FileProvider
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
@@ -37,18 +35,30 @@ class MediaBridge(private val activity: Activity) {
     }
 
     fun takePhoto(result: MethodChannel.Result) {
-        val target = File(dir(), "capture-${System.currentTimeMillis()}.jpg")
-        cameraUri = FileProvider.getUriForFile(
-            activity,
-            "${activity.packageName}.fileprovider",
-            target,
-        )
-        pending = result
-        val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
-            putExtra(MediaStore.EXTRA_OUTPUT, cameraUri)
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        try {
+            val target = File(dir(), "capture-${System.currentTimeMillis()}.jpg")
+            cameraUri = FileProvider.getUriForFile(
+                activity,
+                "${activity.packageName}.fileprovider",
+                target,
+            )
+            val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
+                putExtra(MediaStore.EXTRA_OUTPUT, cameraUri)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            // Resolve before launching: a missing camera app must surface as
+            // a channel error (snackbar), not a silent no-op or a crash.
+            if (intent.resolveActivity(activity.packageManager) == null) {
+                cameraUri = null
+                result.error("RECEIPT", "No camera app available", null)
+                return
+            }
+            pending = result
+            activity.startActivityForResult(intent, REQ_CAMERA)
+        } catch (e: Exception) {
+            cameraUri = null
+            result.error("RECEIPT", "${e.message}", null)
         }
-        activity.startActivityForResult(intent, REQ_CAMERA)
     }
 
     fun pickImages(result: MethodChannel.Result) {

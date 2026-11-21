@@ -3,7 +3,12 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'package:expense/receipts.dart';
+import 'package:expense/theme/app_theme.dart';
+import 'package:expense/widgets/receipt_field.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+void _noop(List<String> _) {}
 
 void main() {
   late Directory root;
@@ -100,6 +105,27 @@ void main() {
     await store.clearAll();
     expect(await store.hasFor('live'), isFalse);
     expect(await store.usage(), (count: 0, bytes: 0));
+  });
+
+  testWidgets('Gallery and Camera buttons sit side by side', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.build(const Color(0xFF009688), Brightness.light),
+        home: const Scaffold(
+          body: ReceiptField(
+            initial: <String>[],
+            onChanged: _noop,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final gallery = tester.getCenter(find.byKey(const Key('receipt-gallery')));
+    final camera = tester.getCenter(find.byKey(const Key('receipt-camera')));
+    // Same row: near-identical vertical centre, camera to the right.
+    expect((gallery.dy - camera.dy).abs(), lessThan(4));
+    expect(camera.dx, greaterThan(gallery.dx));
   });
 
   test('cancelled capture files are removed without touching stored ones',

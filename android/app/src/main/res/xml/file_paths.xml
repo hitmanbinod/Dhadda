@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <files-path name="app_files" path="." />
+    <!-- Receipt captures are written under app_flutter/receipts/incoming,
+         not under files/. A root-path is required so FileProvider can grant
+         a content URI for those app-private files to the camera app.
+         The provider is not exported and only grants this one URI, so this
+         does not expose the whole sandbox to other apps. -->
+    <root-path name="app_private" path="." />
 </paths>

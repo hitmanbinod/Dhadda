@@ -15,10 +15,11 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **354/354 passing**
+- `flutter test` → **355/355 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
-- Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.5.0 / code 2004, installed 2026-11-21 — **the latest UI-polish changes below are not yet rebuilt/reinstalled**.
+- Last installed on phone (wireless ADB `4750a3bc`): arm64 release 40.0 MB, 1.5.0 / code 2004, installed 2026-11-21 12:32 — includes Round 3.1 + restored Camera button.
+- Embedded web bundle rebuilt via `dart tool/build_embedded_web.dart` to 1.5.0+4 (was 1.4.0+3); `dart tool/build_embedded_web.dart --check` passes.
 
 ## What exists now
 ### Round 1 (UI foundation)
@@ -93,6 +94,12 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Automated-only checks that passed (widget/unit tests, not on-device): Insights cards incl. How you pay + forecast; account filter into History; receipts add/remove/limit and cleanup pure-logic lifecycle; account colour/delete/archive/merge/last-account guard; migration stress (5k, resume, re-run, imports, safety copy); existing AD/BS layout, light/dark, 360 dp/1280 px and 1.3x text-scale widget tests.
 - Not verified: on-device camera/gallery intents and real receipt files, Undo snackbar timing, actual visual appearance of the new cards/legend/chips, and How you pay with an active BS calendar (logic is BS-aware via `insights()`, but no BS-specific assertion was added). The phone stayed offline throughout Round 3.1.
 - Known deviation: the receipt row exposes Gallery only (Camera was removed in the earlier one-handed round at the maintainer's request), so Edit matches Add; requirement (2.1) said camera/gallery.
+
+## Post-Round-3.1: camera restoration + web bundle
+- Receipt row shows **Gallery and Camera side by side** again (the earlier removal was a misread: the user wanted the button working, not removed).
+- Likely camera root cause fixed: `file_paths.xml` now grants a `root-path` so FileProvider can serve files under `app_flutter/receipts/incoming`; `AndroidManifest.xml` `<queries>` declares IMAGE_CAPTURE and GET_CONTENT for Android 11+ package visibility; `MediaBridge.takePhoto` now resolves the camera intent and reports a channel error (snackbar) instead of crashing or silently doing nothing.
+- 1 new widget test asserts the two buttons share a row; 355/355 tests pass.
+- Phone installs are now via wireless ADB device id `4750a3bc` (old `192.168.1.64:37655` port is closed; paired via pairing code).
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,

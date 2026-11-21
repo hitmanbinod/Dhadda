@@ -186,13 +186,20 @@ class _ReceiptFieldState extends State<ReceiptField> {
                   ),
                 ),
               ),
-            if (_paths.length < 3)
+            if (_paths.length < 3) ...[
               OutlinedButton.icon(
                 key: const Key('receipt-gallery'),
                 onPressed: _busy ? null : () => _capture('pickImages'),
                 icon: const Icon(Icons.photo_library_outlined, size: 18),
                 label: const Text('Gallery'),
               ),
+              OutlinedButton.icon(
+                key: const Key('receipt-camera'),
+                onPressed: _busy ? null : () => _capture('takePhoto'),
+                icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                label: const Text('Camera'),
+              ),
+            ],
             if (_busy)
               const SizedBox(
                 width: 20,
