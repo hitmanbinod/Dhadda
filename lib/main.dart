@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'
+    show LogicalKeyboardKey, SystemUiOverlayStyle;
 import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 
@@ -539,7 +540,26 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     // Every tab draws its own large title now (Settings is a pushed route),
     // so the shell only owns the navigation chrome.
 
-    return Scaffold(
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        SingleActivator(LogicalKeyboardKey.keyN): () => _shortcut(() {
+          _openAdd();
+        }),
+        SingleActivator(LogicalKeyboardKey.slash): () => _shortcut(() {
+          _go(1);
+        }),
+        SingleActivator(LogicalKeyboardKey.digit1): () => _shortcut(() => _go(0)),
+        SingleActivator(LogicalKeyboardKey.digit2): () => _shortcut(() => _go(1)),
+        SingleActivator(LogicalKeyboardKey.digit3): () => _shortcut(() => _go(2)),
+        SingleActivator(LogicalKeyboardKey.digit4): () => _shortcut(() => _go(3)),
+        SingleActivator(LogicalKeyboardKey.escape): () {
+          final nav = kRootNavigatorKey.currentState;
+          if (nav != null && nav.canPop()) nav.pop();
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
       body: AnnotatedRegion<SystemUiOverlayStyle>(
         value:
             (Theme.of(context).brightness == Brightness.dark
@@ -591,6 +611,15 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
               onDestinationSelected: _go,
               destinations: _destinations,
             ),
+        ),
+      ),
     );
+  }
+
+  /// Keyboard shortcuts must not fire while the user is typing in a field.
+  void _shortcut(VoidCallback action) {
+    final focus = FocusManager.instance.primaryFocus;
+    if (focus?.context?.widget is EditableText) return;
+    action();
   }
 }
