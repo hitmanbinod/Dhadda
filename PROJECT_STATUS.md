@@ -15,7 +15,7 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **348/348 passing**
+- `flutter test` → **354/354 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
 - Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.5.0 / code 2004, installed 2026-11-21 — **the latest UI-polish changes below are not yet rebuilt/reinstalled**.
@@ -82,6 +82,10 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Hard delete for unused accounts with a confirm dialog; blocked with a calm "Has N entries: archive it or merge it" message when the account has history. Last active account cannot be archived or deleted.
 - Archived section with Unarchive and Merge actions; archived accounts hidden from pickers except when editing an entry already using one (`store.accountsForPicker`).
 - Store helpers: `accountEntryCount`, `accountsForPicker`. 4 new widget/unit tests.
+
+## Round 3.1 — Step 4 (migration stress tests, tests only)
+- New `test/migration_stress_test.dart` builds real file-backed v2 SQLite databases with raw SQL and opens them through `AppDb` so `onUpgrade(2,3)` runs. Covers: 5k entries across all four modes (counts, per-month totals, mode->account mapping, loans/topups/repayments/events untouched, timing); interrupted-then-resumed migration equals a clean one with no duplicate defaults; guarded migration re-run is a no-op; legacy v1 JSON and v2 snapshot imports into the migrated app; one-time safety copy exists and is readable; marker/budgets survive.
+- Reported, not changed: the "throw inside the migration" interruption is simulated by pre-applying the guarded steps and resuming (production `onUpgrade` was not modified, per tests-only rule).
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,
