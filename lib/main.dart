@@ -387,7 +387,15 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
               color: colors.accent,
               borderRadius: BorderRadius.circular(Radii.card),
             ),
-            child: Icon(Icons.auto_graph, size: 20, color: colors.onAccent),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(Radii.icon),
+              child: Image.asset(
+                'assets/icon/app_icon.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
           const SizedBox(width: Spacing.md),
           Expanded(

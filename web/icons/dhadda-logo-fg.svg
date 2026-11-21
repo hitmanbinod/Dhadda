@@ -60,7 +60,7 @@
   <path d="M 34.5,30 H 51 A 24,24 0 0,1 75,54 A 24,24 0 0,1 51,78 H 34.5 A 4.5,4.5 0 0,1 30,73.5 V 34.5 A 4.5,4.5 0 0,1 34.5,30 Z"
         transform="translate(0.5, 1.5)" fill="#1F1410" fill-opacity="0.12"/>
 
-  <g transform="translate(54,54) scale(0.74) translate(-52.5,-54)"><!-- Layer 1: Brushed Gold Back Page Edge -->
+  <g transform="translate(54,54) scale(1.5) translate(-52.5,-54)"><!-- Layer 1: Brushed Gold Back Page Edge -->
   <g>
     <path d="M 40,30 H 51 A 24,24 0 0,1 75,54 A 24,24 0 0,1 51,78 H 40 A 4,4 0 0,1 36,74 V 34 A 4,4 0 0,1 40,30 Z"
           fill="url(#goldPage)"/>
@@ -141,4 +141,5 @@
     </g>
   </g>
 </g></svg>
+
 
