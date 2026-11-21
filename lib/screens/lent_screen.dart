@@ -13,6 +13,7 @@ import '../theme/tokens.dart';
 import '../theme/typography.dart';
 import '../widgets/app_card.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/money_text.dart';
 import '../widgets/page.dart';
 import '../widgets/segmented_tabs.dart';
 import '../widgets/profile_avatar.dart';
@@ -224,13 +225,13 @@ class _LentScreenState extends State<LentScreen> {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    money(value),
-                    maxLines: 1,
-                    style: AppType.statValue.copyWith(
+                  child: MoneyText(
+                    value: value,
+                    digitsStyle: AppType.statValue.copyWith(
                       fontSize: 20,
                       color: colors.textPrimary,
                     ),
+                    semanticsLabel: money(value),
                   ),
                 ),
               ],
