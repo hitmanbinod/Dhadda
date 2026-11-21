@@ -12,6 +12,7 @@ import 'format.dart';
 import 'analytics.dart';
 import 'home_layout.dart';
 import 'insights.dart';
+import 'receipts.dart';
 import 'data/db_recovery.dart';
 import 'data/domain_store.dart';
 import 'data/drift_domain_store.dart';
@@ -988,6 +989,11 @@ class ExpenseStore extends ChangeNotifier {
     final p = _prefs;
     if (p == null) return;
     await p.clear();
+    // Receipts are app-private files, not part of any database or backup.
+    // Wiping all data must remove them too.
+    try {
+      await (await ReceiptStore.create()).clearAll();
+    } catch (_) {}
     categories = [];
     transactions = [];
     loans = [];
@@ -1130,6 +1136,18 @@ class ExpenseStore extends ChangeNotifier {
       await d.deleteTransaction(id);
     });
     notifyListeners();
+    // Receipt cleanup for a user delete is owned by the Undo snackbar: it
+    // must only run if the snackbar closes without an undo, so a restored
+    // entry keeps its photos. The startup orphan pass is the safety net.
+  }
+
+  /// Best-effort immediate receipt cleanup. Never touches a live entry.
+  Future<void> _cleanReceiptsForRemoved(Set<String> removedIds) async {
+    if (removedIds.isEmpty) return;
+    try {
+      final live = {for (final t in transactions) t.id};
+      await cleanupRemovedReceipts(removedIds, live);
+    } catch (_) {}
   }
 
   /// Puts back a deleted entry (Undo). Keeps id/date so sync stays sane.
@@ -2717,6 +2735,10 @@ class ExpenseStore extends ChangeNotifier {
     }
     final mat = _materializeMerge(result);
     final before = _snapshotDomain();
+    final removedIds = {
+      for (final t in before.transactions)
+        if (!mat.data.transactions.any((n) => n.id == t.id)) t.id,
+    };
     final prevUpdated = updatedAt;
     final prevRevs = Map.of(_revs);
     final prevTombs = Map.of(_tombs);
@@ -2737,6 +2759,7 @@ class ExpenseStore extends ChangeNotifier {
       lastPersistError = null;
       notifyListeners();
       _loansChanged();
+      _cleanReceiptsForRemoved(removedIds);
       return (
         changed: true,
         adopted: result.adopted,

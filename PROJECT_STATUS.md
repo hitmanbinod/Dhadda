@@ -15,7 +15,7 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **340/340 passing**
+- `flutter test` → **344/344 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
 - Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.5.0 / code 2004, installed 2026-11-21 — **the latest UI-polish changes below are not yet rebuilt/reinstalled**.
@@ -69,6 +69,12 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Insights now shows **How you pay** (8 dp stacked bar, 3 dp gaps, tappable legend → History account filter), a quiet **Month-end forecast**, and paired spend/income bars in the trend card.
 - `HistoryDayRequest.openAccount` carries an account filter into the already-mounted History tab; filter pill + Semantics included.
 - Still missing from the Round 1 Insights spec (not implemented here): Biggest changes, Your week, Possible subscriptions, month heatmap.
+
+## Round 3.1 — Step 2 (receipts)
+- Edit sheet (`entry_actions.dart`) now has the same ReceiptField as Add: view/remove stored photos, add from Gallery, 3-photo cap. Captures attach only on successful save; removals apply only on save; cancel drops unattached captures without touching stored files.
+- Pure helpers in `receipts.dart`: `planReceiptChanges`, `cleanupRemovedReceipts`, `cleanupCapturedPaths`, `isCapturedReceiptPath`, plus a test-only `debugOverride` seam.
+- Immediate cleanup paths: Undo snackbar close without undo (`delete.dart`), sync tombstone applied in `_mergeAndApplyLocked`, and `eraseAll`. Startup orphan pass kept as safety net. User delete leaves files intact until the snackbar resolves so Undo restores them.
+- 4 new tests in `test/receipts_lifecycle_test.dart`.
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,

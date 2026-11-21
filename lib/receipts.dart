@@ -12,7 +12,14 @@ class ReceiptStore {
   /// Injectable for tests. Production uses `await ReceiptStore.create()`.
   final Directory root;
 
+  /// Test-only seam so cleanup paths can be exercised against a temp folder
+  /// without a device. Never set in production code.
+  static ReceiptStore? _override;
+  static void debugOverride(ReceiptStore? store) => _override = store;
+
   static Future<ReceiptStore> create() async {
+    final injected = _override;
+    if (injected != null) return injected;
     final dir = await getApplicationDocumentsDirectory();
     return ReceiptStore(Directory(p.join(dir.path, 'receipts')));
   }
@@ -105,6 +112,50 @@ class ReceiptStore {
       bytes += await f.length();
     }
     return (count: count, bytes: bytes);
+  }
+}
+
+/// Native captures arrive as absolute paths in `incoming`; stored receipt
+/// paths are relative to the receipts root.
+bool isCapturedReceiptPath(String path) => p.isAbsolute(path);
+
+/// Pure diff between the paths an entry had when an edit opened and the
+/// paths the user is leaving with. Captures still in `incoming` must be
+/// attached on save; removed stored paths must be deleted on save.
+({List<String> captured, List<String> removed}) planReceiptChanges(
+  Iterable<String> original,
+  Iterable<String> current,
+) {
+  final before = original.toSet();
+  final after = current.toSet();
+  return (
+    captured: current
+        .where((path) => !before.contains(path) && isCapturedReceiptPath(path))
+        .toList(),
+    removed: original.where((path) => !after.contains(path)).toList(),
+  );
+}
+
+/// Deletes receipt folders for ids that were present before an operation but
+/// are no longer live. Idempotent, and never touches a live entry's files.
+Future<void> cleanupRemovedReceipts(
+  Iterable<String> beforeIds,
+  Set<String> liveIds, {
+  ReceiptStore? store,
+}) async {
+  final receipts = store ?? await ReceiptStore.create();
+  for (final id in beforeIds) {
+    if (liveIds.contains(id)) continue;
+    await receipts.removeEntry(id);
+  }
+}
+
+/// Deletes captures that were never attached (edit cancelled/dismissed).
+Future<void> cleanupCapturedPaths(Iterable<String> paths) async {
+  for (final path in paths) {
+    try {
+      await File(path).delete();
+    } catch (_) {}
   }
 }
 

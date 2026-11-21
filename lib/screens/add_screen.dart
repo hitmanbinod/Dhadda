@@ -323,7 +323,8 @@ class _AddScreenState extends State<AddScreen>
         const SizedBox(height: Spacing.lg),
         ReceiptField(
           initial: const [],
-          onChanged: (paths) => _incomingReceipts = paths,
+          onChanged: (_) {},
+          onCapturedChanged: (paths) => _incomingReceipts = paths,
         ),
         const SizedBox(height: Spacing.xl),
         FilledButton.icon(

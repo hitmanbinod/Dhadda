@@ -13,14 +13,26 @@ const _channel = MethodChannel('expense/media');
 
 /// Optional receipt row used at the bottom of Add and Edit. Photos are
 /// captured by the native intent bridge and kept on this phone only.
+///
+/// The widget owns the visible path list. Newly captured files stay as
+/// absolute paths in `incoming` until the owner saves the entry; the owner
+/// must attach them on save and delete them if the form is cancelled.
 class ReceiptField extends StatefulWidget {
+  /// Stored paths (relative to the receipts root) already attached to the
+  /// entry. Empty in Add; the entry's current receipts in Edit.
   final List<String> initial;
+
+  /// Stored relative paths after edits (removals applied; captures pending).
   final ValueChanged<List<String>> onChanged;
+
+  /// Newly captured absolute paths still waiting to be attached.
+  final ValueChanged<List<String>>? onCapturedChanged;
 
   const ReceiptField({
     super.key,
     required this.initial,
     required this.onChanged,
+    this.onCapturedChanged,
   });
 
   @override
@@ -30,6 +42,7 @@ class ReceiptField extends StatefulWidget {
 class _ReceiptFieldState extends State<ReceiptField> {
   ReceiptStore? _store2;
   late List<String> _paths;
+  final List<String> _captured = [];
   bool _busy = false;
 
   @override
@@ -51,11 +64,16 @@ class _ReceiptFieldState extends State<ReceiptField> {
       final raw = await _channel.invokeListMethod<String>(method);
       if (raw != null && raw.isNotEmpty && mounted) {
         final added = <String>[];
-        for (final path in raw.take(3 - _paths.length)) {
+        for (final path in raw) {
+          if (_paths.length + _captured.length + added.length >= 3) break;
           added.add(path);
         }
-        setState(() => _paths = [..._paths, ...added]);
-        widget.onChanged(_paths);
+        setState(() {
+          _captured.addAll(added);
+          _paths = [..._paths, ...added];
+        });
+        widget.onCapturedChanged?.call(List.of(_captured));
+        widget.onChanged(_storedPaths());
       }
     } on PlatformException catch (_) {
       if (mounted) {
@@ -68,10 +86,30 @@ class _ReceiptFieldState extends State<ReceiptField> {
     }
   }
 
-  void _view(String relative) {
+  /// Stored paths only; captures are managed separately by the owner.
+  List<String> _storedPaths() =>
+      _paths.where((path) => !isCapturedReceiptPath(path)).toList();
+
+  /// Returns the relative path of the removed item, if it was stored.
+  String? _removeAt(int index) {
+    final removed = _paths[index];
+    setState(() {
+      _paths = [..._paths]..removeAt(index);
+      _captured.remove(removed);
+    });
+    widget.onCapturedChanged?.call(List.of(_captured));
+    widget.onChanged(_storedPaths());
+    return isCapturedReceiptPath(removed) ? null : removed;
+  }
+
+  void _view(String path) {
     final store = _store2;
     if (store == null) return;
-    final file = File(p.join(store.root.path, relative));
+    final file = File(
+      isCapturedReceiptPath(path)
+          ? path
+          : p.join(store.root.path, path),
+    );
     if (!file.existsSync()) return;
     showDialog(
       context: context,
@@ -94,13 +132,16 @@ class _ReceiptFieldState extends State<ReceiptField> {
                 ),
                 TextButton(
                   onPressed: () {
-                    setState(
-                      () => _paths = _paths.where((x) => x != relative).toList(),
-                    );
-                    widget.onChanged(_paths);
+                    final index = _paths.indexOf(path);
+                    final removedStored = index >= 0 ? _removeAt(index) : null;
+                    // A removal is only final once the entry is saved; on
+                    // cancel the owner reuses `initial` so the file survives.
+                    if (removedStored != null) {
+                      widget.onChanged(_storedPaths());
+                    }
                     Navigator.of(ctx).pop();
                   },
-                  child: const Text('Delete'),
+                  child: const Text('Remove'),
                 ),
               ],
             ),
@@ -128,9 +169,10 @@ class _ReceiptFieldState extends State<ReceiptField> {
           spacing: Spacing.sm,
           runSpacing: Spacing.sm,
           children: [
-            for (final relative in _paths)
+            for (var i = 0; i < _paths.length; i++)
               GestureDetector(
-                onTap: () => _view(relative),
+                key: Key('receipt-thumb-$i'),
+                onTap: () => _view(_paths[i]),
                 child: Container(
                   width: 56,
                   height: 56,
@@ -140,18 +182,17 @@ class _ReceiptFieldState extends State<ReceiptField> {
                   ),
                   child: ClipRRect(
                     borderRadius: Radii.iconRadius,
-                    child: _thumb(relative),
+                    child: _thumb(_paths[i]),
                   ),
                 ),
               ),
-            if (_paths.length < 3) ...[
+            if (_paths.length < 3)
               OutlinedButton.icon(
                 key: const Key('receipt-gallery'),
                 onPressed: _busy ? null : () => _capture('pickImages'),
                 icon: const Icon(Icons.photo_library_outlined, size: 18),
                 label: const Text('Gallery'),
               ),
-            ],
             if (_busy)
               const SizedBox(
                 width: 20,
@@ -164,11 +205,16 @@ class _ReceiptFieldState extends State<ReceiptField> {
     );
   }
 
-  Widget _thumb(String relative) {
+  Widget _thumb(String path) {
     final store = _store2;
-    if (store == null) return const Icon(Icons.image_outlined);
-    final file = File(p.join(store.root.path, relative));
-    if (!file.existsSync()) return const Icon(Icons.image_outlined);
+    final file = File(
+      isCapturedReceiptPath(path)
+          ? path
+          : (store == null ? '' : p.join(store.root.path, path)),
+    );
+    if (path.isEmpty || !file.existsSync()) {
+      return const Icon(Icons.image_outlined);
+    }
     return Image.file(file, fit: BoxFit.cover);
   }
 }

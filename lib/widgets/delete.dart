@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../format.dart';
+import '../receipts.dart';
 import '../store.dart';
 
 /// Long-press delete with a confirm step showing what goes away.
@@ -26,7 +27,7 @@ Future<void> confirmDeleteTxn(
   );
   if (ok == true) {
     await store.deleteTransaction(txn.id);
-    messenger.showSnackBar(_deletedSnack(store, txn));
+    showDeletedSnack(store, txn, messenger);
   }
 }
 
@@ -35,17 +36,36 @@ Future<void> deleteWithUndo(
     BuildContext context, ExpenseStore store, Txn txn) async {
   final messenger = ScaffoldMessenger.of(context);
   await store.deleteTransaction(txn.id);
-  messenger.showSnackBar(_deletedSnack(store, txn));
+  showDeletedSnack(store, txn, messenger);
 }
 
-SnackBar _deletedSnack(ExpenseStore store, Txn txn) {
+/// Shows the Undo snackbar. When it closes without an undo, the deletion is
+/// final and the entry's receipts are removed (the cleanup is idempotent and
+/// a restored live entry's files are never touched).
+void showDeletedSnack(
+  ExpenseStore store,
+  Txn txn,
+  ScaffoldMessengerState messenger,
+) {
   final cat = store.categoryOf(txn.categoryId);
-  return SnackBar(
-    content: Text(
-        'Deleted ${txn.note.isEmpty ? cat.name : txn.note}'),
+  var undone = false;
+  final snack = SnackBar(
+    content: Text('Deleted ${txn.note.isEmpty ? cat.name : txn.note}'),
     action: SnackBarAction(
       label: 'Undo',
-      onPressed: () => store.restoreTransaction(txn),
+      onPressed: () {
+        undone = true;
+        store.restoreTransaction(txn);
+      },
     ),
   );
+  messenger.showSnackBar(snack).closed.whenComplete(() {
+    if (!undone) _cleanDeletedReceipts(txn.id);
+  });
+}
+
+Future<void> _cleanDeletedReceipts(String id) async {
+  try {
+    await (await ReceiptStore.create()).removeEntry(id);
+  } catch (_) {}
 }
