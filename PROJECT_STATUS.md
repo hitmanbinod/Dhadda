@@ -2,6 +2,9 @@
 
 This is the live status file. Read it first, then `PROJECT_GUIDE.md` for the
 historical phases. Update this file whenever code changes.
+For UI/layout/theme/navigation changes also update `docs/DESIGN_STATUS.md`
+(living design snapshot); detailed reviews are in `docs/REPORT_APP_DESIGN.md`
+and `docs/REPORT_ONE_HANDED_MODE.md`.
 
 ## Identity & version
 - Package: `com.dhadda.expense` (never change; installed-app identity)

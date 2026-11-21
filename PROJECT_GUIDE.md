@@ -8,6 +8,15 @@ Release line: **1.5.0+4** (`com.dhadda.expense`). For current status,
 recent Rounds 1-3 work, versioning notes and next steps, read
 `PROJECT_STATUS.md` first — it is maintained alongside code changes.
 
+**Design status (keep this current):** the canonical short-lived snapshot of
+UI/layout/theme/navigation state is `docs/DESIGN_STATUS.md`. Any model making
+a design change must update it in the **same commit** (add a row to "Latest
+design changes", adjust surface/one-handed sections, and close or move any
+resolved issue in "Open design issues"). Longer background is in
+`docs/REPORT_APP_DESIGN.md` (Android/web design) and
+`docs/REPORT_ONE_HANDED_MODE.md` (one-handed implementation review). Project
+status and verification counts stay in `PROJECT_STATUS.md`.
+
 ---
 
 ## 1. What Dhadda is
@@ -160,6 +169,10 @@ Snapshot v1 import, v2 semantics, `(rev, by)` ordering, tombstones,
 PIN model, backup crypto, LAN model, and `docs/BASELINE.md` are frozen
 unless a new phase explicitly reopens them. Never `git add .` from a
 parent dir; never commit secrets; never claim what wasn't measured.
+For any UI/theme/navigation change, update `docs/DESIGN_STATUS.md` in the
+same commit; if `assets/webapp/` changed, run
+`dart tool/build_embedded_web.dart` and `--check` and record the bundle
+version in `PROJECT_STATUS.md`.
 
 ## 13. Release checklist (maintainer actions remaining)
 
