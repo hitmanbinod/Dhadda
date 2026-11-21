@@ -164,7 +164,9 @@ Future<void> _showEditDialog(
                     labelText: 'Account',
                     border: OutlineInputBorder()),
                   items: [
-                    for (final a in store.activeAccounts)
+                    for (final a in store.accountsForPicker(
+                      includeArchivedId: accountId,
+                    ))
                       DropdownMenuItem(value: a.id, child: Text(a.name)),
                   ],
                   onChanged: (v) => setD(() {

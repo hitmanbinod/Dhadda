@@ -1187,6 +1187,23 @@ class ExpenseStore extends ChangeNotifier {
 
   String accountName(String idOrMode) => accountOf(idOrMode).name;
 
+  /// Number of entries currently pointing at [id], including archived
+  /// accounts' history. Used to explain why an account cannot be deleted.
+  int accountEntryCount(String id) =>
+      transactions.where((t) => t.effectiveAccountId == id).length;
+
+  /// All accounts ordered for a picker. When editing an entry that already
+  /// uses an archived account, [includeArchivedId] keeps that one visible so
+  /// the current choice is not silently replaced.
+  List<Account> accountsForPicker({String? includeArchivedId}) {
+    final active = activeAccounts;
+    if (includeArchivedId == null || includeArchivedId.isEmpty) return active;
+    final extra = accounts.where(
+      (a) => a.archived && a.id == includeArchivedId,
+    );
+    return [...active, ...extra];
+  }
+
   /// SMS/legacy modes map to the first active account of the matching type,
   /// with a graceful fallback to the first active account.
   String accountIdForModeOrDefault(String mode) {

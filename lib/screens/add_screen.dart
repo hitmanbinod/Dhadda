@@ -310,7 +310,11 @@ class _AddScreenState extends State<AddScreen>
               ChoiceChip(
                 key: Key('add-account-${a.id}'),
                 label: Text(a.name),
-                avatar: Icon(_accountIcon(a.type), size: 18),
+                avatar: Icon(
+                  _accountIcon(a.type),
+                  size: 18,
+                  color: a.color == 0 ? null : Color(a.color),
+                ),
                 showCheckmark: false,
                 selected: _accountId == a.id,
                 onSelected: (_) => setState(() {

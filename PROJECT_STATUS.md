@@ -15,7 +15,7 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **344/344 passing**
+- `flutter test` → **348/348 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
 - Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.5.0 / code 2004, installed 2026-11-21 — **the latest UI-polish changes below are not yet rebuilt/reinstalled**.
@@ -75,6 +75,13 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Pure helpers in `receipts.dart`: `planReceiptChanges`, `cleanupRemovedReceipts`, `cleanupCapturedPaths`, `isCapturedReceiptPath`, plus a test-only `debugOverride` seam.
 - Immediate cleanup paths: Undo snackbar close without undo (`delete.dart`), sync tombstone applied in `_mergeAndApplyLocked`, and `eraseAll`. Startup orphan pass kept as safety net. User delete leaves files intact until the snackbar resolves so Undo restores them.
 - 4 new tests in `test/receipts_lifecycle_test.dart`.
+
+## Round 3.1 — Step 3 (Accounts completion)
+- Accounts table already had a `color` column (verified in `app_db.dart`), so the colour feature needed no schema/migration change.
+- Accounts screen: optional soft-swatch colour (`kColorChoices`) in the add/edit dialog, colour dot on account rows; the same colour is shown as the icon tint in Add chips and as the dot in the Insights "How you pay" legend.
+- Hard delete for unused accounts with a confirm dialog; blocked with a calm "Has N entries: archive it or merge it" message when the account has history. Last active account cannot be archived or deleted.
+- Archived section with Unarchive and Merge actions; archived accounts hidden from pickers except when editing an entry already using one (`store.accountsForPicker`).
+- Store helpers: `accountEntryCount`, `accountsForPicker`. 4 new widget/unit tests.
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,
