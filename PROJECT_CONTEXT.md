@@ -1,5 +1,8 @@
 # PROJECT_CONTEXT.md — Dhadda (Expense Tracker)
 
+> Design parity: see `AGENTS.md` (standing rules) and `design/` (design system,
+> tokens, parity contract and the approved mock). Android leads, web follows.
+
 > Generated 2026-09-06 from direct inspection of the repository at
 > `C:\Users\obino\Desktop\bin\Projects\Expense` (package `expense`, app label `Dhadda`,
 > `pubspec.yaml` version `1.3.1+2`, `lib/version.dart` `kAppVersion 1.3.1`,

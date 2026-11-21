@@ -8,6 +8,10 @@ Release line: **1.5.0+4** (`com.dhadda.expense`). For current status,
 recent Rounds 1-3 work, versioning notes and next steps, read
 `PROJECT_STATUS.md` first — it is maintained alongside code changes.
 
+**Android/web design parity:** see `AGENTS.md` (standing rules) and `design/`
+(`DESIGN_SYSTEM.md`, `PARITY.md`, `tokens.json`, `sync_tokens.py`). Any Android
+UI change must update the web and PARITY.md in the same task.
+
 **Design status (keep this current):** the canonical short-lived snapshot of
 UI/layout/theme/navigation state is `docs/DESIGN_STATUS.md`. Any model making
 a design change must update it in the **same commit** (add a row to "Latest
