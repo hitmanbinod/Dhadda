@@ -75,7 +75,6 @@ void main() {
     // Insights owns a large title and the small settings avatar.
     await tester.tap(navLabel('Insights'));
     await tester.pumpAndSettle();
-    expect(find.text('Your money at a glance'), findsOneWidget);
     expect(find.byTooltip('Settings'), findsOneWidget);
 
     // The small avatar opens Settings.
@@ -85,7 +84,6 @@ void main() {
     expect(find.byKey(const Key('settings-back')), findsOneWidget);
     await tester.tap(find.byKey(const Key('settings-back')));
     await tester.pumpAndSettle();
-    expect(find.text('Your money at a glance'), findsOneWidget);
 
     await tester.tap(navLabel('History'));
     await tester.pumpAndSettle();

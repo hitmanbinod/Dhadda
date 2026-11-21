@@ -8,8 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Step 2 Home: hero balance, one three-column stat card, category
-/// spotlight + stacked bar, over-budget state, recent swipe-delete with
+/// Step 2 Home: hero balance, one three-column stat card, interactive
+/// proportional category bar, over-budget state, recent swipe-delete with
 /// Undo, and the floating Add pill.
 void main() {
   Future<ExpenseStore> readyStore() async {
@@ -97,22 +97,30 @@ void main() {
     expect(find.text('Income'), findsOneWidget);
     expect(find.text('Lent out'), findsOneWidget);
 
-    // The top category starts in the spotlight; tapping a row moves it.
-    final spotlight = find.byKey(const Key('home-cat-spotlight'));
-    expect(
-      find.descendant(of: spotlight, matching: find.text('Food')),
-      findsOneWidget,
-    );
+    // No duplicated featured header; the card opens with a segment bar.
+    expect(find.byKey(const Key('home-cat-spotlight')), findsNothing);
+    expect(find.byKey(const Key('home-cat-bar-food')), findsOneWidget);
+    expect(find.byKey(const Key('home-cat-bar-travel')), findsOneWidget);
+
+    // Tapping a row highlights its segment; tapping again clears selection.
     await tester.tap(find.byKey(const Key('home-cat-travel')));
     await tester.pumpAndSettle();
-    expect(
-      find.descendant(of: spotlight, matching: find.text('Travel')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: spotlight, matching: find.text(money(300))),
-      findsOneWidget,
-    );
+    AnimatedContainer segment(String id) => tester.widget<AnimatedContainer>(
+          find.descendant(
+            of: find.byKey(Key('home-cat-bar-$id')),
+            matching: find.byType(AnimatedContainer),
+          ),
+        );
+    expect((segment('travel').decoration! as BoxDecoration).boxShadow,
+        isNotNull);
+    await tester.tap(find.byKey(const Key('home-cat-travel')));
+    await tester.pumpAndSettle();
+    expect((segment('travel').decoration! as BoxDecoration).boxShadow, isNull);
+
+    // Segments are tappable too.
+    await tester.tap(find.byKey(const Key('home-cat-bar-food')));
+    await tester.pumpAndSettle();
+    expect((segment('food').decoration! as BoxDecoration).boxShadow, isNotNull);
 
     // Over-budget state is explicit.
     expect(find.textContaining('Over by'), findsOneWidget);

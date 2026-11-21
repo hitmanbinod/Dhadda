@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../format.dart';
 import '../store.dart';
+import '../theme/tokens.dart';
 import 'entry_actions.dart';
 
 /// One event's entries as a collapsible branch: a header row (icon, name,
@@ -47,9 +48,14 @@ class _EventBranchGroupState extends State<EventBranchGroup> {
             padding: const EdgeInsets.fromLTRB(4, 6, 8, 6),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundColor: accent.withValues(alpha: 0.15),
+                Container(
+                  width: Sizes.iconTile,
+                  height: Sizes.iconTile,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: 0.15),
+                    borderRadius: Radii.iconRadius,
+                  ),
                   child: Icon(p.iconData, color: accent, size: 18),
                 ),
                 const SizedBox(width: 10),

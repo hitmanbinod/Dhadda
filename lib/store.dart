@@ -84,9 +84,9 @@ class ExpenseStore extends ChangeNotifier {
   /// Profile picture style: 'minimal' (initial) or 'classic' (person glyph).
   String avatarStyle = 'minimal';
   bool hideBalance = false;
-  // One-handed layout is on by default (One UI style): the top tabs and
-  // toggles sit just above the bottom navigation for thumb reach.
-  bool oneHanded = true;
+  // One-handed layout is off by default; it can be enabled in Settings to
+  // move the top tabs and toggles just above the bottom navigation.
+  bool oneHanded = false;
   /// Guards the one-time default migration: once the user has touched the
   /// toggle, their persisted choice wins on every later load.
   bool _oneHandedChosen = false;
@@ -570,10 +570,10 @@ class ExpenseStore extends ChangeNotifier {
     avatarStyle = meta['avatar_style_v1'] == 'classic' ? 'classic' : 'minimal';
     hideBalance = meta['hideBalance'] == true;
     _oneHandedChosen = meta['one_handed_choice_v1'] == true;
-    // Older installs stored false without an explicit choice (the setting
-    // used to default off). Move them to the new default once; a real user
-    // choice, recorded by setOneHanded, is never overwritten.
-    oneHanded = _oneHandedChosen ? meta['one_handed_mode'] == true : true;
+    // Off by default. Only an explicit choice recorded by setOneHanded is
+    // honoured from storage; without one, legacy values are ignored so old
+    // installs start in the standard top-tab layout.
+    oneHanded = _oneHandedChosen && meta['one_handed_mode'] == true;
     calendarSystem = meta['calendarSystem'] == 'bs' ? 'bs' : 'ad';
     setAppCalendar(calendarSystem);
     categoryRules = decodeCategoryRules(

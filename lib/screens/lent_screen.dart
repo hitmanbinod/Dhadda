@@ -229,7 +229,7 @@ class _LentScreenState extends State<LentScreen> {
             flex: 0,
             fit: FlexFit.loose,
             child: SizedBox(
-              width: 84,
+              width: 78,
               height: 36,
               child: Material(
               color: colors.accent.withValues(alpha: 0.14),

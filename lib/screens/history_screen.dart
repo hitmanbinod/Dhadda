@@ -274,23 +274,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'History',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.largeTitle.copyWith(color: colors.textPrimary),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _subtitle(store, filtered),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.caption.copyWith(color: colors.textSecondary),
-                ),
-              ],
+            child: Text(
+              'History',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppType.largeTitle.copyWith(color: colors.textPrimary),
             ),
           ),
           if (widget.onOpenSync != null)
@@ -339,29 +327,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             : colors.textSecondary,
       ),
     );
-  }
-
-  String _subtitle(ExpenseStore store, List<Txn> filtered) {
-    if (_view == 'cats') {
-      final n = store.categories.length;
-      return '$n ${n == 1 ? 'category' : 'categories'}';
-    }
-    if (_view == 'projects') {
-      final n = store.projects.length;
-      return '$n ${n == 1 ? 'event' : 'events'}';
-    }
-    final total = store.transactions.length;
-    final n = filtered.length;
-    final filtering =
-        _query.isNotEmpty ||
-        _type != 'all' ||
-        _cat != 'all' ||
-        _dayFilter != null ||
-        _accountFilter != null;
-    if (filtering) {
-      return '$n of $total ${total == 1 ? 'entry' : 'entries'}';
-    }
-    return '$n ${n == 1 ? 'entry' : 'entries'}';
   }
 
   Widget _segmented() {
@@ -788,27 +753,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           child: Row(
             children: [
-              Text(
-                _dayLabel(day.date).toUpperCase(),
-                style: AppType.captionStrong.copyWith(
-                  fontSize: 12,
-                  letterSpacing: 0.5,
-                  color: colors.textSecondary,
+              Expanded(
+                child: Text(
+                  _dayLabel(day.date).toUpperCase(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.captionStrong.copyWith(
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                    color: colors.textSecondary,
+                  ),
                 ),
               ),
-              const Spacer(),
-              Text(
-                () {
-                  final net = day.items.fold<double>(0, (sum, item) {
-                    if (item is! Txn) return sum;
-                    return sum + (item.isExpense ? -item.amount : item.amount);
-                  });
-                  final sign = net >= 0 ? '+' : '\u2212';
-                  return '$sign${money(net.abs())}';
-                }(),
-                style: AppType.caption.copyWith(
-                  color: colors.textSecondary,
-                  fontFeatures: AppType.tabular,
+              const SizedBox(width: Spacing.sm),
+              Flexible(
+                child: Text(
+                  () {
+                    final net = day.items.fold<double>(0, (sum, item) {
+                      if (item is! Txn) return sum;
+                      return sum + (item.isExpense ? -item.amount : item.amount);
+                    });
+                    final sign = net >= 0 ? '+' : '\u2212';
+                    return '$sign${money(net.abs())}';
+                  }(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: AppType.caption.copyWith(
+                    color: colors.textSecondary,
+                    fontFeatures: AppType.tabular,
+                  ),
                 ),
               ),
             ],
@@ -957,13 +931,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 2, bottom: Spacing.md),
-          child: Text(
-            'Tap a category for its history. Drag the handle to reorder.',
-            style: AppType.caption.copyWith(color: colors.textSecondary),
-          ),
-        ),
+        const SizedBox(height: Spacing.sm),
         Expanded(
           child: store.categories.isEmpty
               ? EmptyState(
@@ -1114,13 +1082,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 2, bottom: Spacing.md),
-          child: Text(
-            'Shared spending for trips, outings and flatmates.',
-            style: AppType.caption.copyWith(color: colors.textSecondary),
-          ),
-        ),
+        const SizedBox(height: Spacing.sm),
         Expanded(
           child: store.projects.isEmpty
               ? EmptyState(

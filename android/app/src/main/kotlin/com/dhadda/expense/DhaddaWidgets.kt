@@ -48,12 +48,12 @@ class TodayWidget : AppWidgetProvider() {
         ids: IntArray,
     ) {
         render(context, manager, ids, R.layout.widget_today) { views, data ->
-            views.setTextViewText(R.id.widget_today_label, data.todayLabel)
+            views.setTextViewText(R.id.widget_today_date, data.todayLabel)
             views.setTextViewText(R.id.widget_today_amount, data.amount(data.todaySpend))
             views.setTextViewText(
                 R.id.widget_today_note,
-                if (data.hidden) "Amounts hidden · unlock Dhadda to see"
-                else "Tap to add an expense",
+                if (data.hidden) "Amounts hidden · unlock to see"
+                else "Add expense  ›",
             )
         }
     }
@@ -71,7 +71,7 @@ class MonthWidget : AppWidgetProvider() {
             views.setTextViewText(R.id.widget_month_income, data.amount(data.monthIncome))
             views.setTextViewText(
                 R.id.widget_month_balance,
-                data.amount(data.monthIncome - data.monthSpend),
+                data.signedAmount(data.monthIncome - data.monthSpend),
             )
         }
     }
@@ -85,12 +85,12 @@ class LentWidget : AppWidgetProvider() {
     ) {
         render(context, manager, ids, R.layout.widget_lent) { views, data ->
             views.setTextViewText(
-                R.id.widget_lent_receive,
-                "To receive  ${data.amount(data.toReceive)}",
+                R.id.widget_lent_receive_amount,
+                data.amount(data.toReceive),
             )
             views.setTextViewText(
-                R.id.widget_lent_return,
-                "To return  ${data.amount(data.toReturn)}",
+                R.id.widget_lent_return_amount,
+                data.amount(data.toReturn),
             )
         }
     }

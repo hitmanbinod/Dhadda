@@ -5,6 +5,13 @@ Prepared 2026-11-21 for external review. Source of truth: the code on branch
 named commit. Tests were run locally; on-device behaviour was **not** verified
 (the phone was offline for most of this work).
 
+> **Update (2026-11-21, `web-parity`):** this is a historical snapshot of the
+> original `round2` implementation. Current behaviour differs in three ways:
+> one-handed mode is **off by default** (an explicit `one_handed_choice_v1`
+> value is still honoured), `oneHandedBottomPadding` adds only a small gap
+> because the Scaffold body already ends at the bottom nav, and the AI-ish
+> title subtitles were removed. See `docs/DESIGN_STATUS.md` §4.
+
 ---
 
 ## 1. What was asked

@@ -103,10 +103,11 @@ whole shell when configured.
 
 ### 3.4 One-handed mode
 
-On by default. Moves the History/Insights/Lent segmented controls from the
-header to just above the bottom navigation bar via a shared
-`oneHandedBottomPadding` helper. Full detail in
-`docs/REPORT_ONE_HANDED_MODE.md`.
+Off by default (Settings → Appearance turns it on). Moves the
+History/Insights/Lent segmented controls from the header to just above the
+bottom navigation bar via a shared `oneHandedBottomPadding` helper, which adds
+only a small gap because the Scaffold body already ends at the nav bar. Full
+detail in `docs/DESIGN_STATUS.md` §4.
 
 ---
 

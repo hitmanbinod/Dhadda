@@ -10,6 +10,8 @@ import '../receipts.dart';
 import '../store.dart';
 import '../theme/palette.dart';
 import '../theme/tokens.dart';
+import '../theme/typography.dart';
+import '../widgets/app_card.dart';
 import '../widgets/page.dart';
 import '../widgets/receipt_field.dart';
 
@@ -75,11 +77,21 @@ class _AddScreenState extends State<AddScreen>
 
   /// One chip, jiggling while the row is being arranged.
   Widget _catChip(Category c) {
+    final colors = AppColors.of(context);
+    final selected = _categoryId == c.id;
+    final foreground = selected ? colors.onAccent : colors.textPrimary;
     final chip = ChoiceChip(
-      label: Text(c.name),
-      avatar: Icon(c.iconData, size: 18),
+      label: Text(
+        c.name,
+        style: AppType.caption.copyWith(color: foreground),
+      ),
+      avatar: Icon(
+        c.iconData,
+        size: 18,
+        color: selected ? colors.onAccent : c.colorValue,
+      ),
       showCheckmark: false,
-      selected: _categoryId == c.id,
+      selected: selected,
       onSelected: (_) => setState(() {
         _categoryId = c.id;
         _categoryChosen = true;
@@ -98,180 +110,256 @@ class _AddScreenState extends State<AddScreen>
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
     final colors = AppColors.of(context);
+    final hPad = pageInsets(context).left;
     _categoryId ??= store.categories.isNotEmpty
         ? store.categories.first.id
         : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add expense')),
+      appBar: AppBar(
+        title: Text(_isExpense ? 'Add expense' : 'Add income'),
+      ),
       backgroundColor: colors.background,
-      body: ListView(
-        padding: pageInsets(context),
+      body: Column(
         children: [
-        SegmentedButton<bool>(
-          showSelectedIcon: false,
-          segments: const [
-            ButtonSegment(
-                value: true,
-                label: Text('Expense'),
-                icon: Icon(Icons.remove)),
-            ButtonSegment(
-                value: false,
-                label: Text('Income'),
-                icon: Icon(Icons.add)),
-          ],
-          selected: {_isExpense},
-          onSelectionChanged: (s) =>
-              setState(() => _isExpense = s.first),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _amount,
-          autofocus: defaultTargetPlatform !=
-                  TargetPlatform.android &&
-              defaultTargetPlatform != TargetPlatform.iOS,
-          keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
-          textInputAction: TextInputAction.next,
-          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-          ],
-          style: Theme.of(context).textTheme.headlineMedium,
-          decoration: InputDecoration(
-            labelText: 'Amount',
-            border: const OutlineInputBorder(),
-            prefixText: '${store.currencySymbol} ',
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(
+                hPad,
+                Spacing.md,
+                hPad,
+                Spacing.lg,
+              ),
+              children: [
+                _typeTrack(colors),
+                const SizedBox(height: Spacing.lg),
+                _amountCard(colors, store),
+                const SizedBox(height: Spacing.lg),
+                _categorySection(context, colors, store),
+                const SizedBox(height: Spacing.lg),
+                _accountSection(colors, store),
+                const SizedBox(height: Spacing.lg),
+                _detailsCard(context, colors, store),
+                const SizedBox(height: Spacing.lg),
+                ReceiptField(
+                  initial: const [],
+                  onChanged: (_) {},
+                  onCapturedChanged: (paths) => _incomingReceipts = paths,
+                ),
+                const SizedBox(height: Spacing.md),
+              ],
+            ),
+          ),
+          _saveBar(colors, hPad),
+        ],
+      ),
+    );
+  }
+
+  /// Seamless pill track; the active inner pill follows the app accent.
+  Widget _typeTrack(AppColors colors) {
+    Widget segment(bool expense, String label, IconData icon) {
+      final active = _isExpense == expense;
+      return Semantics(
+        button: true,
+        selected: active,
+        label: label,
+        child: InkWell(
+          onTap: () => setState(() => _isExpense = expense),
+          borderRadius: Radii.pillRadius,
+          child: AnimatedContainer(
+            duration: Motion.of(context, Motion.fast),
+            curve: Motion.ease,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: active ? colors.accent : Colors.transparent,
+              borderRadius: Radii.pillRadius,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 18,
+                  color: active ? colors.onAccent : colors.textSecondary,
+                ),
+                const SizedBox(width: Spacing.xs),
+                Text(
+                  label,
+                  style: AppType.button.copyWith(
+                    fontSize: 14,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    color: active ? colors.onAccent : colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: Spacing.md),
+      );
+    }
+
+    return Container(
+      height: Sizes.segmentedHeight,
+      padding: const EdgeInsets.all(Radii.segmentInset),
+      decoration: BoxDecoration(
+        color: colors.surface2,
+        borderRadius: Radii.pillRadius,
+      ),
+      child: Row(
+        children: [
+          Expanded(child: segment(true, 'Expense', Icons.remove)),
+          Expanded(child: segment(false, 'Income', Icons.add)),
+        ],
+      ),
+    );
+  }
+
+  /// Large, quiet hero amount surface with a micro-label and currency prefix.
+  Widget _amountCard(AppColors colors, ExpenseStore store) {
+    return AppCard(
+      radius: Radii.cardLargeRadius,
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.md,
+        Spacing.lg,
+        Spacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Amount',
+            style: AppType.caption.copyWith(
+              fontSize: 12,
+              color: colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: Spacing.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                store.currencySymbol,
+                style: AppType.title.copyWith(
+                  fontSize: 24,
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: Spacing.sm),
+              Expanded(
+                child: TextField(
+                  controller: _amount,
+                  autofocus: defaultTargetPlatform != TargetPlatform.android &&
+                      defaultTargetPlatform != TargetPlatform.iOS,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                  ],
+                  style: AppType.heroAmount.copyWith(
+                    fontSize: 34,
+                    color: colors.textPrimary,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    hintText: '0',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) => Semantics(
+        header: true,
+        child: Text(
+          title,
+          style: AppType.title.copyWith(color: AppColors.of(context).textPrimary),
+        ),
+      );
+
+  /// Category header with a right-aligned New pill and an even 3-column grid.
+  Widget _categorySection(
+    BuildContext context,
+    AppColors colors,
+    ExpenseStore store,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            _sectionTitle('Category'),
+            const Spacer(),
+            ActionChip(
+              key: const Key('add-new-category'),
+              avatar: const Icon(Icons.add, size: 16),
+              label: const Text('New'),
+              tooltip: 'Add your own category',
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _newCategory(context, store),
+            ),
+          ],
+        ),
+        const SizedBox(height: Spacing.sm),
         if (_reordering) ...[
           Row(
             children: [
               Expanded(
-                child: Text('Drag chips to arrange',
-                    style:
-                        Theme.of(context).textTheme.bodySmall),
+                child: Text(
+                  'Drag chips to arrange',
+                  style: AppType.caption.copyWith(color: colors.textSecondary),
+                ),
               ),
               TextButton(
-                onPressed: () =>
-                    setState(() => _reordering = false),
+                onPressed: () => setState(() => _reordering = false),
                 child: const Text('Done'),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: Spacing.xs),
           SizedBox(
             height: 56,
             child: ReorderableListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: store.categories.length,
               onReorderItem: (oldI, newI) async {
-                await store.moveCategoryTo(
-                    store.categories[oldI].id, newI);
+                await store.moveCategoryTo(store.categories[oldI].id, newI);
               },
-              itemBuilder: (ctx, i) {
-                final c = store.categories[i];
-                return Padding(
-                  key: ValueKey(c.id),
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _catChip(c),
-                );
-              },
-            ),
-          ),
-        ] else ...[
-          Text('Category',
-              style: Theme.of(context).textTheme.titleSmall),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final c in store.categories)
-                GestureDetector(
-                  onLongPress: () =>
-                      setState(() => _reordering = true),
-                  child: _catChip(c),
-                ),
-              ActionChip(
-                avatar: const Icon(Icons.add, size: 18),
-                label: const Text('New'),
-                tooltip: 'Add your own category',
-                onPressed: () => _newCategory(context, store),
-              ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(isExpanded: true,
-          initialValue: _projectId,
-          decoration: const InputDecoration(
-              labelText: 'Event (optional)',
-              border: OutlineInputBorder()),
-          items: [
-            const DropdownMenuItem(
-                value: '', child: Text('No event')),
-            for (final p in store.projects)
-              DropdownMenuItem(
-                  value: p.id, child: Text(p.name)),
-            const DropdownMenuItem(
-                value: _kAddNew,
-                child: Text('+ Add new event')),
-          ],
-          onChanged: _pickProject,
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final picked = await showAppDatePicker(
-                    context: context,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now()
-                        .add(const Duration(days: 365)),
-                    initialDate: _date,
-                  );
-                  if (picked != null && mounted) {
-                    setState(() => _date = picked);
-                  }
-                },
-                icon: const Icon(Icons.calendar_today),
-                label: Text(dayStr(_date)),
+              itemBuilder: (ctx, i) => Padding(
+                key: ValueKey(store.categories[i].id),
+                padding: const EdgeInsets.only(right: Spacing.sm),
+                child: _catChip(store.categories[i]),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  final picked = await showTimePicker(
-                    context: context,
-                    initialTime: _time,
-                  );
-                  if (picked != null && mounted) {
-                    setState(() => _time = picked);
-                  }
-                },
-                icon: const Icon(Icons.schedule),
-                label: Text(_time.format(context)),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _note,
-          textInputAction: TextInputAction.done,
-          onChanged: _onNoteChanged,
-          onSubmitted: (_) => _save(),
-          decoration: const InputDecoration(
-            labelText: 'Note (optional)',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.note),
           ),
-        ),
+        ] else
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 2 * Spacing.sm) / 3;
+              return Wrap(
+                spacing: Spacing.sm,
+                runSpacing: Spacing.sm,
+                children: [
+                  for (final c in store.categories)
+                    SizedBox(
+                      width: width,
+                      height: 38,
+                      child: _catPill(c, colors),
+                    ),
+                ],
+              );
+            },
+          ),
         if (_suggestedCategoryId != null)
           Padding(
             padding: const EdgeInsets.only(top: Spacing.xs),
@@ -283,66 +371,352 @@ class _AddScreenState extends State<AddScreen>
                 label: Text(
                   '${store.categoryOf(_suggestedCategoryId!).name}?',
                 ),
-                onPressed: () {
-                  setState(() {
-                    _categoryId = _suggestedCategoryId;
-                    _categoryChosen = true;
-                    _suggestedCategoryId = null;
-                  });
-                },
+                onPressed: () => setState(() {
+                  _categoryId = _suggestedCategoryId;
+                  _categoryChosen = true;
+                  _suggestedCategoryId = null;
+                }),
               ),
             ),
           ),
-        const SizedBox(height: Spacing.lg),
-        Semantics(
-          header: true,
-          child: Text(
-            'Account',
-            style: Theme.of(context).textTheme.titleSmall,
-          ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        Wrap(
-          spacing: Spacing.sm,
-          runSpacing: Spacing.sm,
-          children: [
-            for (final a in store.activeAccounts)
-              ChoiceChip(
-                key: Key('add-account-${a.id}'),
-                label: Text(a.name),
-                avatar: Icon(
-                  _accountIcon(a.type),
-                  size: 18,
-                  color: a.color == 0 ? null : Color(a.color),
-                ),
-                showCheckmark: false,
-                selected: _accountId == a.id,
-                onSelected: (_) => setState(() {
-                  _accountId = a.id;
-                  _mode = modeForAccountType(a.type);
-                }),
+      ],
+    );
+  }
+
+  Widget _catPill(Category c, AppColors colors) {
+    final selected = _categoryId == c.id;
+    final foreground = selected ? colors.onAccent : colors.textPrimary;
+    return Material(
+      color: selected ? colors.accent : colors.surface2,
+      borderRadius: Radii.pillRadius,
+      child: InkWell(
+        onTap: () => setState(() {
+          _categoryId = c.id;
+          _categoryChosen = true;
+          _suggestedCategoryId = null;
+        }),
+        onLongPress: () => setState(() => _reordering = true),
+        borderRadius: Radii.pillRadius,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                c.iconData,
+                size: 16,
+                color: selected ? colors.onAccent : c.colorValue,
               ),
-          ],
-        ),
-        const SizedBox(height: Spacing.lg),
-        ReceiptField(
-          initial: const [],
-          onChanged: (_) {},
-          onCapturedChanged: (paths) => _incomingReceipts = paths,
-        ),
-        const SizedBox(height: Spacing.xl),
-        FilledButton.icon(
-          key: const Key('add-save'),
-          onPressed: _save,
-          icon: const Icon(Icons.check),
-          label: const Padding(
-            padding: EdgeInsets.all(12),
-            child: Text('Save'),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  c.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.caption.copyWith(
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: foreground,
+                  ),
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Four equal-width stacked tiles, so E-wallet never lands alone.
+  Widget _accountSection(AppColors colors, ExpenseStore store) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _sectionTitle('Account'),
+        const SizedBox(height: Spacing.sm),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = (constraints.maxWidth - 3 * Spacing.sm) / 4;
+            return Wrap(
+              spacing: Spacing.sm,
+              runSpacing: Spacing.sm,
+              children: [
+                for (final a in store.activeAccounts)
+                  SizedBox(width: width, child: _accountTile(a, colors)),
+              ],
+            );
+          },
         ),
       ],
-    ),
-  );
+    );
+  }
+
+  Widget _accountTile(Account a, AppColors colors) {
+    final selected = _accountId == a.id;
+    final foreground = selected ? colors.onAccent : colors.textPrimary;
+    final tint = a.color == 0 ? colors.field : Color(a.color);
+    return Material(
+      color: selected ? colors.accent : colors.surface2,
+      borderRadius: Radii.iconRadius,
+      child: InkWell(
+        key: Key('add-account-${a.id}'),
+        onTap: () => setState(() {
+          _accountId = a.id;
+          _mode = modeForAccountType(a.type);
+        }),
+        borderRadius: Radii.iconRadius,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: Spacing.sm,
+            horizontal: 2,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? colors.onAccent.withValues(alpha: 0.2)
+                      : tint.withValues(alpha: 0.14),
+                  borderRadius: Radii.iconRadius,
+                ),
+                child: Icon(
+                  _accountIcon(a.type),
+                  size: 16,
+                  color: selected ? colors.onAccent : tint,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                a.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppType.caption.copyWith(
+                  fontSize: 11,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  color: foreground,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _detailBadge(IconData icon, AppColors colors) => Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: colors.surface2,
+          borderRadius: Radii.iconRadius,
+        ),
+        child: Icon(icon, size: 16, color: colors.textSecondary),
+      );
+
+  Widget _detailDivider(AppColors colors) => Padding(
+        padding: const EdgeInsets.only(
+          left: Spacing.lg + 28 + Spacing.md,
+          right: Spacing.lg,
+        ),
+        child: Divider(height: 1, thickness: 1, color: colors.hairline),
+      );
+
+  /// Date + Time + Event + Note share one card with inset hairlines.
+  Widget _detailsCard(
+    BuildContext context,
+    AppColors colors,
+    ExpenseStore store,
+  ) {
+    return AppCard(
+      radius: Radii.cardLargeRadius,
+      padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg,
+              vertical: Spacing.xs,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 64,
+                  child: _detailAction(
+                    colors,
+                    icon: Icons.calendar_today_outlined,
+                    label: dayStr(_date),
+                    onTap: () async {
+                      final picked = await showAppDatePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now().add(
+                          const Duration(days: 365),
+                        ),
+                        initialDate: _date,
+                      );
+                      if (picked != null && mounted) {
+                        setState(() => _date = picked);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: Spacing.sm),
+                Expanded(
+                  flex: 36,
+                  child: _detailAction(
+                    colors,
+                    icon: Icons.schedule,
+                    label: _time.format(context),
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: _time,
+                      );
+                      if (picked != null && mounted) {
+                        setState(() => _time = picked);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _detailDivider(colors),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg,
+              vertical: 2,
+            ),
+            child: Row(
+              children: [
+                _detailBadge(Icons.event_outlined, colors),
+                const SizedBox(width: Spacing.md),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    initialValue: _projectId,
+                    decoration: const InputDecoration(
+                      labelText: 'Event (optional)',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('No event'),
+                      ),
+                      for (final p in store.projects)
+                        DropdownMenuItem(value: p.id, child: Text(p.name)),
+                      const DropdownMenuItem(
+                        value: _kAddNew,
+                        child: Text('+ Add new event'),
+                      ),
+                    ],
+                    onChanged: _pickProject,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _detailDivider(colors),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.lg,
+              vertical: 2,
+            ),
+            child: Row(
+              children: [
+                _detailBadge(Icons.note_outlined, colors),
+                const SizedBox(width: Spacing.md),
+                Expanded(
+                  child: TextField(
+                    controller: _note,
+                    textInputAction: TextInputAction.done,
+                    onChanged: _onNoteChanged,
+                    onSubmitted: (_) => _save(),
+                    style: AppType.body.copyWith(fontSize: 14),
+                    decoration: const InputDecoration(
+                      hintText: 'Note (optional)',
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailAction(
+    AppColors colors, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: Radii.iconRadius,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+        child: Row(
+          children: [
+            _detailBadge(icon, colors),
+            const SizedBox(width: Spacing.sm),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppType.body.copyWith(
+                  fontSize: 13,
+                  color: colors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _saveBar(AppColors colors, double hPad) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        hPad,
+        Spacing.sm,
+        hPad,
+        Spacing.md + MediaQuery.paddingOf(context).bottom,
+      ),
+      decoration: BoxDecoration(
+        color: colors.background,
+        border: Border(top: BorderSide(color: colors.hairline)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          key: const Key('add-save'),
+          onPressed: _save,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Save'),
+              Text(_isExpense ? ' expense' : ' income'),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// Event picked from the dropdown - or created inline without

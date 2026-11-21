@@ -6,6 +6,8 @@
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_quickadd"
+    android:previewImage="@drawable/widget_preview_quick"
+    android:previewLayout="@layout/widget_quickadd_preview"
     android:description="@string/widget_quickadd_desc"
     android:resizeMode="none"
     android:widgetCategory="home_screen" />

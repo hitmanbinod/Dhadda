@@ -97,7 +97,6 @@ void main() {
     expect(tester.takeException(), isNull);
 
     expect(find.text('Insights'), findsOneWidget);
-    expect(find.text('Your money at a glance'), findsOneWidget);
     expect(find.text('Ram'), findsNothing);
 
     await tester.tap(find.byTooltip('Settings'));
@@ -124,7 +123,6 @@ void main() {
     expect(find.text('Money on loan'), findsOneWidget);
     expect(find.text('To receive'), findsOneWidget);
     expect(find.text('To return'), findsOneWidget);
-    expect(find.text('Not counted as spending.'), findsOneWidget);
     expect(find.text('Largest expenses'), findsOneWidget);
 
     // The chart exposes a readable category summary to screen readers.

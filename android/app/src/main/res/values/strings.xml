@@ -11,4 +11,19 @@
     <string name="widget_expense">Expense</string>
     <string name="widget_income">Income</string>
     <string name="widget_lent">Lent</string>
+
+    <!-- Widget surface copy -->
+    <string name="widget_tag_month">Month</string>
+    <string name="widget_spent">Spent</string>
+    <string name="widget_balance">Balance</string>
+    <string name="widget_footer_outflow">Outflow</string>
+    <string name="widget_footer_inflow">Inflow</string>
+    <string name="widget_footer_net">Net total</string>
+    <string name="widget_today_title">Today</string>
+    <string name="widget_today_desc_short">Sat, 5 Mangsir</string>
+    <string name="widget_spent_today">Spent today</string>
+    <string name="widget_add_expense_cta">Add expense  ›</string>
+    <string name="widget_on_loan">On loan</string>
+    <string name="widget_to_receive">To receive</string>
+    <string name="widget_to_return">To return</string>
 </resources>

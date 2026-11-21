@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView android:layout_width="20dp" android:layout_height="20dp" android:background="@drawable/widget_badge_d" android:gravity="center" android:text="D" android:textColor="#FFFFFFFF" android:textSize="12sp" android:textStyle="bold" />
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:singleLine="true" android:text="Mangsir 2083" android:textColor="@color/widget_text" android:textSize="15sp" android:textStyle="bold" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/widget_tag" android:paddingStart="10dp" android:paddingEnd="10dp" android:text="Month" android:textColor="@color/widget_muted" android:textSize="10sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:background="@drawable/widget_tile" android:orientation="vertical" android:padding="10dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:drawablePadding="5dp" android:drawableStart="@drawable/widget_dot_coral" android:text="Spent" android:textColor="@color/widget_muted" android:textSize="11sp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:singleLine="true" android:text="रू 2,000" android:textColor="@color/widget_text" android:textSize="15sp" android:textStyle="bold" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Outflow" android:textColor="@color/widget_muted" android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_marginStart="8dp" android:layout_weight="1" android:background="@drawable/widget_tile" android:orientation="vertical" android:padding="10dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:drawablePadding="5dp" android:drawableStart="@drawable/widget_dot_mint" android:text="Income" android:textColor="@color/widget_muted" android:textSize="11sp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:singleLine="true" android:text="रू 0" android:textColor="@color/widget_text" android:textSize="15sp" android:textStyle="bold" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Inflow" android:textColor="@color/widget_muted" android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_marginStart="8dp" android:layout_weight="1" android:background="@drawable/widget_tile" android:orientation="vertical" android:padding="10dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:drawablePadding="5dp" android:drawableStart="@drawable/widget_dot_balance" android:text="Balance" android:textColor="@color/widget_muted" android:textSize="11sp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:singleLine="true" android:text="-रू 2,000" android:textColor="@color/widget_text" android:textSize="15sp" android:textStyle="bold" />
+            <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Net total" android:textColor="@color/widget_muted" android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

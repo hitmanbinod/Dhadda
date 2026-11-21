@@ -288,9 +288,9 @@ void main() {
       // and entry amounts stay visible.
       expect(find.text(hiddenMoney()), findsNWidgets(4));
       expect(find.textContaining('Over by ${hiddenMoney()}'), findsOneWidget);
-      // Spotlight and category row both keep their amounts: only the hero,
-      // stats and budget lines mask.
-      expect(find.text(money(500)), findsNWidgets(2));
+      // The category row keeps its amount: only the hero, stats and budget
+      // lines mask (the duplicated featured header is gone).
+      expect(find.text(money(500)), findsOneWidget);
       expect(find.byTooltip('Show balance'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('home-balance-eye')));
@@ -454,10 +454,14 @@ void main() {
 
       expect(find.textContaining('Shown in the home'), findsNothing);
       expect(find.textContaining('Shown in your Home'), findsNothing);
-      final classic = find.byKey(const Key('settings-avatar-classic'));
-      await tester.ensureVisible(classic);
+      // Avatar style now lives in the unified Account & avatar sheet.
+      await tester.tap(find.byKey(const Key('settings-account-card')));
       await tester.pumpAndSettle();
+      expect(find.text('Account & avatar'), findsOneWidget);
+      final classic = find.byKey(const Key('settings-avatar-classic'));
       await tester.tap(classic);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('settings-account-save')));
       await tester.pumpAndSettle();
       expect(store.avatarStyle, 'classic');
 

@@ -119,16 +119,16 @@ void main() {
     await tester.pumpWidget(shell(store, SettingsScreen(engine: engine)));
     await tester.pumpAndSettle();
 
-    expect(
-      find.text(
-        'Calendar data for 2084 onward is an estimate and may be corrected '
-        'in an update.',
-      ),
-      findsOneWidget,
+    final estimate = find.text(
+      'Calendar data for 2084 onward is an estimate and may be corrected '
+      'in an update.',
     );
+    // The BS-only helper note stays hidden while AD is active.
+    expect(estimate, findsNothing);
     await tester.tap(find.byKey(const Key('settings-calendar-bs')));
     await tester.pumpAndSettle();
     expect(store.calendarSystem, 'bs');
+    expect(estimate, findsOneWidget);
 
     final reloaded = ExpenseStore();
     await reloaded.load();

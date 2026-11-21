@@ -97,11 +97,16 @@ class _Slice {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// Extra One-UI style breathing room under the status bar, 0 at the top of
+  /// the scroll and 1 once the big header has scrolled away.
+  static const double _topReachExtra = 36;
+
   DateTime _month = appCalendar.periodOf(DateTime.now()).start;
   String? _spotlightId;
   String? _calendarId;
   double _monthDirection = 1;
   bool _showTopBar = false;
+  double _topCollapse = 0;
   int _monthTick = 0;
 
   @override
@@ -178,7 +183,8 @@ class _HomeScreenState extends State<HomeScreen> {
           value: others,
         ),
     ];
-    final _Slice? spotlight = slices.isEmpty
+    // No category is selected until the user taps a row or a bar segment.
+    final _Slice? spotlight = slices.isEmpty || _spotlightId == null
         ? null
         : slices.firstWhere(
             (s) => s.id == _spotlightId,
@@ -245,9 +251,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final slivers = <Widget>[
           SliverPadding(
-            // A touch more breathing room under the status bar keeps the
-            // profile row comfortable for one-handed reach.
-            padding: EdgeInsets.fromLTRB(hPad, Spacing.lg, hPad, 0),
+            // One-UI style reachability zone: ~52dp below the status bar at
+            // rest, collapsing back to the standard 16dp on scroll.
+            padding: EdgeInsets.fromLTRB(
+              hPad,
+              Spacing.lg + (1 - _topCollapse) * _topReachExtra,
+              hPad,
+              0,
+            ),
             sliver: SliverToBoxAdapter(child: _header(context, store, colors)),
           ),
           if (fallback)
@@ -359,6 +370,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SectionHeader('Events'),
                     const SizedBox(height: Spacing.sm),
                     AppCard(
+                      radius: Radii.cardLargeRadius,
                       padding: const EdgeInsets.fromLTRB(
                         Spacing.md,
                         Spacing.xs,
@@ -526,9 +538,15 @@ class _HomeScreenState extends State<HomeScreen> {
               NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
                   if (notification is ScrollUpdateNotification) {
-                    final show = notification.metrics.pixels > 120;
-                    if (show != _showTopBar) {
-                      setState(() => _showTopBar = show);
+                    final pixels = notification.metrics.pixels;
+                    final show = pixels > 120;
+                    final collapse = (pixels / 120).clamp(0.0, 1.0);
+                    if (show != _showTopBar ||
+                        (collapse - _topCollapse).abs() > 0.01) {
+                      setState(() {
+                        _showTopBar = show;
+                        _topCollapse = collapse;
+                      });
                     }
                   }
                   return false;
@@ -632,13 +650,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: Spacing.xs),
+            const SizedBox(width: Spacing.sm),
             _headerIcon(
               colors,
               Icons.dashboard_customize_outlined,
               'Edit Home',
               _openEditHome,
             ),
+            const SizedBox(width: Spacing.sm),
             _headerIcon(
               colors,
               Icons.sync,
@@ -718,18 +737,44 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Soft-tinted 36dp rounded-square action, aligned to the card margin.
+  Widget _tintedAction(
+    AppColors colors, {
+    Key? key,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          color: colors.surface2,
+          borderRadius: Radii.iconRadius,
+          child: InkWell(
+            key: key,
+            onTap: onPressed,
+            borderRadius: Radii.iconRadius,
+            child: SizedBox(
+              width: Sizes.iconTile,
+              height: Sizes.iconTile,
+              child: Icon(icon, size: Sizes.iconGlyph, color: colors.textSecondary),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _headerIcon(
     AppColors colors,
     IconData icon,
     String tooltip,
     VoidCallback onPressed,
   ) {
-    return IconButton(
-      tooltip: tooltip,
-      onPressed: onPressed,
-      visualDensity: VisualDensity.compact,
-      icon: Icon(icon, size: 20, color: colors.textSecondary),
-    );
+    return _tintedAction(colors, icon: icon, tooltip: tooltip, onPressed: onPressed);
   }
 
   /// Direction-aware month paging. The outgoing label leaves on the side
@@ -849,20 +894,17 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              IconButton(
+              _tintedAction(
+                colors,
                 key: const Key('home-balance-eye'),
+                icon: hidden
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 tooltip: hidden ? 'Show balance' : 'Hide balance',
                 onPressed: () {
                   Haptics.selection();
                   store.setHideBalance(!hidden);
                 },
-                icon: Icon(
-                  hidden
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  size: 22,
-                  color: colors.textSecondary,
-                ),
               ),
             ],
           ),
@@ -955,7 +997,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required _Slice? spotlight,
     required double spend,
   }) {
-    if (slices.isEmpty || spotlight == null) {
+    if (slices.isEmpty) {
       return AppCard(
         child: EmptyState(
           icon: Icons.pie_chart_outline,
@@ -965,7 +1007,9 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    final selectedId = spotlight?.id;
     return AppCard(
+      radius: Radii.cardLargeRadius,
       padding: const EdgeInsets.fromLTRB(
         Spacing.lg,
         Spacing.md,
@@ -974,109 +1018,79 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         children: [
-          Row(
-            key: const Key('home-cat-spotlight'),
-            children: [
-              _sliceTile(spotlight),
-              const SizedBox(width: Spacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      spotlight.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.title.copyWith(fontSize: 15),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${_percent(spotlight.value, spend)} of month spend',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppType.caption.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: Spacing.sm),
-              Text(
-                money(spotlight.value),
-                maxLines: 1,
-                style: AppType.statValue.copyWith(fontSize: 16),
-              ),
-            ],
+          _categoryBar(
+            colors,
+            slices: slices,
+            spend: spend,
+            selectedId: selectedId,
           ),
-          const SizedBox(height: Spacing.lg),
-          _stackedBar(slices, spend),
-          const SizedBox(height: Spacing.md),
+          const SizedBox(height: Spacing.sm),
+          Divider(height: 1, thickness: 1, color: colors.hairline),
+          const SizedBox(height: Spacing.xs),
           for (final slice in slices)
             _categoryRow(
               context,
               colors,
               slice,
               spend: spend,
-              selected: slice.id == spotlight.id,
+              selected: slice.id == selectedId,
             ),
         ],
       ),
     );
   }
 
-  Widget _sliceTile(_Slice slice) {
+  Widget _sliceTile(_Slice slice, {double size = Sizes.iconTile}) {
     return Container(
-      width: Sizes.iconTile,
-      height: Sizes.iconTile,
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: slice.color.withValues(alpha: 0.14),
         borderRadius: Radii.iconRadius,
       ),
-      child: Icon(slice.icon, size: Sizes.iconGlyph, color: slice.color),
+      child: Icon(slice.icon, size: size - 16, color: slice.color),
     );
   }
 
-  Widget _stackedBar(List<_Slice> slices, double spend) {
+  /// Proportional, tappable segment bar. With no selection every segment is
+  /// fully vibrant; a selection dims the rest and glows the active one.
+  Widget _categoryBar(
+    AppColors colors, {
+    required List<_Slice> slices,
+    required double spend,
+    required String? selectedId,
+  }) {
     if (spend <= 0) return const SizedBox.shrink();
     return LayoutBuilder(
       builder: (context, constraints) {
+        const gap = 4.0;
+        const minWidth = 8.0;
+        const barHeight = 9.0;
+        final count = slices.length;
+        final available = math.max(0.0, constraints.maxWidth - gap * (count - 1));
+        final widths = _segmentWidths(slices, spend, available, minWidth);
+
         return Semantics(
           label: 'Spending by category',
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (d) => _selectFromBar(
-              d.localPosition.dx,
-              constraints.maxWidth,
-              slices,
-              spend,
-            ),
-            onLongPressStart: (d) => _selectFromBar(
-              d.localPosition.dx,
-              constraints.maxWidth,
-              slices,
-              spend,
-            ),
-            child: SizedBox(
-              height: 8,
-              child: Row(
-                children: [
-                  for (var i = 0; i < slices.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 3),
-                    Expanded(
-                      flex: math.max(
-                        1,
-                        (slices[i].value / spend * 10000).round(),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: ColoredBox(color: slices[i].color),
-                      ),
+          child: SizedBox(
+            height: barHeight,
+            child: Row(
+              children: [
+                for (var i = 0; i < count; i++) ...[
+                  if (i > 0) const SizedBox(width: gap),
+                  SizedBox(
+                    width: widths[i],
+                    height: barHeight,
+                    child: _barSegment(
+                      colors,
+                      slices[i],
+                      selected: selectedId == slices[i].id,
+                      overview: selectedId == null,
                     ),
-                  ],
+                  ),
                 ],
-              ),
+              ],
             ),
           ),
         );
@@ -1084,29 +1098,87 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _selectFromBar(
-    double dx,
-    double width,
+  /// Share-proportional widths with an 8dp floor; shrink only segments that
+  /// have room above the floor so tiny categories stay visible.
+  List<double> _segmentWidths(
     List<_Slice> slices,
     double spend,
+    double available,
+    double minWidth,
   ) {
-    if (width <= 0 || spend <= 0) return;
-    final x = (dx / width).clamp(0.0, 1.0);
-    var accumulated = 0.0;
-    for (final slice in slices) {
-      accumulated += slice.value / spend;
-      if (x <= accumulated) {
-        _setSpotlight(slice.id);
-        return;
+    if (available <= 0) return List.filled(slices.length, 0);
+    var widths = [
+      for (final s in slices)
+        math.max(minWidth, s.value / spend * available),
+    ];
+    var total = widths.fold<double>(0, (sum, w) => sum + w);
+    if (total <= available) {
+      if (total < available) {
+        // Spread spare room proportionally so the bar fills its track.
+        final spare = available - total;
+        widths = [
+          for (final w in widths) w + (w / total) * spare,
+        ];
       }
+      return widths;
     }
-    _setSpotlight(slices.last.id);
+    final excess = total - available;
+    final reducible = widths
+        .where((w) => w > minWidth)
+        .fold<double>(0, (sum, w) => sum + (w - minWidth));
+    if (reducible <= 0) return List.filled(slices.length, available / slices.length);
+    widths = [
+      for (final w in widths)
+        w - (w > minWidth ? (w - minWidth) / reducible * excess : 0),
+    ];
+    total = widths.fold<double>(0, (sum, w) => sum + w);
+    if (total > available) {
+      final scale = available / total;
+      widths = [for (final w in widths) w * scale];
+    }
+    return widths;
+  }
+
+  Widget _barSegment(
+    AppColors colors,
+    _Slice slice, {
+    required bool selected,
+    required bool overview,
+  }) {
+    final dim = !overview && !selected;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: slice.name,
+      child: GestureDetector(
+        key: Key('home-cat-bar-${slice.id}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _setSpotlight(slice.id),
+        child: AnimatedContainer(
+          duration: Motion.of(context, Motion.base),
+          curve: Motion.ease,
+          decoration: BoxDecoration(
+            color: slice.color.withValues(alpha: dim ? 0.38 : 1.0),
+            borderRadius: Radii.pillRadius,
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: slice.color.withValues(alpha: 0.55),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+        ),
+      ),
+    );
   }
 
   void _setSpotlight(String id) {
-    if (_spotlightId == id) return;
     Haptics.selection();
-    setState(() => _spotlightId = id);
+    // Tapping the active category again returns to the full overview.
+    setState(() => _spotlightId = _spotlightId == id ? null : id);
   }
 
   Widget _categoryRow(
@@ -1116,63 +1188,53 @@ class _HomeScreenState extends State<HomeScreen> {
     required double spend,
     required bool selected,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: InkWell(
-        key: Key('home-cat-${slice.id}'),
-        onTap: () => _setSpotlight(slice.id),
-        onLongPress: () => _setSpotlight(slice.id),
-        borderRadius: BorderRadius.circular(Radii.icon),
-        child: AnimatedContainer(
-          duration: Motion.of(context, Motion.fast),
-          curve: Motion.ease,
-          padding: const EdgeInsets.symmetric(
-            horizontal: Spacing.sm,
-            vertical: 7,
-          ),
-          decoration: BoxDecoration(
-            color: selected ? colors.field : Colors.transparent,
-            borderRadius: BorderRadius.circular(Radii.icon),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: Sizes.iconTile,
-                height: Sizes.iconTile,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: slice.color.withValues(alpha: 0.14),
-                  borderRadius: Radii.iconRadius,
-                ),
-                child: Icon(slice.icon, size: Sizes.iconGlyph, color: slice.color),
-              ),
-              const SizedBox(width: Spacing.md),
-              Expanded(
-                child: Text(
-                  slice.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppType.body.copyWith(
-                    fontSize: 14,
-                    color: colors.textPrimary,
-                  ),
-                ),
-              ),
-              Text(
-                _percent(slice.value, spend),
-                style: AppType.caption.copyWith(
-                  fontSize: 12,
-                  color: colors.textSecondary,
-                ),
-              ),
-              const SizedBox(width: Spacing.md),
-              Text(
-                money(slice.value),
+    // Every row carries the same padding whether selected or not, so the
+    // badge, name, percentage and amount share one exact vertical track.
+    return InkWell(
+      key: Key('home-cat-${slice.id}'),
+      onTap: () => _setSpotlight(slice.id),
+      onLongPress: () => _setSpotlight(slice.id),
+      borderRadius: Radii.iconRadius,
+      child: AnimatedContainer(
+        duration: Motion.of(context, Motion.fast),
+        curve: Motion.ease,
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.sm,
+          vertical: 7,
+        ),
+        decoration: BoxDecoration(
+          color: selected ? colors.surface2 : Colors.transparent,
+          borderRadius: Radii.iconRadius,
+        ),
+        child: Row(
+          children: [
+            _sliceTile(slice, size: 32),
+            const SizedBox(width: Spacing.md),
+            Expanded(
+              child: Text(
+                slice.name,
                 maxLines: 1,
-                style: AppType.amount.copyWith(fontSize: 14),
+                overflow: TextOverflow.ellipsis,
+                style: AppType.body.copyWith(
+                  fontSize: 14,
+                  color: colors.textPrimary,
+                ),
               ),
-            ],
-          ),
+            ),
+            Text(
+              _percent(slice.value, spend),
+              style: AppType.caption.copyWith(
+                fontSize: 12,
+                color: colors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: Spacing.md),
+            Text(
+              money(slice.value),
+              maxLines: 1,
+              style: AppType.amount.copyWith(fontSize: 14),
+            ),
+          ],
         ),
       ),
     );
@@ -1649,7 +1711,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required bool last,
     required Widget child,
   }) {
-    const radius = Radius.circular(Radii.card);
+    const radius = Radius.circular(Radii.cardLarge);
     final border = BorderSide(color: colors.cardBorder);
     return Container(
       decoration: BoxDecoration(

@@ -12,11 +12,11 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  Future<ExpenseStore> ready({bool oneHanded = true}) async {
+  Future<ExpenseStore> ready({bool oneHanded = false}) async {
     SharedPreferences.setMockInitialValues({});
     final store = ExpenseStore();
     await store.load();
-    if (!oneHanded) await store.setOneHanded(false);
+    if (oneHanded) await store.setOneHanded(true);
     return store;
   }
 
@@ -29,25 +29,25 @@ void main() {
         ),
       );
 
-  test('one-handed mode is on by default and persists an explicit choice',
+  test('one-handed mode is off by default and persists an explicit choice',
       () async {
     final store = await ready();
-    expect(store.oneHanded, isTrue);
-    await store.setOneHanded(false);
+    expect(store.oneHanded, isFalse);
+    await store.setOneHanded(true);
     final reloaded = ExpenseStore();
     await reloaded.load();
-    expect(reloaded.oneHanded, isFalse);
-    await reloaded.setOneHanded(true);
     expect(reloaded.oneHanded, isTrue);
+    await reloaded.setOneHanded(false);
+    expect(reloaded.oneHanded, isFalse);
   });
 
-  test('an old stored false migrates to the new default once', () async {
+  test('a legacy stored value without an explicit choice stays off', () async {
     SharedPreferences.setMockInitialValues({
-      'expense_meta_v1': jsonEncode({'one_handed_mode': false}),
+      'expense_meta_v1': jsonEncode({'one_handed_mode': true}),
     });
     final store = ExpenseStore();
     await store.load();
-    expect(store.oneHanded, isTrue);
+    expect(store.oneHanded, isFalse);
   });
 
   testWidgets('History tabs move to the bottom in one-handed mode', (
@@ -79,6 +79,42 @@ void main() {
     final titleY = tester.getTopLeft(find.text('Insights')).dy;
     final tabsY = tester.getTopLeft(find.byType(SegmentedTabs)).dy;
     expect(tabsY, greaterThan(titleY));
+  });
+
+  testWidgets('pinned tabs sit just above the bottom navigation', (tester) async {
+    tester.view.physicalSize = const Size(420, 1200);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    final store = await ready(oneHanded: true);
+    await tester.pumpWidget(
+      ChangeNotifierProvider<ExpenseStore>.value(
+        value: store,
+        child: MaterialApp(
+          theme: AppTheme.build(const Color(0xFF009688), Brightness.light),
+          home: Scaffold(
+            body: const HistoryScreen(),
+            bottomNavigationBar: NavigationBar(
+              selectedIndex: 1,
+              onDestinationSelected: (_) {},
+              destinations: const [
+                NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
+                NavigationDestination(
+                  icon: Icon(Icons.history),
+                  label: 'History',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final tabsBottom = tester.getBottomLeft(find.byType(SegmentedTabs)).dy;
+    final navTop = tester.getTopLeft(find.byType(NavigationBar)).dy;
+    // The Scaffold body already ends at the nav bar; the pinned controls
+    // should leave only a small gap (the bar's own bottom padding plus the
+    // wrapper), not a whole nav-bar height.
+    expect(navTop - tabsBottom, lessThan(24));
   });
 
   testWidgets('Lent toggles move to the bottom', (tester) async {

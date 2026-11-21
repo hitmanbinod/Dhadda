@@ -4,7 +4,11 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import org.json.JSONObject
 import java.io.File
+import java.text.NumberFormat
 import java.util.Calendar
+import java.util.Locale
+
+private val widgetNumberFormat: NumberFormat = NumberFormat.getNumberInstance(Locale.getDefault())
 
 /**
  * What the home-screen widgets show. Everything is read directly from the
@@ -25,8 +29,18 @@ data class WidgetData(
     val monthLabel: String = "This month",
     val todayLabel: String = "Today",
 ) {
+    /** Grouped currency, e.g. "रू 2,000". */
     fun amount(value: Double): String =
-        if (hidden) "••••" else "$symbol ${Math.round(value)}"
+        if (hidden) "••••"
+        else "$symbol ${widgetNumberFormat.format(Math.round(value))}"
+
+    /** Net balance keeps the sign before the symbol: "-रू 2,000". */
+    fun signedAmount(value: Double): String {
+        if (hidden) return "••••"
+        val sign = if (value < 0) "-" else ""
+        return "$sign$symbol " +
+            widgetNumberFormat.format(Math.round(Math.abs(value)))
+    }
 }
 
 object WidgetSnapshot {

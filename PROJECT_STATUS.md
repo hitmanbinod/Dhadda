@@ -50,7 +50,7 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Receipts: native camera/gallery intents, ≤1600 px JPEG q80, EXIF stripped, app-private files only; Add-screen receipt row, viewer, History paperclip, Settings → Data usage + double-confirm clear, startup orphan cleanup.
 
 ## One-handed layout + gesture polish (latest)
-- Additive pref `one_handed_mode` is **on by default** (one-time migration for older installs; Settings → Appearance can still turn it off and that explicit choice persists via `one_handed_choice_v1`).
+- Additive pref `one_handed_mode` is **off by default** (Settings → Appearance can turn it on; that explicit choice persists via `one_handed_choice_v1`).
 - One-handed mode puts History Entries/Categories/Events tabs, Insights period bar and Lent's Lent/Borrowed + Pending/Settled/All toggles **just above the bottom navigation bar** (not mid-screen).
 - **Removed** root-shell horizontal swipe between tabs; tab switching is NavigationBar/rail only.
 - Home month paging: direction-aware slide (old label exits opposite the incoming one) with subtle scale, eased over 300 ms, reduced-motion aware; only the date text opens the picker.

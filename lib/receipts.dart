@@ -2,8 +2,11 @@
 // never in sync payloads or JSON/CSV backups. This service owns their layout
 // and lifecycle; the native side only writes shrunken JPEGs into `incoming`.
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show compute, kIsWeb;
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -57,6 +60,27 @@ class ReceiptStore {
       saved.add(p.relative(dest.path, from: root.path));
     }
     return saved;
+  }
+
+  /// Saves a picked photo as an app-private JPEG (long edge <= 1600, q80,
+  /// no EXIF) and returns the absolute `incoming` path ready for [attach].
+  /// Decoding/resizing runs on a background isolate so the form never
+  /// decodes a full-resolution image on the UI thread.
+  Future<String> savePickedBytes(
+    Uint8List bytes, {
+    required String prefix,
+  }) async {
+    final encoded = await compute(_shrinkReceiptBytes, bytes);
+    if (encoded == null) throw const FormatException('Could not read photo');
+    await ensure();
+    final file = File(
+      p.join(
+        incoming().path,
+        '$prefix-${DateTime.now().microsecondsSinceEpoch}.jpg',
+      ),
+    );
+    await file.writeAsBytes(encoded);
+    return file.path;
   }
 
   Future<List<String>> forEntryPaths(String entryId) async {
@@ -129,6 +153,24 @@ class ReceiptStore {
     }
     return (count: count, bytes: bytes);
   }
+}
+
+/// Decode -> downscale -> re-encode as JPEG on a background isolate. Re-encoding
+/// drops EXIF/location metadata; the UI only ever handles the small result.
+Uint8List? _shrinkReceiptBytes(Uint8List bytes) {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) return null;
+  img.Image output = decoded;
+  final longest = math.max(decoded.width, decoded.height);
+  if (longest > 1600) {
+    final scale = 1600 / longest;
+    output = img.copyResize(
+      decoded,
+      width: (decoded.width * scale).round(),
+      height: (decoded.height * scale).round(),
+    );
+  }
+  return Uint8List.fromList(img.encodeJpg(output, quality: 80));
 }
 
 /// Native captures arrive as absolute paths in `incoming`; stored receipt

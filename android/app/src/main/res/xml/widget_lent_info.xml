@@ -6,6 +6,8 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_lent"
+    android:previewImage="@drawable/widget_preview_lent"
+    android:previewLayout="@layout/widget_lent_preview"
     android:description="@string/widget_lent_desc"
     android:resizeMode="none"
     android:widgetCategory="home_screen" />

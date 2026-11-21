@@ -15,6 +15,7 @@ class AppCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
   final Color? color;
+  final BorderRadiusGeometry? radius;
 
   const AppCard({
     super.key,
@@ -22,6 +23,7 @@ class AppCard extends StatelessWidget {
     this.padding = const EdgeInsets.all(Spacing.lg),
     this.onTap,
     this.color,
+    this.radius,
   }) : children = null,
        assert(child != null);
 
@@ -31,6 +33,7 @@ class AppCard extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.onTap,
     this.color,
+    this.radius,
   }) : child = null,
        assert(children != null);
 
@@ -58,7 +61,7 @@ class AppCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: color ?? colors.card,
-        borderRadius: Radii.cardRadius,
+        borderRadius: radius ?? Radii.cardRadius,
         border: Border.all(color: colors.cardBorder),
       ),
       clipBehavior: Clip.antiAlias,

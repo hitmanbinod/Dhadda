@@ -6,7 +6,7 @@
 > Detailed background lives in `docs/REPORT_ONE_HANDED_MODE.md` and
 > `docs/REPORT_APP_DESIGN.md`; this file is the current snapshot, not history.
 
-Last updated: 2026-11-21 (HEAD `d137aea`, branch `round2`).
+Last updated: 2026-11-21 (HEAD `dcf20b4`, branch `web-parity`; latest UI work in the working tree).
 
 ---
 
@@ -38,6 +38,11 @@ Last updated: 2026-11-21 (HEAD `d137aea`, branch `round2`).
 
 | When | Change | Commit |
 |---|---|---|
+| 2026-11-22 | Home By category: removed duplicated featured header, added interactive proportional pill bar with selection glow/dim synced to rows (tap again clears), selected-row pill uses surface2; header action icons spaced 8dp | working tree |
+| 2026-11-22 | Widgets redesign + picker previews: Month/Today/Lent/Quick layouts with light-night colors, 24dp surfaces, 3 bento tiles, tinted mini-cards and action pills; grouped currency formatting; `previewImage` + `previewLayout` bound on all four providers. Insights one-handed bar opaque; Home action icons spaced | working tree |
+| 2026-11-22 | Add/Income restyle: accent-bound Expense/Income pill, 20dp hero amount card, 3-column categories + 4-column accounts with contrasting selected icon/label, one Details card (64/36 date/time), dashed-to-solid receipt card with cached 128px thumbnails and off-isolate downscaling, sticky Save pill | working tree |
+| 2026-11-21 | Home polish: collapsible ~52dp One-UI top reach zone, tinted 36dp header/eye actions, 20dp card token + uniform badges, tight By-category list with inset divider, 90dp FAB scroll tail; Insights period bar pinned in one-handed mode; reliable receipt thumbnails + View receipt action | working tree |
+| 2026-11-21 | Settings restyled to Home's language: titled cards (16/20 dp gaps), tinted 36 dp icon badges with inset dividers, accent-bound pills and switches, single Account & avatar sheet, concise row copy | working tree |
 | 2026-11-21 | Camera restored in receipt row beside Gallery; native FileProvider root-path + `<queries>` + error reporting; web bundle rebuilt to 1.5.0+4 | `af9aceb` |
 | 2026-11-21 | Lent summary button made compact to fix narrow-web RenderFlex overflow; 320 dp regression test | `484ee77` |
 | 2026-11-21 | Round 3.1: Insights How-you-pay + forecast + account legend, Edit receipts + cleanup, Accounts colour/delete/archive/merge, migration stress tests, final QA | `c82ebf5` … `dc1b0d3` |
@@ -47,14 +52,34 @@ Last updated: 2026-11-21 (HEAD `d137aea`, branch `round2`).
 
 ## 4. One-handed mode (current behaviour)
 
-- Per-device pref `one_handed_mode`, **on by default** with one-time migration
-  guard `one_handed_choice_v1` (`lib/store.dart`). Toggle at
-  `settings-one-handed` in `lib/screens/menu_screen.dart`.
+- Per-device pref `one_handed_mode`, **off by default**; an explicit toggle at
+  `settings-one-handed` in `lib/screens/menu_screen.dart` persists via
+  `one_handed_choice_v1` (`lib/store.dart`). Legacy values without an explicit
+  choice are ignored.
 - History / Insights / Lent segmented controls move from the header to just
   above the bottom nav (`oneHandedBottomPadding` in `lib/widgets/page.dart`).
+  The Scaffold body already ends at the nav bar, so the helper adds only a
+  small gap — do not add the nav-bar height here.
 - Home header lowered; `AnimatedSwitcher` blur bar after 120 px scroll.
 - Root-shell tab swiping removed; month paging direction-aware and animated.
-- Full details: `docs/REPORT_ONE_HANDED_MODE.md`.
+- Full details: `docs/REPORT_ONE_HANDED_MODE.md` (historical report of the
+  original `round2` work; the behaviour above is current).
+
+## 4b. Settings screen anatomy (current)
+
+- `lib/widgets/settings_row.dart` is the shared kit: `SettingsSectionTitle`
+  (17 sp bold, `textPrimary`, outside each card), `SettingsCard` (AppCard with
+  16 dp inner padding and dividers inset to the row text), `SettingsIconBadge`
+  (36 dp / 10 dp radius soft-tinted square), `SettingsRow`,
+  `SettingsSwitchRow`, `SettingsChevron` and `PillSegments`.
+- Every row uses 16 dp horizontal padding, a 36 dp badge, a 12 dp gap and the
+  same trailing-control alignment; destructive rows use the `expense` tint.
+- Active pills and switches bind to `colors.accent` / `colors.onAccent` (never
+  a hardcoded red); tracks use `colors.surface2` / `colors.track`.
+- The account card, avatar and pencil open one **Account & avatar** sheet for
+  name + Minimal/Classic style; the standalone Appearance chips are gone.
+- Calendar shows the BS-only estimate note only when BS is selected; accent,
+  currency and PIN are navigation rows that open pickers/dialogs.
 
 ## 5. Open design issues (do not lose)
 

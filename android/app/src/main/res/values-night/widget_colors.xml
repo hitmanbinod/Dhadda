@@ -1,9 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="widget_card">#FF141D1C</color>
-    <color name="widget_border">#0DFFFFFF</color>
-    <color name="widget_text">#FFEAF2F0</color>
-    <color name="widget_muted">#FF93A39F</color>
-    <color name="widget_accent">#FF7FD6C8</color>
+    <!-- Surfaces -->
+    <color name="widget_card">#FF111715</color>
+    <color name="widget_border">#FF28322E</color>
+    <color name="widget_text">#FFECF3F0</color>
+    <color name="widget_muted">#FF8E9E99</color>
+    <color name="widget_accent">#FFF2A092</color>
+
+    <!-- Inner surfaces & pills -->
+    <color name="widget_tile">#FF1A211E</color>
+    <color name="widget_tile_border">#FF28322E</color>
+    <color name="widget_tag_bg">#FF1A221F</color>
+    <color name="widget_cta_bg">#FF1A221F</color>
     <color name="widget_track">#FF25312F</color>
+
+    <!-- Status dots -->
+    <color name="widget_dot_spent">#FFF2A092</color>
+    <color name="widget_dot_income">#FF8FD3A9</color>
+    <color name="widget_dot_balance">#FFA9A6F0</color>
+
+    <!-- Soft tints: coral / mint / slate -->
+    <color name="widget_tint_coral_bg">#FF3A2320</color>
+    <color name="widget_tint_coral_fg">#FFF2A092</color>
+    <color name="widget_tint_mint_bg">#FF1C332A</color>
+    <color name="widget_tint_mint_fg">#FF8FD3A9</color>
+    <color name="widget_tint_slate_bg">#FF232A3A</color>
+    <color name="widget_tint_slate_fg">#FFA9A6F0</color>
 </resources>

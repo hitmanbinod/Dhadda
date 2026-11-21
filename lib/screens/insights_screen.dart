@@ -73,7 +73,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
           Spacing.screen,
           (constraints.maxWidth - kPageMaxWidth) / 2,
         );
-        return CustomScrollView(
+        final scroll = CustomScrollView(
           slivers: [
             SliverPadding(
               padding: EdgeInsets.fromLTRB(hPad, Spacing.sm, hPad, 0),
@@ -146,14 +146,6 @@ class _InsightsScreenState extends State<InsightsScreen> {
                     ),
                     const SizedBox(height: Spacing.sm),
                     _loanCard(colors, store),
-                    const SizedBox(height: Spacing.xs),
-                    Text(
-                      'Not counted as spending.',
-                      style: AppType.caption.copyWith(
-                        fontSize: 12,
-                        color: colors.textSecondary,
-                      ),
-                    ),
                     if (top.isNotEmpty) ...[
                       const SizedBox(height: Spacing.xl),
                       const SectionHeader('Largest expenses'),
@@ -178,20 +170,30 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   },
                 ),
               ),
-            if (store.oneHanded)
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(
-                  hPad,
-                  Spacing.sm,
-                  hPad,
-                  oneHandedBottomPadding(context),
-                ),
-                sliver: SliverToBoxAdapter(child: _periodTabs(colors)),
-              )
-            else
-              SliverToBoxAdapter(
-                child: SizedBox(height: tabScrollBottomPadding(context)),
+            SliverToBoxAdapter(
+              child: SizedBox(height: tabScrollBottomPadding(context)),
+            ),
+          ],
+        );
+
+        if (!store.oneHanded) return scroll;
+        // In one-handed mode the period bar is pinned to the bottom of the
+        // viewport (above the nav), so it stays reachable without scrolling
+        // to the end of the page.
+        return Stack(
+          children: [
+            scroll,
+            Positioned(
+              left: hPad,
+              right: hPad,
+              bottom: oneHandedBottomPadding(context),
+              // Opaque surface so scrolling content never shows through the
+              // pinned bar; matches the solid bars on the other tabs.
+              child: AppCard(
+                padding: const EdgeInsets.all(Spacing.xs),
+                child: _periodTabs(colors),
               ),
+            ),
           ],
         );
       },
@@ -216,23 +218,11 @@ class _InsightsScreenState extends State<InsightsScreen> {
     return Row(
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Insights',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.largeTitle.copyWith(color: colors.textPrimary),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Your money at a glance',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppType.caption.copyWith(color: colors.textSecondary),
-              ),
-            ],
+          child: Text(
+            'Insights',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppType.largeTitle.copyWith(color: colors.textPrimary),
           ),
         ),
         SettingsAvatarButton(

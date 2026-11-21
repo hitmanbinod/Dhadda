@@ -23,6 +23,8 @@ abstract final class Radii {
   static const double icon = 10;
   static const double chip = 999;
   static const double card = 18;
+  /// Larger Home surfaces (category / event / recent cards).
+  static const double cardLarge = 20;
   static const double sheet = 24;
   static const double input = 12;
   static const double segmented = 10;
@@ -39,6 +41,9 @@ abstract final class Radii {
   );
   static const BorderRadius cardRadius = BorderRadius.all(
     Radius.circular(card),
+  );
+  static const BorderRadius cardLargeRadius = BorderRadius.all(
+    Radius.circular(cardLarge),
   );
   static const BorderRadius segmentedRadius = BorderRadius.all(
     Radius.circular(segmented),

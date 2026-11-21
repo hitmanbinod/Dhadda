@@ -16,6 +16,7 @@ import '../theme/typography.dart';
 import '../widgets/app_card.dart';
 import '../widgets/page.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/settings_row.dart';
 import '../widgets/backup_password.dart';
 import '../sync/link_sync.dart';
 import '../sync/backup_crypto.dart';
@@ -126,742 +127,686 @@ class _MenuScreenState extends State<MenuScreen> {
       return null;
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final store = context.watch<ExpenseStore>();
     final vault = _vault;
     final colors = AppColors.of(context);
 
-    return ListView(
-      padding: pageInsets(context),
-      children: [
-        AppCard(
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: Spacing.lg,
-              vertical: Spacing.xs,
+    return SwitchTheme(
+      data: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? colors.onAccent
+              : colors.textSecondary;
+        }),
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? colors.accent
+              : colors.track;
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          return states.contains(WidgetState.selected)
+              ? Colors.transparent
+              : colors.cardBorder;
+        }),
+      ),
+      child: ListView(
+        padding: pageInsets(context),
+        children: [
+          // ---------- account ----------
+          AppCard(
+            key: const Key('settings-account-card'),
+            padding: const EdgeInsets.symmetric(vertical: Spacing.xs),
+            onTap: () => _accountDialog(context, store),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: Spacing.lg,
+                vertical: Spacing.sm,
+              ),
+              child: Row(
+                children: [
+                  ProfileAvatar(
+                    name: store.userName,
+                    style: store.avatarStyle,
+                    size: 44,
+                  ),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Text(
+                      store.userName.isEmpty ? 'Set your name' : store.userName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppType.title.copyWith(color: colors.textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: Spacing.sm),
+                  Icon(Icons.edit_outlined, size: 20, color: colors.accent),
+                ],
+              ),
             ),
-            leading: ProfileAvatar(
-              name: store.userName,
-              style: store.avatarStyle,
-            ),
-            title: Text(
-              store.userName.isEmpty ? 'Set your name' : store.userName,
-              style: AppType.title.copyWith(color: colors.textPrimary),
-            ),
-            trailing: IconButton(
-              tooltip: 'Edit name',
-              icon: Icon(Icons.edit_outlined, color: colors.textSecondary),
-              onPressed: () => _nameDialog(context, store),
-            ),
-            minTileHeight: 64,
           ),
-        ),
 
-        // ---------- appearance ----------
-        _groupTitle('Appearance'),
-        AppCard.group(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
-                Spacing.md,
-                Spacing.lg,
-                Spacing.md,
-              ),
-              child: Wrap(
-                spacing: Spacing.sm,
-                runSpacing: Spacing.sm,
-                children: [
-                  for (final (v, label, icon) in const [
-                    ('light', 'Light', Icons.light_mode_outlined),
-                    ('system', 'Auto', Icons.settings_suggest_outlined),
-                    ('dark', 'Dark', Icons.dark_mode_outlined),
-                  ])
-                    ChoiceChip(
-                      label: Text(label),
-                      avatar: Icon(icon, size: 18),
-                      showCheckmark: false,
-                      selected: store.themeMode == v,
-                      onSelected: (_) => store.setThemeMode(v),
-                    ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
-                0,
-                Spacing.lg,
-                Spacing.md,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Profile picture',
-                    style: AppType.caption.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.xs),
-                  Wrap(
-                    spacing: Spacing.sm,
-                    children: [
-                      ChoiceChip(
-                        key: const Key('settings-avatar-minimal'),
-                        label: const Text('Minimal'),
-                        avatar: const Icon(Icons.text_fields, size: 18),
-                        showCheckmark: false,
-                        selected: store.avatarStyle == 'minimal',
-                        onSelected: (_) => store.setAvatarStyle('minimal'),
-                      ),
-                      ChoiceChip(
-                        key: const Key('settings-avatar-classic'),
-                        label: const Text('Classic'),
-                        avatar: const Icon(Icons.person, size: 18),
-                        showCheckmark: false,
-                        selected: store.avatarStyle == 'classic',
-                        onSelected: (_) => store.setAvatarStyle('classic'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.lg,
-                0,
-                Spacing.lg,
-                Spacing.md,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Calendar',
-                    style: AppType.caption.copyWith(color: colors.textSecondary),
-                  ),
-                  const SizedBox(height: Spacing.xs),
-                  Wrap(
-                    spacing: Spacing.sm,
-                    children: [
-                      ChoiceChip(
-                        key: const Key('settings-calendar-ad'),
-                        label: const Text('AD'),
-                        showCheckmark: false,
-                        selected: store.calendarSystem == 'ad',
-                        onSelected: (_) => store.setCalendarSystem('ad'),
-                      ),
-                      ChoiceChip(
-                        key: const Key('settings-calendar-bs'),
-                        label: const Text('BS'),
-                        showCheckmark: false,
-                        selected: store.calendarSystem == 'bs',
-                        onSelected: (_) => store.setCalendarSystem('bs'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.xs),
-                  Text(
-                    'Calendar data for 2084 onward is an estimate and may '
-                    'be corrected in an update.',
-                    style: AppType.caption.copyWith(
-                      fontSize: 12,
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            _switchRow(
-              key: const Key('settings-hide-balance'),
-              icon: Icons.visibility_off_outlined,
-              title: 'Hide balance when the app opens',
-              subtitle: 'Home masks amounts until you tap the eye.',
-              value: store.hideBalance,
-              onChanged: (v) => store.setHideBalance(v),
-            ),
-            _switchRow(
-              key: const Key('settings-one-handed'),
-              icon: Icons.front_hand_outlined,
-              title: 'One-handed mode',
-              subtitle: 'Moves the top tabs and toggles to the bottom.',
-              value: store.oneHanded,
-              onChanged: (v) => store.setOneHanded(v),
-            ),
-            _row(
-              key: const Key('settings-edit-home'),
-              icon: Icons.dashboard_customize_outlined,
-              title: 'Edit Home',
-              subtitle: 'Choose sections and their order',
-              trailing: Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: colors.textSecondary,
-              ),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const EditHomeScreen()),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                leading: Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: Color(store.accent),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: colors.cardBorder),
-                  ),
+          // ---------- appearance ----------
+          const SettingsSectionTitle('Appearance'),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.brightness_6_outlined,
+                title: 'Theme',
+                subtitle: 'Light, Auto or Dark',
+                content: PillSegments(
+                  fullWidth: true,
+                  labels: const ['Light', 'Auto', 'Dark'],
+                  selected: const ['light', 'system', 'dark']
+                      .indexOf(store.themeMode),
+                  onChanged: (i) =>
+                      store.setThemeMode(const ['light', 'system', 'dark'][i]),
                 ),
-                title: Text(
-                  'Accent colour',
-                  style: AppType.body.copyWith(fontSize: 15),
-                ),
-                subtitle: Text(ExpenseStore.accentName(store.accent)),
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: Spacing.md,
-                      horizontal: Spacing.xs,
-                    ),
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        if (!ExpenseStore.accentChoices.contains(store.accent))
-                          _swatch(context, store, store.accent, true),
-                        for (final c in ExpenseStore.accentChoices)
-                          _swatch(context, store, c, false),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.xs),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
-                      onPressed: () => _pickCustom(context, store),
-                      icon: const Icon(Icons.palette_outlined),
-                      label: const Text('Custom colour…'),
-                    ),
-                  ),
-                ],
               ),
-            ),
-            if (!kIsWeb &&
-                defaultTargetPlatform == TargetPlatform.android)
-              _switchRow(
-                icon: Icons.wallpaper_outlined,
-                title: 'Match wallpaper',
-                subtitle: 'Material You, Android 12+',
-                value: store.materialYou,
-                onChanged: (v) => store.setMaterialYou(v),
-              ),
-          ],
-        ),
-
-        // ---------- money ----------
-        _groupTitle('Money'),
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: DropdownButtonFormField<String>(
-              isExpanded: true,
-              initialValue: store.currency,
-              decoration: const InputDecoration(
-                labelText: 'Display currency',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                for (final c in ExpenseStore.currencySymbols.keys)
-                  DropdownMenuItem(
-                    value: c,
-                    child: Text('$c - ${ExpenseStore.currencyNames[c]}'),
-                  ),
-              ],
-              onChanged: (v) async {
-                if (v == null) return;
-                await store.setCurrency(v);
-                _say('Currency set to $v.');
-              },
-            ),
+            ],
           ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        AppCard(
-          child: _row(
-            key: const Key('settings-accounts'),
-            icon: Icons.account_balance_wallet_outlined,
-            title: 'Accounts',
-            subtitle: 'Name the ways you pay, with no balances',
-            trailing: Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: colors.textSecondary,
-            ),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const AccountsScreen()),
-            ),
-          ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        AppCard(
-          child: _row(
-            key: const Key('settings-auto-category'),
-            icon: Icons.auto_awesome_outlined,
-            title: 'Auto-category rules',
-            subtitle: 'Suggest categories from note text',
-            trailing: Icon(
-              Icons.chevron_right,
-              size: 20,
-              color: colors.textSecondary,
-            ),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const CategoryRulesScreen(),
-              ),
-            ),
-          ),
-        ),
-
-        // ---------- security ----------
-        _groupTitle('Security'),
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.lg,
-              Spacing.md,
-              Spacing.lg,
-              Spacing.md,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          const SizedBox(height: Spacing.lg),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.palette_outlined,
+                title: 'Accent colour',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.lock_outline, color: colors.textSecondary),
-                    const SizedBox(width: Spacing.md),
-                    Expanded(
-                      child: Text(
-                        vault == null
-                            ? 'Checking…'
-                            : (vault.isEnabled
-                                ? 'PIN lock is on (4 digits)'
-                                : 'PIN lock is off'),
-                        style: AppType.body.copyWith(fontSize: 15),
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Color(store.accent),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colors.cardBorder),
                       ),
                     ),
+                    const SizedBox(width: Spacing.sm),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 104),
+                      child: Text(
+                        ExpenseStore.accentName(store.accent),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppType.caption.copyWith(
+                          fontSize: 12,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: Spacing.xs),
+                    const SettingsChevron(),
                   ],
                 ),
-                if (vault != null && !vault.isEnabled)
-                  Padding(
-                    padding: const EdgeInsets.only(top: Spacing.md),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FilledButton(
-                        onPressed: () => _enablePin(vault),
-                        child: const Text('Set PIN'),
+                onTap: () => _accentDialog(context, store),
+              ),
+              if (!kIsWeb &&
+                  defaultTargetPlatform == TargetPlatform.android)
+                SettingsSwitchRow(
+                  icon: Icons.wallpaper_outlined,
+                  title: 'Match wallpaper',
+                  subtitle: 'Material You, Android 12+',
+                  value: store.materialYou,
+                  onChanged: (v) => store.setMaterialYou(v),
+                ),
+            ],
+          ),
+
+          // ---------- preferences ----------
+          const SettingsSectionTitle('Preferences'),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.calendar_month_outlined,
+                title: 'Calendar',
+                subtitle: 'Date display and grouping',
+                note: store.calendarSystem == 'bs'
+                    ? 'Calendar data for 2084 onward is an estimate and may '
+                        'be corrected in an update.'
+                    : null,
+                trailing: PillSegments(
+                  compact: true,
+                  labels: const ['AD', 'BS'],
+                  keys: const [
+                    Key('settings-calendar-ad'),
+                    Key('settings-calendar-bs'),
+                  ],
+                  selected: store.calendarSystem == 'bs' ? 1 : 0,
+                  onChanged: (i) =>
+                      store.setCalendarSystem(i == 0 ? 'ad' : 'bs'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.lg),
+          SettingsCard(
+            children: [
+              SettingsSwitchRow(
+                switchKey: const Key('settings-hide-balance'),
+                icon: Icons.visibility_off_outlined,
+                title: 'Hide balance on launch',
+                subtitle: 'Mask amounts until tapped',
+                value: store.hideBalance,
+                onChanged: (v) => store.setHideBalance(v),
+              ),
+              SettingsSwitchRow(
+                switchKey: const Key('settings-one-handed'),
+                icon: Icons.front_hand_outlined,
+                title: 'One-handed mode',
+                subtitle: 'Tabs and toggles near the thumb',
+                value: store.oneHanded,
+                onChanged: (v) => store.setOneHanded(v),
+              ),
+              SettingsRow(
+                key: const Key('settings-edit-home'),
+                icon: Icons.dashboard_customize_outlined,
+                title: 'Edit Home',
+                subtitle: 'Choose sections and their order',
+                trailing: const SettingsChevron(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const EditHomeScreen()),
+                ),
+              ),
+            ],
+          ),
+
+          // ---------- money ----------
+          const SettingsSectionTitle('Money'),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.currency_exchange_outlined,
+                title: 'Display currency',
+                subtitle:
+                    '${store.currency} - ${ExpenseStore.currencyNames[store.currency]}',
+                trailing: const SettingsChevron(),
+                onTap: () => _currencyDialog(context, store),
+              ),
+              SettingsRow(
+                key: const Key('settings-accounts'),
+                icon: Icons.account_balance_wallet_outlined,
+                title: 'Accounts',
+                subtitle: 'Name the ways you pay',
+                trailing: const SettingsChevron(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AccountsScreen()),
+                ),
+              ),
+              SettingsRow(
+                key: const Key('settings-auto-category'),
+                icon: Icons.auto_awesome_outlined,
+                title: 'Auto-category rules',
+                subtitle: 'Suggest categories from note text',
+                trailing: const SettingsChevron(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const CategoryRulesScreen(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // ---------- security ----------
+          const SettingsSectionTitle('Security'),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.lock_outlined,
+                title: vault == null
+                    ? 'PIN lock'
+                    : (vault.isEnabled ? 'PIN lock is on' : 'PIN lock is off'),
+                subtitle: vault == null
+                    ? 'Checking…'
+                    : (vault.isEnabled
+                        ? '4 digits'
+                        : 'Protect the app on launch'),
+                trailing: const SettingsChevron(),
+                onTap: vault == null ? null : () => _pinDialog(context, vault),
+              ),
+              if (vault != null && vault.isEnabled && _bioSupported)
+                SettingsSwitchRow(
+                  icon: Icons.fingerprint,
+                  title: 'Fingerprint',
+                  subtitle: 'Unlock without typing the PIN',
+                  value: vault.biometric,
+                  onChanged: (v) => _toggleBio(vault, v),
+                ),
+            ],
+          ),
+
+          // ---------- data ----------
+          const SettingsSectionTitle('Data'),
+          SettingsCard(
+            children: [
+              FutureBuilder(
+                future: ReceiptStore.create().then((s) => s.usage()),
+                builder: (context, snapshot) {
+                  final usage = snapshot.data;
+                  return SettingsRow(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'Receipts',
+                    subtitle: usage == null
+                        ? 'Photos stay on this phone'
+                        : '${usage.count} photos · ${formatBytes(usage.bytes)}',
+                    trailing: TextButton(
+                      onPressed: usage == null || usage.count == 0
+                          ? null
+                          : () => _clearReceipts(context),
+                      child: const Text('Clear all'),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.lg),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.backup_outlined,
+                title: 'Backup & transfer',
+                subtitle: 'Export to share or archive, import on any device',
+                content: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton.icon(
+                            onPressed: () => _exportBackup(context, store),
+                            icon: const Icon(Icons.upload_outlined),
+                            label: const Text('Export'),
+                          ),
+                        ),
+                        const SizedBox(width: Spacing.md),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _importBackup(context, store),
+                            icon: const Icon(Icons.download_outlined),
+                            label: const Text('Import'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: Spacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _exportEncrypted(context, store),
+                        icon: const Icon(Icons.lock_outline),
+                        label: const Text('Encrypted backup…'),
                       ),
                     ),
-                  ),
-                if (vault != null && vault.isEnabled) ...[
-                  const SizedBox(height: Spacing.sm),
-                  OverflowBar(
-                    children: [
-                      TextButton(
-                        onPressed: () => _changePin(vault),
-                        child: const Text('Change'),
-                      ),
-                      TextButton(
-                        onPressed: () => _disablePin(vault),
-                        child: const Text('Disable'),
-                      ),
-                    ],
-                  ),
-                  if (_bioSupported)
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      secondary: Icon(
-                        Icons.fingerprint,
+                    const SizedBox(height: Spacing.xs),
+                    Text(
+                      'Encrypted backups need a passphrase, not the app PIN.',
+                      style: AppType.caption.copyWith(
+                        fontSize: 11.5,
                         color: colors.textSecondary,
                       ),
-                      title: const Text('Fingerprint'),
-                      subtitle: const Text('Unlock without typing the PIN'),
-                      value: vault.biometric,
-                      onChanged: (v) => _toggleBio(vault, v),
-                    ),
-                ],
-              ],
-            ),
-          ),
-        ),
-
-        // ---------- data ----------
-        _groupTitle('Data'),
-        AppCard(
-          child: FutureBuilder(
-            future: ReceiptStore.create().then((s) => s.usage()),
-            builder: (context, snapshot) {
-              final usage = snapshot.data;
-              final label = usage == null
-                  ? 'Receipts'
-                  : 'Receipts: ${usage.count} photos, '
-                      '${formatBytes(usage.bytes)}';
-              return _row(
-                icon: Icons.receipt_long_outlined,
-                title: label,
-                subtitle: 'Receipts stay on this phone and are not '
-                    'included in backups or sync.',
-                trailing: TextButton(
-                  onPressed: usage == null || usage.count == 0
-                      ? null
-                      : () => _clearReceipts(context),
-                  child: const Text('Clear all'),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: Spacing.sm),
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(Spacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your data, your file. Export to share or archive it, '
-                  'import it back on any device.',
-                  style: AppType.body.copyWith(
-                    fontSize: 14,
-                    color: colors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: Spacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: () => _exportBackup(context, store),
-                        icon: const Icon(Icons.upload_outlined),
-                        label: const Text('Export'),
-                      ),
-                    ),
-                    const SizedBox(width: Spacing.md),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _importBackup(context, store),
-                        icon: const Icon(Icons.download_outlined),
-                        label: const Text('Import'),
-                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: Spacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _exportEncrypted(context, store),
-                    icon: const Icon(Icons.lock_outline),
-                    label: const Text('Encrypted backup…'),
-                  ),
-                ),
-                const SizedBox(height: Spacing.sm),
-                Text(
-                  'Encrypted backups need a passphrase (not the app PIN) '
-                  'to open. Import detects them automatically.',
-                  style: AppType.caption.copyWith(
-                    fontSize: 12,
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
 
-        // ---------- sync ----------
-        _groupTitle('Sync'),
-        AppCard(
-          child: _row(
-            icon: store.linked ? Icons.link : Icons.link_off,
-            iconColor: store.linked ? colors.income : null,
-            title: store.linked ? 'Linked with ${store.linkPeer}' : 'Not linked',
-            subtitle: store.linked
-                ? (store.linkStatus.isEmpty
-                    ? 'Auto-sync is on'
-                    : store.linkStatus)
-                : 'Pair once, then auto-sync on the same WiFi',
-            trailing: FilledButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => SyncScreen(engine: widget.engine),
+          // ---------- sync ----------
+          const SettingsSectionTitle('Sync'),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: store.linked ? Icons.link : Icons.link_off,
+                iconColor: store.linked ? colors.income : null,
+                title: store.linked
+                    ? 'Linked with ${store.linkPeer}'
+                    : 'Not linked',
+                subtitle: store.linked
+                    ? (store.linkStatus.isEmpty
+                        ? 'Auto-sync is on'
+                        : store.linkStatus)
+                    : 'Pair once, then auto-sync on the same WiFi',
+                trailing: FilledButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SyncScreen(engine: widget.engine),
+                    ),
+                  ),
+                  child: const Text('Open sync'),
                 ),
               ),
-              child: const Text('Open sync'),
-            ),
+            ],
           ),
-        ),
 
-        // ---------- SMS ----------
-        if (!kIsWeb) ...[
-          _groupTitle('SMS'),
-          AppCard(
-            child: Padding(
-              padding: const EdgeInsets.all(Spacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          // ---------- SMS ----------
+          if (!kIsWeb) ...[
+            const SettingsSectionTitle('SMS'),
+            SettingsCard(
+              children: [
+                SettingsRow(
+                  icon: Icons.sms_outlined,
+                  title: 'SMS import',
+                  subtitle: 'Auto adds on open · Manual asks first',
+                  trailing: PillSegments(
+                    compact: true,
+                    labels: const ['Manual', 'Auto'],
+                    selected: store.smsMode == 'auto' ? 1 : 0,
+                    onChanged: (i) =>
+                        store.setSmsMode(i == 0 ? 'manual' : 'auto'),
+                  ),
+                ),
+                SettingsRow(
+                  icon: Icons.block_outlined,
+                  title: 'Allowed senders',
+                  subtitle: 'Only these senders are scanned',
+                  content: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Icon(Icons.sms_outlined, color: colors.textSecondary),
-                      const SizedBox(width: Spacing.md),
-                      Expanded(
-                        child: Text(
-                          'Auto adds on open · Manual asks first',
-                          style: AppType.caption.copyWith(
-                            color: colors.textSecondary,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _smsSender,
+                              textCapitalization:
+                                  TextCapitalization.characters,
+                              decoration: const InputDecoration(
+                                labelText: 'Sender (eSewa, Nabil…)',
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              onSubmitted: (_) => _addSmsSender(store),
+                            ),
                           ),
-                        ),
-                      ),
-                      SegmentedButton<String>(
-                        showSelectedIcon: false,
-                        style: SegmentedButton.styleFrom(
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        segments: const [
-                          ButtonSegment(value: 'manual', label: Text('Manual')),
-                          ButtonSegment(value: 'auto', label: Text('Auto')),
+                          IconButton(
+                            tooltip: 'Add sender',
+                            icon: const Icon(Icons.add),
+                            onPressed: () => _addSmsSender(store),
+                          ),
                         ],
-                        selected: {store.smsMode},
-                        onSelectionChanged: (s) => store.setSmsMode(s.first),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: Spacing.sm),
-                  Text(
-                    'Only these senders are scanned - everything else is '
-                    'ignored as junk.',
-                    style: AppType.caption.copyWith(
-                      color: colors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: Spacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _smsSender,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration: const InputDecoration(
-                            labelText: 'Sender (eSewa, Nabil…)',
-                            border: OutlineInputBorder(),
-                            isDense: true,
-                          ),
-                          onSubmitted: (_) => _addSmsSender(store),
+                      if (store.smsSenders.isNotEmpty) ...[
+                        const SizedBox(height: Spacing.xs),
+                        Wrap(
+                          spacing: Spacing.sm,
+                          runSpacing: 0,
+                          children: [
+                            for (final s in store.smsSenders)
+                              Chip(
+                                label: Text(s),
+                                deleteIcon: const Icon(Icons.close, size: 18),
+                                onDeleted: () => store.setSmsSenders([
+                                  for (final e in store.smsSenders)
+                                    if (e != s) e,
+                                ]),
+                              ),
+                          ],
                         ),
-                      ),
-                      IconButton(
-                        tooltip: 'Add sender',
-                        icon: const Icon(Icons.add),
-                        onPressed: () => _addSmsSender(store),
-                      ),
+                      ],
                     ],
                   ),
-                  if (store.smsSenders.isNotEmpty) ...[
-                    const SizedBox(height: Spacing.xs),
-                    Wrap(
-                      spacing: Spacing.sm,
-                      runSpacing: 0,
-                      children: [
-                        for (final s in store.smsSenders)
-                          Chip(
-                            label: Text(s),
-                            deleteIcon: const Icon(Icons.close, size: 18),
-                            onDeleted: () => store.setSmsSenders([
-                              for (final e in store.smsSenders)
-                                if (e != s) e,
-                            ]),
-                          ),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: Spacing.md),
-                  FilledButton.icon(
-                    onPressed: () => _importSms(context, store),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Scan SMS now'),
-                  ),
-                ],
-              ),
+                ),
+                SettingsRow(
+                  icon: Icons.download_outlined,
+                  title: 'Scan SMS now',
+                  subtitle: 'Import bank and wallet texts',
+                  trailing: const SettingsChevron(),
+                  onTap: () => _importSms(context, store),
+                ),
+              ],
             ),
-          ),
-        ],
+          ],
 
-        // ---------- about ----------
-        _groupTitle('About'),
-        const AppCard(
-          child: Padding(
-            padding: EdgeInsets.all(Spacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.info_outline),
-                    SizedBox(width: Spacing.md),
-                    Expanded(
-                      child: Text(
-                        'Dhadda Expense $kAppVersion',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: Spacing.xs),
-                Text('Local-first · offline · free forever'),
-                Text(
-                  'Built $kBuildStamp',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-                Divider(height: Spacing.xl),
-                Text('Developer', style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(height: Spacing.xs),
-                Text('Binod Acharya'),
-                SelectableText(
+          // ---------- about ----------
+          const SettingsSectionTitle('About'),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.info_outlined,
+                title: 'Dhadda Expense $kAppVersion',
+                subtitle: 'Local-first · offline · free forever',
+                note: 'Built $kBuildStamp',
+              ),
+              SettingsRow(
+                icon: Icons.person_outline,
+                title: 'Developer',
+                subtitle: 'Binod Acharya',
+                content: const SelectableText(
                   'binod.acharya@example.com',
                   style: TextStyle(fontSize: 12),
                 ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: Spacing.lg),
+          SettingsCard(
+            children: [
+              SettingsRow(
+                icon: Icons.delete_forever_outlined,
+                destructive: true,
+                title: 'Erase all data',
+                subtitle: 'Wipes everything on THIS device only',
+                trailing: const SettingsChevron(destructive: true),
+                onTap: () => _erase(context, store),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xl),
+          Text(
+            'Private by design: data lives on your devices. '
+            'No account, no server fees, ever.',
+            style: AppType.caption.copyWith(color: colors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One sheet for the account name and avatar style. Tapping the account
+  /// card, its avatar or the pencil all land here.
+  Future<void> _accountDialog(BuildContext context, ExpenseStore store) async {
+    final name = TextEditingController(text: store.userName);
+    var style = store.avatarStyle;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          title: const Text('Account & avatar'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: ProfileAvatar(name: name.text, style: style, size: 56),
+                ),
+                const SizedBox(height: Spacing.lg),
+                TextField(
+                  controller: name,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                  onChanged: (_) => setD(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Your name',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: Spacing.md),
+                const Text('Avatar style'),
+                const SizedBox(height: Spacing.xs),
+                Wrap(
+                  spacing: Spacing.sm,
+                  children: [
+                    ChoiceChip(
+                      key: const Key('settings-avatar-minimal'),
+                      label: const Text('Minimal'),
+                      avatar: const Icon(Icons.text_fields, size: 18),
+                      showCheckmark: false,
+                      selected: style == 'minimal',
+                      onSelected: (_) => setD(() => style = 'minimal'),
+                    ),
+                    ChoiceChip(
+                      key: const Key('settings-avatar-classic'),
+                      label: const Text('Classic'),
+                      avatar: const Icon(Icons.person, size: 18),
+                      showCheckmark: false,
+                      selected: style == 'classic',
+                      onSelected: (_) => setD(() => style = 'classic'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('settings-account-save'),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result != true || !context.mounted) return;
+    await store.setUserName(name.text);
+    await store.setAvatarStyle(style);
+  }
+
+  /// Accent swatches, moved out of the row into a picker sheet.
+  Future<void> _accentDialog(BuildContext context, ExpenseStore store) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Accent colour'),
+        content: Consumer<ExpenseStore>(
+          builder: (ctx, s, _) => SingleChildScrollView(
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                if (!ExpenseStore.accentChoices.contains(s.accent))
+                  _swatch(ctx, s, s.accent, true),
+                for (final c in ExpenseStore.accentChoices)
+                  _swatch(ctx, s, c, false),
               ],
             ),
           ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => _pickCustom(ctx, store),
+            icon: const Icon(Icons.palette_outlined),
+            label: const Text('Custom…'),
+          ),
+        ],
+      ),
+    );
+  }
 
-        const SizedBox(height: Spacing.lg),
-        AppCard(
-          child: _row(
-            icon: Icons.delete_forever_outlined,
-            iconColor: colors.expense,
-            title: 'Erase all data',
-            titleColor: colors.expense,
-            subtitle: 'Wipes everything on THIS device only',
-            trailing: TextButton(
-              onPressed: () => _erase(context, store),
-              child: Text('Erase', style: TextStyle(color: colors.expense)),
-            ),
+  /// Currency picker as a navigation row instead of an always-open dropdown.
+  Future<void> _currencyDialog(BuildContext context, ExpenseStore store) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Display currency'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final c in ExpenseStore.currencySymbols.keys)
+                ListTile(
+                  dense: true,
+                  title: Text('$c - ${ExpenseStore.currencyNames[c]}'),
+                  trailing: store.currency == c
+                      ? Icon(Icons.check, color: AppColors.of(ctx).accent)
+                      : null,
+                  onTap: () async {
+                    Navigator.of(ctx).pop();
+                    if (!context.mounted) return;
+                    await store.setCurrency(c);
+                    _say('Currency set to $c.');
+                  },
+                ),
+            ],
           ),
         ),
-        const SizedBox(height: Spacing.xl),
-        Text(
-          'Private by design: data lives on your devices. '
-          'No account, no server fees, ever.',
-          style: AppType.caption.copyWith(color: colors.textSecondary),
-        ),
-      ],
-    );
-  }
-
-  Widget _groupTitle(String text) {
-    final colors = AppColors.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Spacing.xs,
-        Spacing.lg,
-        Spacing.xs,
-        Spacing.sm,
-      ),
-      child: Semantics(
-        header: true,
-        child: Text(
-          text,
-          style: AppType.captionStrong.copyWith(color: colors.textSecondary),
-        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _row({
-    Key? key,
-    IconData? icon,
-    Color? iconColor,
-    required String title,
-    Color? titleColor,
-    String? subtitle,
-    Widget? trailing,
-    VoidCallback? onTap,
-  }) {
-    final colors = AppColors.of(context);
-    return ListTile(
-      key: key,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: Spacing.lg,
-        vertical: Spacing.xs,
-      ),
-      leading: icon == null
-          ? null
-          : Icon(icon, size: 20, color: iconColor ?? colors.textSecondary),
-      title: Text(
-        title,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: AppType.body.copyWith(
-          fontSize: 15,
-          color: titleColor ?? colors.textPrimary,
-        ),
-      ),
-      subtitle: subtitle == null
-          ? null
-          : Text(
-              subtitle,
-              style: AppType.caption.copyWith(color: colors.textSecondary),
+  /// PIN status plus the existing Set / Change / Disable actions.
+  Future<void> _pinDialog(BuildContext context, PinVault vault) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('PIN lock'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              vault.isEnabled ? 'On · 4 digits' : 'Off',
+              style: AppType.body.copyWith(
+                color: AppColors.of(ctx).textSecondary,
+              ),
             ),
-      trailing: trailing,
-      onTap: onTap,
-      minTileHeight: 56,
+            const SizedBox(height: Spacing.md),
+            if (!vault.isEnabled)
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _enablePin(vault);
+                },
+                child: const Text('Set PIN'),
+              )
+            else ...[
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _changePin(vault);
+                },
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('Change PIN'),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _disablePin(vault);
+                },
+                icon: const Icon(Icons.lock_open_outlined),
+                label: const Text('Disable PIN'),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
-
-  Widget _switchRow({
-    Key? key,
-    IconData? icon,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    final colors = AppColors.of(context);
-    return SwitchListTile(
-      key: key,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: Spacing.lg,
-        vertical: Spacing.xs,
-      ),
-      secondary: icon == null
-          ? null
-          : Icon(icon, size: 20, color: colors.textSecondary),
-      title: Text(
-        title,
-        style: AppType.body.copyWith(fontSize: 15, color: colors.textPrimary),
-      ),
-      subtitle: subtitle == null
-          ? null
-          : Text(
-              subtitle,
-              style: AppType.caption.copyWith(color: colors.textSecondary),
-            ),
-      value: value,
-      onChanged: onChanged,
-    );
- }
-
 
   Future<void> _clearReceipts(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -908,37 +853,6 @@ class _MenuScreenState extends State<MenuScreen> {
     _say('All receipts cleared.');
   }
 
-  Future<void> _nameDialog(BuildContext context, ExpenseStore store) async {
-    final ctrl = TextEditingController(text: store.userName);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Your name'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(
-            labelText: 'Your name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && context.mounted) {
-      await store.setUserName(ctrl.text);
-    }
-  }
 
   // ---------- PIN (4 digits) ----------
 

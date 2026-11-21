@@ -69,7 +69,6 @@ void main() {
     expect(tester.takeException(), isNull);
 
     expect(find.text('History'), findsOneWidget);
-    expect(find.text('3 entries'), findsOneWidget);
     expect(find.text('Entries'), findsOneWidget);
     expect(find.text('Categories'), findsOneWidget);
     expect(find.text('Events'), findsOneWidget);
@@ -96,7 +95,6 @@ void main() {
     expect(find.text('Salary'), findsOneWidget);
     expect(find.text('Momo'), findsNothing);
     expect(find.text('Bus'), findsNothing);
-    expect(find.text('1 of 3 entries'), findsOneWidget);
     expect(find.text('Today'), findsNothing);
 
     await tester.tap(find.text('All'));

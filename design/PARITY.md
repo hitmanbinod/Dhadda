@@ -1,6 +1,6 @@
 # Android <-> Web design parity
 
-Last synced Android commit: `86a74ee` (2026-11-21)
+Last synced Android commit: `dcf20b4` (2026-11-21)
 
 Both platforms are one Flutter codebase. "Android file" and "Web file" are
 often the same file; that is expected and listed under Intentional differences.
@@ -19,6 +19,26 @@ often the same file; that is expected and listed under Intentional differences.
 | Add / Edit sheet | `lib/screens/add_screen.dart`, `lib/widgets/entry_actions.dart`, `receipt_field.dart` | same | ✅ synced |
 | Toasts / sheets | `lib/widgets/app_snack_bar.dart`, theme | same | ✅ synced |
 | Embedded bundle | `lib/sync/phone_host_io.dart` | `assets/webapp/` (rebuild with `dart tool/build_embedded_web.dart`) | ✅ synced 1.5.0+4 |
+
+Latest UI changes (both platforms share the same Flutter files): Home's By
+category card dropped its duplicated featured header for a proportional,
+tappable pill segment bar with glow/dim highlight synced to row selection;
+tapping the active category clears back to the overview. all four Android
+home-screen widgets were redesigned with light/dark surfaces, 24dp corners,
+grouped comma-formatted currency and zero dead space; each provider now has a
+real `previewImage` drawable and `previewLayout` so HyperOS/MIUI and Android 12+
+show widget thumbnails. Insights' pinned one-handed bar is opaque; Home's
+Edit Home and Sync actions have more breathing room. one-handed mode
+is off by default, pinned bars sit just above the bottom nav, the AI-ish
+title/helper captions were removed from History, Insights and Lent, Settings was
+restyled to Home's surface language, Home has a collapsible One-UI top reach
+zone and uniform 20dp cards/badges, and Insights pins its period bar to the
+viewport bottom in one-handed mode. Add/Income now uses an accent-bound pill
+track, hero amount card, 3-column category grid, 4-column account tiles, a
+consolidated details card, dashed/solid receipt card with cached 128px
+thumbnails, and a sticky Save pill. Receipt downscaling runs on a background
+isolate; thumbnails never decode full-resolution images in the form. Tokens
+gained `cardLarge` (20) and were re-synced.
 
 ## Intentional differences
 

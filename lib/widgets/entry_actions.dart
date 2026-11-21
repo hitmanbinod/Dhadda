@@ -8,6 +8,7 @@ import '../store.dart';
 import '../theme/tokens.dart';
 import 'delete.dart';
 import 'receipt_field.dart';
+import 'receipt_viewer.dart';
 
 const _modes = ['cash', 'bank', 'card', 'ewallet'];
 
@@ -229,9 +230,28 @@ Future<void> _showEditDialog(
                 const SizedBox(height: Spacing.lg),
                 ReceiptField(
                   initial: originalReceipts,
-                  onChanged: (paths) => storedReceipts = paths,
-                  onCapturedChanged: (paths) => capturedReceipts = paths,
+                  onChanged: (paths) {
+                    storedReceipts = paths;
+                    setD(() {});
+                  },
+                  onCapturedChanged: (paths) {
+                    capturedReceipts = paths;
+                    setD(() {});
+                  },
                 ),
+                if (storedReceipts.isNotEmpty || capturedReceipts.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Spacing.sm),
+                    child: OutlinedButton.icon(
+                      key: const Key('receipt-view'),
+                      onPressed: () => showReceiptViewer(
+                        ctx,
+                        [...storedReceipts, ...capturedReceipts],
+                      ),
+                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('View receipt'),
+                    ),
+                  ),
               ],
             ),
           ),

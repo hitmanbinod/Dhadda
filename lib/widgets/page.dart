@@ -17,16 +17,17 @@ const double kNavBarHeight = 80.0;
 double tabScrollBottomPadding(BuildContext context) {
   final wide = MediaQuery.widthOf(context) > 900;
   final systemBottom = MediaQuery.paddingOf(context).bottom;
-  return (wide ? 0 : kNavBarHeight + systemBottom) + kAddPillHeight + 16;
+  // The Scaffold body already ends at the top of the bottom NavigationBar,
+  // so only the floating Add pill needs clearing here (~88-96dp in total).
+  return (wide ? 0 : systemBottom) + kAddPillHeight + 40;
 }
 
-/// Bottom inset for controls pinned under one-handed mode. The floating Add
-/// pill only exists on Home, so these bars sit immediately above the bottom
-/// navigation bar (including the system gesture inset) with a small gap.
+/// Bottom gap for controls pinned under one-handed mode. The Scaffold body
+/// already ends at the top of the bottom NavigationBar, so only a small gap
+/// is needed here. Adding the nav-bar height would leave the controls
+/// floating a whole bar above the tabs (and double-count the system inset).
 double oneHandedBottomPadding(BuildContext context) {
-  final wide = MediaQuery.widthOf(context) > 900;
-  if (wide) return Spacing.sm;
-  return kNavBarHeight + MediaQuery.paddingOf(context).bottom + Spacing.xs;
+  return Spacing.sm;
 }
 
 /// Full padding for scrollable pages (ListView etc).
