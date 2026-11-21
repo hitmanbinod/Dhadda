@@ -333,6 +333,12 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     setState(() => _index = 1);
   }
 
+  /// Insights "How you pay": filter History to that account, then switch.
+  void _openHistoryAccount(String accountId) {
+    _historyDay.openAccount(accountId);
+    setState(() => _index = 1);
+  }
+
   void _openAdd() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -398,7 +404,10 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         onOpenSettings: _openSettings,
         dayRequest: _historyDay,
       ),
-      InsightsScreen(onOpenSettings: _openSettings),
+      InsightsScreen(
+        onOpenSettings: _openSettings,
+        onOpenAccount: _openHistoryAccount,
+      ),
       LentScreen(onOpenSettings: _openSettings),
     ];
     final wide = MediaQuery.widthOf(context) > 900;

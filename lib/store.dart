@@ -11,6 +11,7 @@ import 'category_rules.dart';
 import 'format.dart';
 import 'analytics.dart';
 import 'home_layout.dart';
+import 'insights.dart';
 import 'data/db_recovery.dart';
 import 'data/domain_store.dart';
 import 'data/drift_domain_store.dart';
@@ -1802,15 +1803,21 @@ class ExpenseStore extends ChangeNotifier {
   // how much of the window has elapsed.
   String _insightsRevision = '';
   final Map<InsightPeriod, InsightsAnalytics> _insightsCache = {};
+  final Map<InsightPeriod, HowYouPay> _howYouPayCache = {};
 
-  InsightsAnalytics insights(InsightPeriod period) {
+  void _ensureInsightsRevision() {
     final now = DateTime.now();
     final revision =
         '$updatedAt|$calendarSystem|${now.year}-${now.month}-${now.day}';
-    if (_insightsRevision != revision) {
-      _insightsRevision = revision;
-      _insightsCache.clear();
-    }
+    if (_insightsRevision == revision) return;
+    _insightsRevision = revision;
+    _insightsCache.clear();
+    _howYouPayCache.clear();
+  }
+
+  InsightsAnalytics insights(InsightPeriod period) {
+    _ensureInsightsRevision();
+    final now = DateTime.now();
     return _insightsCache.putIfAbsent(
       period,
       () => computeInsights(
@@ -1819,6 +1826,25 @@ class ExpenseStore extends ChangeNotifier {
         period,
         asOf: now,
         calendar: appCalendar,
+      ),
+    );
+  }
+
+  /// Memoized account split for the "How you pay" card. Uses the same
+  /// window and revision as [insights], so both cards always agree.
+  HowYouPay howYouPay(InsightPeriod period) {
+    _ensureInsightsRevision();
+    final window = insights(period);
+    return _howYouPayCache.putIfAbsent(
+      period,
+      () => computeHowYouPay(
+        transactions,
+        start: window.start,
+        end: window.end,
+        accounts: accounts,
+        accountIdFor: (t) => t.accountId.isEmpty
+            ? accountIdForModeOrDefault(t.mode)
+            : t.accountId,
       ),
     );
   }

@@ -41,15 +41,25 @@ String _dayLabel(DateTime d) {
 }
 
 /// Searchable history with type/category filters + CSV export.
-/// A request to open History filtered to one day (the Home rhythm strip).
-/// A notifier rather than an initial value because the shell keeps History
-/// mounted in an IndexedStack across tab switches.
+/// A request to open History filtered to one day (the Home rhythm strip) or
+/// to one account (the Insights "How you pay" legend). A notifier rather than
+/// an initial value because the shell keeps History mounted in an IndexedStack
+/// across tab switches.
 class HistoryDayRequest extends ChangeNotifier {
   DateTime? _day;
   DateTime? get day => _day;
+  String? _accountId;
+  String? get accountId => _accountId;
 
   void open(DateTime day) {
     _day = DateTime(day.year, day.month, day.day);
+    _accountId = null;
+    notifyListeners();
+  }
+
+  void openAccount(String accountId) {
+    _day = null;
+    _accountId = accountId;
     notifyListeners();
   }
 }
@@ -83,6 +93,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _type = 'all'; // all | expense | income
   String _cat = 'all';
   DateTime? _dayFilter;
+  String? _accountFilter;
   Timer? _debounce;
   bool _hasSearchText = false;
 
@@ -95,6 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     _dayFilter = widget.dayRequest?.day;
+    _accountFilter = widget.dayRequest?.accountId;
     widget.dayRequest?.addListener(_applyDayRequest);
   }
 
@@ -107,11 +119,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  /// A rhythm-bar tap lands here: clear search/filters first so the day is
-  /// never hidden behind an old query, then show exactly that day.
+  /// A rhythm-bar tap or an Insights account tap lands here: clear
+  /// search/filters first so the requested slice is never hidden behind an
+  /// old query, then show exactly that day or account.
   void _applyDayRequest() {
-    final day = widget.dayRequest?.day;
-    if (day == null || !mounted) return;
+    final request = widget.dayRequest;
+    if (request == null || !mounted) return;
+    final day = request.day;
+    final account = request.accountId;
+    if (day == null && (account == null || account.isEmpty)) return;
     _debounce?.cancel();
     setState(() {
       _view = 'entries';
@@ -120,7 +136,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _hasSearchText = false;
       _type = 'all';
       _cat = 'all';
-      _dayFilter = DateTime(day.year, day.month, day.day);
+      _dayFilter =
+          day == null ? null : DateTime(day.year, day.month, day.day);
+      _accountFilter = account;
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _listCtrl.hasClients) _listCtrl.jumpTo(0);
@@ -287,7 +305,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _query.isNotEmpty ||
         _type != 'all' ||
         _cat != 'all' ||
-        _dayFilter != null;
+        _dayFilter != null ||
+        _accountFilter != null;
     if (filtering) {
       return '$n of $total ${total == 1 ? 'entry' : 'entries'}';
     }
@@ -453,11 +472,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _type = 'all';
       _cat = 'all';
       _dayFilter = null;
+      _accountFilter = null;
     });
   }
 
   Widget _filterRow(AppColors colors, ExpenseStore store) {
-    final hasFilters = _type != 'all' || _cat != 'all' || _dayFilter != null;
+    final hasFilters = _type != 'all' ||
+        _cat != 'all' ||
+        _dayFilter != null ||
+        _accountFilter != null;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -526,6 +549,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
               },
             ),
           ],
+          if (_accountFilter != null) ...[
+            const SizedBox(width: Spacing.sm),
+            _FilterPill(
+              label: store.accountName(_accountFilter!),
+              icon: Icons.account_circle_outlined,
+              trailingIcon: Icons.close,
+              selected: true,
+              semanticsLabel: 'Clear account filter',
+              onTap: () {
+                Haptics.selection();
+                setState(() => _accountFilter = null);
+              },
+            ),
+          ],
           if (hasFilters || _query.isNotEmpty) ...[
             const SizedBox(width: Spacing.xs),
             TextButton(
@@ -548,12 +585,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   // ---------- entries ----------
 
+  /// Legacy entries without an account id are grouped by their mode's
+  /// default account, matching "How you pay" and the Add/Edit pickers.
+  String _accountIdOf(ExpenseStore store, Txn t) => t.accountId.isEmpty
+      ? store.accountIdForModeOrDefault(t.mode)
+      : t.accountId;
+
   List<Txn> _filtered(ExpenseStore store) {
     final q = _query.toLowerCase();
     return store.transactions
         .where((t) {
           if (_type != 'all' && t.type != _type) return false;
           if (_cat != 'all' && t.categoryId != _cat) return false;
+          if (_accountFilter != null &&
+              _accountIdOf(store, t) != _accountFilter) {
+            return false;
+          }
           if (_dayFilter != null) {
             final d = t.dateTime;
             final f = _dayFilter!;
@@ -650,7 +697,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         _query.isNotEmpty ||
         _type != 'all' ||
         _cat != 'all' ||
-        _dayFilter != null;
+        _dayFilter != null ||
+        _accountFilter != null;
     if (store.transactions.isEmpty && !filtering) {
       return const EmptyState(
         icon: Icons.receipt_long_outlined,

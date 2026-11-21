@@ -15,7 +15,7 @@ historical phases. Update this file whenever code changes.
 
 ## Verification baseline
 - `flutter analyze --no-fatal-infos` → clean
-- `flutter test` → **330/330 passing**
+- `flutter test` → **340/340 passing**
 - `flutter build apk --debug` → succeeds
 - Signed release: `flutter build apk --release --split-per-abi --obfuscate --split-debug-info=build/debug-info`
 - Last installed on phone (wireless ADB `192.168.1.64:37655`): arm64 release 39.9 MB, 1.5.0 / code 2004, installed 2026-11-21 — **the latest UI-polish changes below are not yet rebuilt/reinstalled**.
@@ -62,6 +62,13 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - Greeting has a real night part (21:00–04:59 → "Good night").
 - Settings no longer says "Shown in (the) home greeting"; username dialog label is just "Your name".
 - Additive `avatar_style_v1` pref with **Minimal** (initial) / **Classic** (person glyph) choices in Settings → Appearance; applied everywhere ProfileAvatar is used.
+
+## Round 3.1 — Step 1 (Insights)
+- New pure `lib/insights.dart`: `computeHowYouPay` (expense-only account shares, archived included, top 5 + "Other accounts", legacy resolver) and `projectInsightsEndSpend`; covered by `test/insights_pay_test.dart`.
+- `ExpenseStore.howYouPay(period)` memoizes on the same revision as `insights(period)`.
+- Insights now shows **How you pay** (8 dp stacked bar, 3 dp gaps, tappable legend → History account filter), a quiet **Month-end forecast**, and paired spend/income bars in the trend card.
+- `HistoryDayRequest.openAccount` carries an account filter into the already-mounted History tab; filter pill + Semantics included.
+- Still missing from the Round 1 Insights spec (not implemented here): Biggest changes, Your week, Possible subscriptions, month heatmap.
 
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,

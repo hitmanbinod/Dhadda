@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 import '../analytics.dart';
 import '../app_dates.dart';
 import '../format.dart';
+import '../insights.dart';
 import '../store.dart';
+import '../theme/haptics.dart';
 import '../theme/palette.dart';
 import '../theme/tokens.dart';
 import '../theme/typography.dart';
@@ -26,7 +28,14 @@ import '../widgets/segmented_tabs.dart';
 class InsightsScreen extends StatefulWidget {
   final VoidCallback? onOpenSettings;
 
-  const InsightsScreen({super.key, this.onOpenSettings});
+  /// Opens History filtered to the tapped account ("How you pay" legend).
+  final ValueChanged<String>? onOpenAccount;
+
+  const InsightsScreen({
+    super.key,
+    this.onOpenSettings,
+    this.onOpenAccount,
+  });
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
@@ -53,6 +62,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
         if (p != InsightPeriod.fiscal || appFiscalSupported(now)) p,
     ];
     final data = store.insights(_period);
+    final pay = store.howYouPay(_period);
+    final projected = projectInsightsEndSpend(data);
     final top = data.topExpenses;
 
     return LayoutBuilder(
@@ -92,11 +103,21 @@ class _InsightsScreenState extends State<InsightsScreen> {
                       )
                     else ...[
                       _summaryCard(colors, data),
+                      if (projected != null) ...[
+                        const SizedBox(height: Spacing.lg),
+                        _forecastCard(colors, projected),
+                      ],
                       if (data.spend > 0) ...[
                         const SizedBox(height: Spacing.xl),
                         const SectionHeader('Where it went'),
                         const SizedBox(height: Spacing.sm),
                         _categoryCard(context, colors, store, data),
+                        if (pay.total > 0 && pay.slices.isNotEmpty) ...[
+                          const SizedBox(height: Spacing.xl),
+                          const SectionHeader('How you pay'),
+                          const SizedBox(height: Spacing.sm),
+                          _howYouPayCard(colors, pay),
+                        ],
                         const SizedBox(height: Spacing.xl),
                         const SectionHeader('Monthly rhythm'),
                         const SizedBox(height: Spacing.sm),
@@ -269,6 +290,177 @@ class _InsightsScreenState extends State<InsightsScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Small, quiet projection for the period that is still running.
+  Widget _forecastCard(AppColors colors, double projected) {
+    return AppCard(
+      key: const Key('insights-forecast-card'),
+      child: Row(
+        children: [
+          Icon(Icons.trending_up, size: 20, color: colors.accent),
+          const SizedBox(width: Spacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Month-end forecast',
+                  style: AppType.caption.copyWith(color: colors.textSecondary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  money(projected),
+                  maxLines: 1,
+                  style: AppType.statValue.copyWith(fontSize: 20),
+                ),
+                Text(
+                  'At the current daily pace',
+                  style: AppType.caption.copyWith(
+                    fontSize: 12,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Account split of spend: one stacked bar plus a tappable inline legend.
+  Widget _howYouPayCard(AppColors colors, HowYouPay pay) {
+    final summary = pay.slices
+        .take(3)
+        .map((s) => '${s.label} ${_percent(s.amount, pay.total)}')
+        .join(', ');
+    return AppCard(
+      key: const Key('insights-how-you-pay'),
+      padding: const EdgeInsets.fromLTRB(
+        Spacing.lg,
+        Spacing.md,
+        Spacing.lg,
+        Spacing.md,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            label: 'How you pay. ${money(pay.total)} spent. $summary.',
+            child: _payBar(colors, pay),
+          ),
+          const SizedBox(height: Spacing.md),
+          for (final slice in pay.slices)
+            _payLegendRow(colors, slice, pay.total),
+        ],
+      ),
+    );
+  }
+
+  Widget _payBar(AppColors colors, HowYouPay pay) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(4),
+      child: SizedBox(
+        height: 8,
+        child: Row(
+          children: [
+            for (var i = 0; i < pay.slices.length; i++) ...[
+              if (i > 0) const SizedBox(width: 3),
+              Expanded(
+                flex: math.max(
+                  1,
+                  (pay.slices[i].amount / pay.total * 10000).round(),
+                ),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: _payColor(colors, pay.slices[i]),
+                    borderRadius: BorderRadius.horizontal(
+                      left: i == 0 ? const Radius.circular(4) : Radius.zero,
+                      right: i == pay.slices.length - 1
+                          ? const Radius.circular(4)
+                          : Radius.zero,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _payColor(AppColors colors, PaymentSlice slice) =>
+      slice.color == 0 ? colors.accent : Color(slice.color);
+
+  Widget _payLegendRow(AppColors colors, PaymentSlice slice, double total) {
+    final canOpen = slice.id != kOtherAccountsId && widget.onOpenAccount != null;
+    return Semantics(
+      button: canOpen,
+      label: canOpen ? 'Show ${slice.label} entries in History' : null,
+      child: InkWell(
+        key: Key('insights-pay-${slice.id}'),
+        onTap: canOpen
+            ? () {
+                Haptics.selection();
+                widget.onOpenAccount!(slice.id);
+              }
+            : null,
+        borderRadius: BorderRadius.circular(Radii.icon),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _payColor(colors, slice),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  slice.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppType.body.copyWith(
+                    fontSize: 14,
+                    color: colors.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                _percent(slice.amount, total),
+                style: AppType.caption.copyWith(
+                  fontSize: 12,
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: Spacing.md),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 110),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    money(slice.amount),
+                    maxLines: 1,
+                    style: AppType.amount.copyWith(fontSize: 14),
+                  ),
+                ),
+              ),
+              if (canOpen) ...[
+                const SizedBox(width: Spacing.xs),
+                Icon(Icons.chevron_right, size: 16, color: colors.textSecondary),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -516,9 +708,9 @@ class _InsightsScreenState extends State<InsightsScreen> {
   }
 
   Widget _trendCard(AppColors colors, InsightsAnalytics data) {
-    final maxSpend = data.trend.fold<double>(
+    final maxValue = data.trend.fold<double>(
       0,
-      (max, month) => math.max(max, month.spend),
+      (max, month) => math.max(max, math.max(month.spend, month.income)),
     );
     var highest = data.trend.first;
     for (final month in data.trend) {
@@ -539,7 +731,7 @@ class _InsightsScreenState extends State<InsightsScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'Monthly spending',
+                  'Income vs spending',
                   style: AppType.caption.copyWith(color: colors.textSecondary),
                 ),
               ),
@@ -556,11 +748,49 @@ class _InsightsScreenState extends State<InsightsScreen> {
               alignment: Alignment.center,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 620),
-                child: _trendBars(colors, data, maxSpend),
+                child: _trendBars(colors, data, maxValue),
               ),
             ),
           ),
           const SizedBox(height: Spacing.sm),
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: colors.expense,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: Spacing.xs),
+              Text(
+                'Spent',
+                style: AppType.caption.copyWith(
+                  fontSize: 11,
+                  color: colors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: Spacing.md),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: colors.income,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: Spacing.xs),
+              Text(
+                'Earned',
+                style: AppType.caption.copyWith(
+                  fontSize: 11,
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: Spacing.xs),
           Text(
             'Highest: ${money(highest.spend)} '
             '\u00B7 ${appTrendMonthShort(highest.month)}',
@@ -576,16 +806,30 @@ class _InsightsScreenState extends State<InsightsScreen> {
     );
   }
 
-  Widget _trendBars(AppColors colors, InsightsAnalytics data, double maxSpend) {
+  Widget _trendBars(AppColors colors, InsightsAnalytics data, double maxValue) {
     final currentIndex = data.trend.length - 1;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final barWidth = (constraints.maxWidth / data.trend.length * 0.42)
-            .clamp(8.0, 30.0)
+        final barWidth = (constraints.maxWidth / data.trend.length * 0.20)
+            .clamp(5.0, 12.0)
             .toDouble();
+
+        Widget bar(double value, Color color) => Container(
+          width: barWidth,
+          height: maxValue <= 0
+              ? 2.0
+              : math.max(2.0, value / maxValue * 88),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: const BorderRadius.vertical(
+              top: Radius.circular(3),
+            ),
+          ),
+        );
+
         return Semantics(
           container: true,
-          label: 'Monthly spending',
+          label: 'Income versus spending by month',
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -594,7 +838,8 @@ class _InsightsScreenState extends State<InsightsScreen> {
                   child: Semantics(
                     label:
                         '${appTrendMonthFull(data.trend[i].month)}: '
-                        '${money(data.trend[i].spend)}',
+                        'spent ${money(data.trend[i].spend)}, '
+                        'earned ${money(data.trend[i].income)}',
                     child: ExcludeSemantics(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -602,22 +847,26 @@ class _InsightsScreenState extends State<InsightsScreen> {
                           Expanded(
                             child: Align(
                               alignment: Alignment.bottomCenter,
-                              child: Container(
-                                width: barWidth,
-                                height: maxSpend <= 0
-                                    ? 2.0
-                                    : math.max(
-                                        2.0,
-                                        data.trend[i].spend / maxSpend * 88,
-                                      ),
-                                decoration: BoxDecoration(
-                                  color: i == currentIndex
-                                      ? colors.accent
-                                      : colors.accent.withValues(alpha: 0.20),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(4),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  bar(
+                                    data.trend[i].spend,
+                                    i == currentIndex
+                                        ? colors.expense
+                                        : colors.expense
+                                            .withValues(alpha: 0.35),
                                   ),
-                                ),
+                                  const SizedBox(width: 3),
+                                  bar(
+                                    data.trend[i].income,
+                                    i == currentIndex
+                                        ? colors.income
+                                        : colors.income
+                                            .withValues(alpha: 0.35),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
