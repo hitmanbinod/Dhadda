@@ -3,7 +3,6 @@ import 'package:expense/screens/home_screen.dart';
 import 'package:expense/store.dart';
 import 'package:expense/theme/app_theme.dart';
 import 'package:expense/theme/palette.dart';
-import 'package:expense/theme/typography.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

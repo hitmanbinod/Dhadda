@@ -731,13 +731,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
             Spacing.xs,
             Spacing.sm,
           ),
-          child: Text(
-            _dayLabel(day.date),
-            style: AppType.captionStrong.copyWith(
-              fontSize: 12,
-              letterSpacing: 0.5,
-              color: colors.textSecondary,
-            ),
+          child: Row(
+            children: [
+              Text(
+                _dayLabel(day.date).toUpperCase(),
+                style: AppType.captionStrong.copyWith(
+                  fontSize: 12,
+                  letterSpacing: 0.5,
+                  color: colors.textSecondary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                () {
+                  final net = day.items.fold<double>(0, (sum, item) {
+                    if (item is! Txn) return sum;
+                    return sum + (item.isExpense ? -item.amount : item.amount);
+                  });
+                  final sign = net >= 0 ? '+' : '\u2212';
+                  return '$sign${money(net.abs())}';
+                }(),
+                style: AppType.caption.copyWith(
+                  color: colors.textSecondary,
+                  fontFeatures: AppType.tabular,
+                ),
+              ),
+            ],
           ),
         ),
         AppCard.group(

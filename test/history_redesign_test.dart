@@ -75,8 +75,8 @@ void main() {
     expect(find.text('Events'), findsOneWidget);
 
     // Newest-first day groups: today, then yesterday, then the older day.
-    expect(find.text('Today'), findsOneWidget);
-    expect(find.text('Yesterday'), findsOneWidget);
+    expect(find.text('TODAY'), findsOneWidget);
+    expect(find.text('YESTERDAY'), findsOneWidget);
     expect(find.text('Momo'), findsOneWidget);
     expect(find.text('Bus'), findsOneWidget);
     expect(find.text('Salary'), findsOneWidget);
