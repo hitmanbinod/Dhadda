@@ -3,6 +3,7 @@
 // and lifecycle; the native side only writes shrunken JPEGs into `incoming`.
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -20,8 +21,14 @@ class ReceiptStore {
   static Future<ReceiptStore> create() async {
     final injected = _override;
     if (injected != null) return injected;
-    final dir = await getApplicationDocumentsDirectory();
-    return ReceiptStore(Directory(p.join(dir.path, 'receipts')));
+    // Web has no path_provider implementation and receipts are native-only.
+    if (kIsWeb) return ReceiptStore(Directory('receipts'));
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      return ReceiptStore(Directory(p.join(dir.path, 'receipts')));
+    } catch (_) {
+      return ReceiptStore(Directory('receipts'));
+    }
   }
 
   Directory incoming() => Directory(p.join(root.path, 'incoming'));
@@ -29,12 +36,14 @@ class ReceiptStore {
   Directory forEntry(String entryId) => Directory(p.join(root.path, entryId));
 
   Future<void> ensure() async {
+    if (kIsWeb) return;
     await root.create(recursive: true);
     await incoming().create(recursive: true);
   }
 
   /// Moves freshly captured files from `incoming` under the saved entry id.
   Future<List<String>> attach(String entryId, Iterable<String> incomingPaths) async {
+    if (kIsWeb) return const [];
     await ensure();
     final target = forEntry(entryId);
     await target.create(recursive: true);
@@ -51,6 +60,7 @@ class ReceiptStore {
   }
 
   Future<List<String>> forEntryPaths(String entryId) async {
+    if (kIsWeb) return const [];
     final dir = forEntry(entryId);
     if (!await dir.exists()) return [];
     return [
@@ -60,18 +70,21 @@ class ReceiptStore {
   }
 
   Future<bool> hasFor(String entryId) async {
+    if (kIsWeb) return false;
     final dir = forEntry(entryId);
     if (!await dir.exists()) return false;
     return await dir.list().any((_) => true);
   }
 
   Future<void> removeOne(String relativePath) async {
+    if (kIsWeb) return;
     try {
       await File(p.join(root.path, relativePath)).delete();
     } catch (_) {}
   }
 
   Future<void> removeEntry(String entryId) async {
+    if (kIsWeb) return;
     try {
       await forEntry(entryId).delete(recursive: true);
     } catch (_) {}
@@ -80,6 +93,7 @@ class ReceiptStore {
   /// Deletes files for entries that no longer exist (permanent delete, sync
   /// removal, undo/erase) plus stale incoming captures on app start.
   Future<int> cleanOrphans(Set<String> liveEntryIds) async {
+    if (kIsWeb) return 0;
     await ensure();
     var removed = 0;
     for (final d in root.listSync().whereType<Directory>()) {
@@ -97,6 +111,7 @@ class ReceiptStore {
   }
 
   Future<void> clearAll() async {
+    if (kIsWeb) return;
     try {
       await root.delete(recursive: true);
     } catch (_) {}
@@ -104,6 +119,7 @@ class ReceiptStore {
   }
 
   Future<({int count, int bytes})> usage() async {
+    if (kIsWeb) return (count: 0, bytes: 0);
     if (!await root.exists()) return (count: 0, bytes: 0);
     var count = 0;
     var bytes = 0;
@@ -152,6 +168,7 @@ Future<void> cleanupRemovedReceipts(
 
 /// Deletes captures that were never attached (edit cancelled/dismissed).
 Future<void> cleanupCapturedPaths(Iterable<String> paths) async {
+  if (kIsWeb) return;
   for (final path in paths) {
     try {
       await File(path).delete();
