@@ -64,6 +64,26 @@ class HistoryDayRequest extends ChangeNotifier {
   }
 }
 
+/// A search typed in the desktop top bar reaches the mounted History tab
+/// through this notifier, so the field is a real filter rather than a jump.
+class HistorySearchRequest extends ChangeNotifier {
+  String _query = '';
+  String get query => _query;
+  int _focusTick = 0;
+  int get focusTick => _focusTick;
+
+  void setQuery(String value) {
+    if (_query == value) return;
+    _query = value;
+    notifyListeners();
+  }
+
+  void focus() {
+    _focusTick++;
+    notifyListeners();
+  }
+}
+
 class HistoryScreen extends StatefulWidget {
   /// Opens the Sync screen. Provided by the shell; standalone uses omit it.
   final VoidCallback? onOpenSync;
@@ -74,11 +94,15 @@ class HistoryScreen extends StatefulWidget {
   /// Fired when Home's rhythm strip asks for one day.
   final HistoryDayRequest? dayRequest;
 
+  /// Top-bar search typed on desktop; mirrored into this screen's filter.
+  final HistorySearchRequest? searchRequest;
+
   const HistoryScreen({
     super.key,
     this.onOpenSync,
     this.onOpenSettings,
     this.dayRequest,
+    this.searchRequest,
   });
 
   @override
@@ -101,13 +125,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
   /// title + search + filters: scrolling down hands their space to history.
   final ScrollController _listCtrl = ScrollController();
   final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _dayFilter = widget.dayRequest?.day;
     _accountFilter = widget.dayRequest?.accountId;
+    _query = widget.searchRequest?.query ?? '';
+    _searchCtrl.text = _query;
+    _hasSearchText = _query.isNotEmpty;
     widget.dayRequest?.addListener(_applyDayRequest);
+    widget.searchRequest?.addListener(_applySearchRequest);
   }
 
   @override
@@ -116,6 +145,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (oldWidget.dayRequest != widget.dayRequest) {
       oldWidget.dayRequest?.removeListener(_applyDayRequest);
       widget.dayRequest?.addListener(_applyDayRequest);
+    }
+    if (oldWidget.searchRequest != widget.searchRequest) {
+      oldWidget.searchRequest?.removeListener(_applySearchRequest);
+      widget.searchRequest?.addListener(_applySearchRequest);
     }
   }
 
@@ -140,17 +173,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
           day == null ? null : DateTime(day.year, day.month, day.day);
       _accountFilter = account;
     });
+    widget.searchRequest?.setQuery('');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _listCtrl.hasClients) _listCtrl.jumpTo(0);
     });
   }
 
+  void _applySearchRequest() {
+    final request = widget.searchRequest;
+    if (request == null || !mounted) return;
+    if (_query != request.query) {
+      _debounce?.cancel();
+      setState(() {
+        _query = request.query;
+        _searchCtrl.text = request.query;
+        _hasSearchText = request.query.isNotEmpty;
+      });
+    }
+    if (request.focusTick > 0) _searchFocus.requestFocus();
+  }
+
   @override
   void dispose() {
     widget.dayRequest?.removeListener(_applyDayRequest);
+    widget.searchRequest?.removeListener(_applySearchRequest);
     _debounce?.cancel();
     _listCtrl.dispose();
     _searchCtrl.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -370,6 +420,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           TextField(
             key: const Key('history-search'),
             controller: _searchCtrl,
+            focusNode: _searchFocus,
             style: AppType.body.copyWith(
               fontSize: 14,
               color: colors.textPrimary,
@@ -449,7 +500,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     // Debounced: keeps long histories smooth while typing.
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() => _query = value);
+      if (!mounted) return;
+      setState(() => _query = value);
+      widget.searchRequest?.setQuery(value);
     });
   }
 
@@ -474,6 +527,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _dayFilter = null;
       _accountFilter = null;
     });
+    widget.searchRequest?.setQuery('');
   }
 
   Widget _filterRow(AppColors colors, ExpenseStore store) {

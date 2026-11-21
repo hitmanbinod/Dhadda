@@ -30,6 +30,20 @@ import '../widgets/section_header.dart';
 import 'edit_home_screen.dart';
 
 /// Dashboard: month totals, category distribution, budgets, recent entries.
+/// Lets the shell page the Home month from anywhere (keyboard shortcuts).
+class HomeMonthRequest extends ChangeNotifier {
+  int _tick = 0;
+  int get tick => _tick;
+  int _direction = 1;
+  int get direction => _direction;
+
+  void page(int delta) {
+    _direction = delta;
+    _tick++;
+    notifyListeners();
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   final VoidCallback onAdd;
   final Future<String> Function()? onSync;
@@ -47,6 +61,9 @@ class HomeScreen extends StatefulWidget {
   /// Opens History filtered to one day (the rhythm strip).
   final ValueChanged<DateTime>? onOpenDay;
 
+  /// Shell-driven month paging (keyboard shortcuts).
+  final HomeMonthRequest? monthRequest;
+
   const HomeScreen({
     super.key,
     required this.onAdd,
@@ -55,6 +72,7 @@ class HomeScreen extends StatefulWidget {
     this.onOpenSettings,
     this.onSeeAll,
     this.onOpenDay,
+    this.monthRequest,
   });
 
   @override
@@ -84,6 +102,27 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _calendarId;
   double _monthDirection = 1;
   bool _showTopBar = false;
+  int _monthTick = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _monthTick = widget.monthRequest?.tick ?? 0;
+    widget.monthRequest?.addListener(_onMonthRequest);
+  }
+
+  @override
+  void dispose() {
+    widget.monthRequest?.removeListener(_onMonthRequest);
+    super.dispose();
+  }
+
+  void _onMonthRequest() {
+    final request = widget.monthRequest;
+    if (request == null || !mounted || request.tick == _monthTick) return;
+    _monthTick = request.tick;
+    _pageMonth(request.direction);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1775,13 +1814,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_monthDragDx.abs() < 56) return;
     _monthSwiped = true;
     Haptics.selection();
+    _pageMonth(_monthDragDx < 0 ? 1 : -1);
+  }
+
+  /// Move one calendar period; shared by drag and the `[` / `]` shortcuts.
+  void _pageMonth(int delta) {
     setState(() {
-      _monthDirection = _monthDragDx < 0 ? 1 : -1;
+      _monthDirection = delta > 0 ? 1 : -1;
       final cal = appCalendar.isBs && !appCalendar.supports(_month)
           ? const GregorianCalendarSystem()
           : appCalendar;
       final current = cal.periodOf(_month);
-      _month = _monthDragDx < 0
+      _month = delta > 0
           ? cal.next(current).start
           : cal.previous(current).start;
     });

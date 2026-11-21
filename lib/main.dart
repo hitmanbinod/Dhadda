@@ -84,6 +84,9 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   String? _quickAction;
   late final LinkEngine _link;
   final HistoryDayRequest _historyDay = HistoryDayRequest();
+  final HistorySearchRequest _historySearch = HistorySearchRequest();
+  final HomeMonthRequest _homeMonth = HomeMonthRequest();
+  final TextEditingController _topSearch = TextEditingController();
   bool _smsBootDone = false;
   bool _smsBusy = false;
   bool _lockChecked = false;
@@ -253,6 +256,9 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _link.stop();
     _historyDay.dispose();
+    _historySearch.dispose();
+    _homeMonth.dispose();
+    _topSearch.dispose();
     try {
       context.read<ExpenseStore>().removeListener(_maybeAutoSms);
     } catch (_) {}
@@ -436,8 +442,11 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
             width: 220,
             child: TextField(
               key: const Key('web-topbar-search'),
-              onTap: () => _go(1),
-              readOnly: true,
+              controller: _topSearch,
+              onChanged: (value) {
+                _historySearch.setQuery(value);
+                _go(1);
+              },
               decoration: InputDecoration(
                 isDense: true,
                 prefixIcon: const Icon(Icons.search, size: 18),
@@ -524,11 +533,13 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         onOpenSettings: _openSettings,
         onSeeAll: () => _go(1),
         onOpenDay: _openHistoryDay,
+        monthRequest: _homeMonth,
       ),
       HistoryScreen(
         onOpenSync: _openSync,
         onOpenSettings: _openSettings,
         dayRequest: _historyDay,
+        searchRequest: _historySearch,
       ),
       InsightsScreen(
         onOpenSettings: _openSettings,
@@ -547,6 +558,15 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
         }),
         SingleActivator(LogicalKeyboardKey.slash): () => _shortcut(() {
           _go(1);
+          _historySearch.focus();
+        }),
+        SingleActivator(LogicalKeyboardKey.bracketLeft): () => _shortcut(() {
+          _go(0);
+          _homeMonth.page(-1);
+        }),
+        SingleActivator(LogicalKeyboardKey.bracketRight): () => _shortcut(() {
+          _go(0);
+          _homeMonth.page(1);
         }),
         SingleActivator(LogicalKeyboardKey.digit1): () => _shortcut(() => _go(0)),
         SingleActivator(LogicalKeyboardKey.digit2): () => _shortcut(() => _go(1)),
