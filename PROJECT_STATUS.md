@@ -87,6 +87,13 @@ screen; redesigned Add/History/Lent; four native RemoteViews widgets
 - New `test/migration_stress_test.dart` builds real file-backed v2 SQLite databases with raw SQL and opens them through `AppDb` so `onUpgrade(2,3)` runs. Covers: 5k entries across all four modes (counts, per-month totals, mode->account mapping, loans/topups/repayments/events untouched, timing); interrupted-then-resumed migration equals a clean one with no duplicate defaults; guarded migration re-run is a no-op; legacy v1 JSON and v2 snapshot imports into the migrated app; one-time safety copy exists and is readable; marker/budgets survive.
 - Reported, not changed: the "throw inside the migration" interruption is simulated by pre-applying the guarded steps and resuming (production `onUpgrade` was not modified, per tests-only rule).
 
+## Round 3.1 — Final QA (Step 5)
+- Verified by commands run here: `flutter analyze --no-fatal-infos` clean; `flutter test` 354/354; `flutter build apk --debug` succeeds.
+- Frozen files unchanged across all four Round 3.1 commits (`git diff c8616a8..HEAD`): `pubspec.yaml` (1.5.0+4), `lib/version.dart`, signing config, `assets/webapp/version.json` (still 1.4.0). No schema/migration/sync-payload changes in production code; no new packages; no network calls.
+- Automated-only checks that passed (widget/unit tests, not on-device): Insights cards incl. How you pay + forecast; account filter into History; receipts add/remove/limit and cleanup pure-logic lifecycle; account colour/delete/archive/merge/last-account guard; migration stress (5k, resume, re-run, imports, safety copy); existing AD/BS layout, light/dark, 360 dp/1280 px and 1.3x text-scale widget tests.
+- Not verified: on-device camera/gallery intents and real receipt files, Undo snackbar timing, actual visual appearance of the new cards/legend/chips, and How you pay with an active BS calendar (logic is BS-aware via `insights()`, but no BS-specific assertion was added). The phone stayed offline throughout Round 3.1.
+- Known deviation: the receipt row exposes Gallery only (Camera was removed in the earlier one-handed round at the maintainer's request), so Edit matches Add; requirement (2.1) said camera/gallery.
+
 ## Untouched / frozen
 Package name, PIN/security, QR prefixes, relay/LAN/PC protocol semantics,
 `(rev, by)` ordering, tombstone rules, `parseAmount`, `other` category rule,
