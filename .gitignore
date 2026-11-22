@@ -54,3 +54,6 @@ android/key.properties
 *.keystore
 *.p12
 *.pfx
+
+# Local Cloudflare wrangler state (dev D1 data, never commit)
+.wrangler/
