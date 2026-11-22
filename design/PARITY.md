@@ -1,6 +1,12 @@
 # Android <-> Web design parity
 
-Last synced Android commit: `dcf20b4` (2026-11-21)
+Last synced Android commit: `61d78b1` (2026-11-22)
+
+**`web-v2` experiment:** this branch adds a separate lightweight web app under
+`web-v2/` (plain JS/CSS, no framework, ~17 KB gzip including demo data). It
+does **not** change Android or the existing Flutter-web build. The legacy rows
+below still describe the shipped Flutter-web path. See
+`design/WEB_V2_PHASE0.md` and `design/WEB_V2_REPORT.md`.
 
 Both platforms are one Flutter codebase. "Android file" and "Web file" are
 often the same file; that is expected and listed under Intentional differences.

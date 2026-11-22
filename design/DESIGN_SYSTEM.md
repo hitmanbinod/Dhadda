@@ -1,5 +1,12 @@
 # Dhadda design system (short reference)
 
+> **web-v2 (this branch):** an experimental separate web UI lives in `web-v2/`.
+> It reads its palette and scale from the `colors.web` / `web` sections of
+> `design/tokens.json` via `tool/gen_web_tokens.py` into `web-v2/tokens.css`.
+> Desktop shell: 232 px sidebar, no top bar, 1120 px content, 16 px cards,
+> 14/13/12 px type, 28 px page title, 64 px hero. Phone: bottom tabs + Add FAB.
+> It is presentation-only and leaves Android/Flutter-web untouched.
+
 Source of truth for values: `design/tokens.json`. Generated:
 `design/tokens.css`, `lib/theme/tokens.g.dart` via `python3 scripts/sync_tokens.py`.
 

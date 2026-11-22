@@ -1,5 +1,10 @@
 # Dhadda — agent rules
 
+> **Current branch `web-v2`:** an experimental separate lightweight web app
+> lives in `web-v2/` (plain JS/CSS, generated `tokens.css`). It is a
+> presentation-only prototype: do not change Android, sync/packaging or the
+> real store from it. See `design/WEB_V2_REPORT.md` and `design/FEATURE_MATRIX.md`.
+
 ## Android <-> Web design parity (standing rules)
 
 - Android leads, web follows. `design/PARITY.md` is the contract;
