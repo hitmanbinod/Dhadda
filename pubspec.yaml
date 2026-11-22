@@ -117,6 +117,9 @@ flutter:
     - assets/webapp/assets/packages/wakelock_plus/assets/
     - assets/webapp/canvaskit/chromium/
     - assets/webapp/canvaskit/webparagraph/
+    # Prompt 3: the lightweight plain-JS web app served over LAN.
+    - webapp/
+    - webapp/vendor/
     - assets/icon/app_icon.png
 
 flutter_launcher_icons:

@@ -209,7 +209,7 @@ Run both sides:
 ```sh
 flutter test test/lan_crypto_test.dart   # Dart reproduces every vector
 node scripts/lan-vectors.mjs             # the web client code does too
-node scripts/lan-simulate.mjs            # wrapper (Phase 2 adds the Dart test server)
+node scripts/lan-simulate.mjs            # web client drives a real Dart test server
 dart run tool/gen_lan_vectors.dart       # regenerate from the Dart primitives
 ```
 
