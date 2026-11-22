@@ -85,16 +85,24 @@ class CloudSync {
     });
   }
 
-  void stopForeground() {
+  /// Background/inactive: stop periodic work and flush the outbox right away
+  /// instead of waiting for the 5 s debounce. Best effort: failures are
+  /// swallowed and the outbox stays queued for the next foreground push.
+  Future<void> stopForeground() async {
     _foreground = false;
     _pullTimer?.cancel();
     _pullTimer = null;
     _pushTimer?.cancel();
     _pushTimer = null;
+    if (!isPaired) return;
+    try {
+      final p = await _prefs;
+      if (_decodeList(p.getString(_outbox)).isNotEmpty) await push();
+    } catch (_) {}
   }
 
   void dispose() {
-    stopForeground();
+    unawaited(stopForeground());
     if (identical(store.cloudChangeHook, queue)) store.cloudChangeHook = null;
   }
 

@@ -107,6 +107,19 @@ No new dependencies, no DB migration.
 - **Sizes:** APK 98,981,785 → **98,999,297 bytes** (+17,512 for the follow-up,
   +230,720 from the original baseline). Web gzip unchanged at 24,028 B.
 
+### Follow-up 2 (same branch)
+
+- **Background flush:** `stopForeground()` is now async — on pause/inactive it
+  cancels the 5 s debounce and periodic pull, then immediately pushes the
+  outbox if non-empty (best effort, failures leave rows queued). `main.dart`
+  calls it via `unawaited` from the lifecycle observer.
+- **No echo:** new `test/pull_no_echo_test.dart` attaches the real change hook,
+  applies a pulled batch (category, entry, setting), and asserts the outbox
+  stays empty; applying the same batch twice leaves the domain fingerprint
+  unchanged and the outbox still empty. It passes — `cloudApplying` in
+  `ExpenseStore.applyCloudRows` correctly suppresses the hook.
+- Full suite after both fixes: **373/373**, analyzer clean (info-only lints).
+
 ## 8. Not verified
 
 No real Cloudflare deployment (needs your login), no physical-device run, no

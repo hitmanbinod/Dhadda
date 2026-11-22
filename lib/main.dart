@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'
@@ -283,7 +285,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
       _autoSms(store);
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused) {
-      _cloud.stopForeground();
+      unawaited(_cloud.stopForeground());
       // Re-lock when the app leaves the foreground. Without this, the
       // lock only guarded process death: background -> recents -> return
       // skipped the PIN/biometric entirely. Any lock screen showing a
