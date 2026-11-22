@@ -301,7 +301,7 @@ class LanServer {
       final ifs = await NetworkInterface.list(
         includeLoopback: false,
         type: InternetAddressType.IPv4,
-      ).timeout(const Duration(seconds: 2));
+      );
       for (final pref in ['192.168.', '10.', '172.']) {
         for (final i in ifs) {
           for (final a in i.addresses) {

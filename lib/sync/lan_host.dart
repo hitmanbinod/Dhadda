@@ -53,7 +53,7 @@ class LanHostController extends ChangeNotifier {
       final ifs = await NetworkInterface.list(
         includeLoopback: false,
         type: InternetAddressType.IPv4,
-      ).timeout(const Duration(seconds: 2));
+      );
       var found = false;
       var name = '';
       for (final i in ifs) {

@@ -40,6 +40,8 @@ class _UseOnComputerScreenState extends State<UseOnComputerScreen> {
   @override
   void initState() {
     super.initState();
+    // Populate the Wi-Fi / hotspot check so Start is enabled on entry.
+    unawaited(widget.host.refreshNetwork());
     _tick = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {});
