@@ -2017,6 +2017,77 @@ class ExpenseStore extends ChangeNotifier {
     projects: List<Project>.from(projects),
   );
 
+  /// Applies per-record cloud rows additively (Prompt 2). Rows are already
+  /// LWW-resolved by CloudSync using the shared vector rules. Never clears a
+  /// collection: unknown ids are inserted, known ids are replaced.
+  Future<void> applyCloudRows(List<Map<String, dynamic>> rows) async {
+    for (final r in rows) {
+      final t = '${r['t'] ?? ''}';
+      final id = '${r['id'] ?? ''}';
+      if (id.isEmpty) continue;
+      final deleted = r['d'] == 1;
+      final raw = r['data'];
+      if (raw is! Map) continue;
+      final data = Map<String, dynamic>.from(raw);
+      switch (t) {
+        case 'categories':
+          if (deleted) categories.removeWhere((x) => x.id == id);
+          else {
+            final v = Category.fromJson(data);
+            categories.removeWhere((x) => x.id == id);
+            categories.add(v);
+          }
+          break;
+        case 'entries':
+          if (deleted) transactions.removeWhere((x) => x.id == id);
+          else {
+            final v = Txn.fromJson(data);
+            transactions.removeWhere((x) => x.id == id);
+            transactions.add(v);
+          }
+          break;
+        case 'events':
+          if (deleted) projects.removeWhere((x) => x.id == id);
+          else {
+            final v = Project.fromJson(data);
+            projects.removeWhere((x) => x.id == id);
+            projects.add(v);
+          }
+          break;
+        case 'people':
+          if (deleted) loans.removeWhere((x) => x.id == id);
+          else {
+            final v = Loan.fromJson(data);
+            loans.removeWhere((x) => x.id == id);
+            loans.add(v);
+          }
+          break;
+        case 'settings':
+          final value = data['value'];
+          switch (id) {
+            case 'userName': if (value is String) userName = value; break;
+            case 'currency': if (value is String) await setCurrency(value); break;
+            case 'calendarSystem': if (value is String) await setCalendarSystem(value); break;
+            case 'homeLayout': if (value is String) homeLayout = decodeHomeLayout(value); break;
+            case 'fiscalYearStart': break; // additive, not yet consumed
+          }
+          break;
+      }
+    }
+    _sortTxns();
+    await _domain?.replaceAll(
+      DomainData(
+        categories: categories,
+        accounts: accounts,
+        transactions: transactions,
+        loans: loans,
+        projects: projects,
+      ),
+    );
+    _touch();
+    notifyListeners();
+  }
+
   String exportJson() => toSnapshot().encode();
 
   /// Applies [raw] snapshot JSON if it is newer than local data.
