@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Dhadda</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<script>
+/* Theme before first paint - no flash. */
+(function(){try{var m=JSON.parse(localStorage.getItem('expense_meta_v1')||'{}');var t=m.themeMode||'system';var d=window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.dataset.theme=t==='system'?(d?'dark':'light'):t;}catch(e){document.documentElement.dataset.theme='light';}})();
+</script>
+</head>
+<body>
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><use href="icons.svg#i-home"/></svg>
+<div id="app"></div>
+<script>if(new URLSearchParams(location.search).has('demo'))document.write('<scr'+'ipt src="demo-data.js"><\/scr'+'ipt>');</script>
+<script src="app.js"></script>
+</body>
+</html>
