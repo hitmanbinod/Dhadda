@@ -33,9 +33,15 @@ deployed Worker URL from the placeholder to `http://127.0.0.1:8787` (local
 | Connected device | `adb-4750a3bc-ewPaNc._adb-tls-connect._tcp` (one device) | `adb devices` |
 
 Budget arithmetic: replacing the 14.89 MiB compressed Flutter bundle with the
-~86 KB plain-JS app (plus vendored crypto, ≤25 KB gzip) should make the APK
+~186 KB plain-JS app (plus vendored crypto and QR encoder) should make the APK
 **~14.8 MB smaller than the pre-cloud baseline**, i.e. far inside the +450 KB
-limit. Exact numbers will be measured in Phase 5 and again in Phase 7.
+limit.
+
+**Measured after Phase 5:** release APK **83,245,858 bytes** — **15,522,719
+bytes smaller** than the 98,768,577 pre-cloud baseline, and 15,753,439 bytes
+smaller than the cloud build. Web assets including vendored noble crypto and
+the QR encoder: **57,937 bytes / 56.6 KB gzip** (budget 60 KB). Phase 7's
+foreground service will be measured separately against this APK.
 
 ---
 

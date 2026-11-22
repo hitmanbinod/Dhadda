@@ -15,6 +15,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../home_layout.dart';
 import '../store.dart';
 
+// Cloudflare cloud sync is SHELVED (Prompt 3). Kept for reference only;
+// every entry point is guarded so release builds tree-shake this file.
+const bool kEnableCloudSync = false;
+
 class CloudSync {
   /// Release defaults. Kept byte-for-byte unchanged.
   static const defaultWorker = 'https://dhadda-sync.YOUR-SUBDOMAIN.workers.dev';

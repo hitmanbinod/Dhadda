@@ -35,7 +35,20 @@ zero-dependency PC Node relay), "Show on PC" browser UI over LAN, mDNS,
 opt-in Nepali-bank-tuned SMS import, PIN + biometric lock, Material You
 theming. Distribution: **GitHub Releases + F-Droid only** (no Google Play).
 
-## 1b. Cloud sync + web access (branch `sync`, Prompt 2)
+## 1b. Cloud sync + web access — SHELVED (Prompt 3)
+
+**Shelved:** the Cloudflare direction is no longer used or deployed. In the
+`lan-sync` branch `kEnableCloudSync = false` (`lib/sync/cloud_sync.dart`),
+all phone entry points are guarded, and Settings → Web access was removed.
+`sync-server/`, `design/SYNC_PROTOCOL.md`, `webapp/sync.js` and
+`webapp/config.js` are kept for reference only. If they are eventually
+deleted, the removable set is the Worker/D1 server, the CloudSync client and
+its tests, the cloud pairing screens and the two unused web files — roughly
+230 KB of release APK today (98,999,297 − 98,768,577 bytes) plus the source
+files. The live remote is now the phone-hosted LAN server in
+`lib/sync/lan_server.dart`; see `design/LAN_PROTOCOL.md`.
+
+### Historical Prompt 2 notes (do not deploy)
 
 - **Web app:** `webapp/` static PWA. URL: `https://dhadda-web.pages.dev`
   (name may be taken; choose another at deploy time via `PAGES_PROJECT`).

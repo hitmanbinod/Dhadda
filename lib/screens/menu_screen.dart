@@ -27,7 +27,6 @@ import 'category_rules_screen.dart';
 import 'edit_home_screen.dart';
 import 'sync_screen.dart';
 import 'use_on_computer_screen.dart';
-import 'web_access_screen.dart';
 
 /// Menu tab: sync entry, appearance, security, currency, data, about.
 class MenuScreen extends StatefulWidget {
@@ -419,15 +418,6 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   );
                 },
-              ),
-              SettingsRow(
-                icon: Icons.language_outlined,
-                title: 'Web access',
-                subtitle: 'Pair this phone with Dhadda on the web',
-                trailing: const SettingsChevron(),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const WebAccessScreen()),
-                ),
               ),
             ],
           ),
