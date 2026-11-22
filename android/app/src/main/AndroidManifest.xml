@@ -24,7 +24,7 @@
          (see docs/BACKUP_POLICY.md). Local on-device storage is
          unaffected by this flag. -->
     <application
-        android:label="Dhadda"
+        android:label="${appLabel}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

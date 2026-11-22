@@ -6,6 +6,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:cryptography/cryptography.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,11 +16,30 @@ import '../home_layout.dart';
 import '../store.dart';
 
 class CloudSync {
+  /// Release defaults. Kept byte-for-byte unchanged.
+  static const defaultWorker = 'https://dhadda-sync.YOUR-SUBDOMAIN.workers.dev';
+  static String defaultWebFor(String workerUrl) =>
+      workerUrl.replaceFirst('dhadda-sync', 'dhadda-web');
+
+  /// Debug-only overrides via --dart-define. Ignored in profile/release.
+  static const _defineWorker = String.fromEnvironment('DHADDA_SYNC_WORKER_URL');
+  static const _defineWeb = String.fromEnvironment('DHADDA_WEB_URL');
+
   CloudSync(this.store, {String? workerUrl})
-      : worker = workerUrl ?? 'https://dhadda-sync.YOUR-SUBDOMAIN.workers.dev';
+      : worker = workerUrl ??
+            (kDebugMode && _defineWorker.isNotEmpty
+                ? _defineWorker
+                : defaultWorker),
+        webBase = kDebugMode && _defineWeb.isNotEmpty
+            ? _defineWeb
+            : defaultWebFor(workerUrl ??
+                (kDebugMode && _defineWorker.isNotEmpty
+                    ? _defineWorker
+                    : defaultWorker));
 
   final ExpenseStore store;
   final String worker;
+  final String webBase;
 
   /// Pure LWW rule from SYNC_PROTOCOL.md §5. Exposed for vector tests.
   static Map<String, dynamic> resolveWinner(
@@ -170,8 +191,7 @@ class CloudSync {
     await p.setString(_token, _tokenValue!);
     await p.setString(_key, base64.encode(_keyBytes!));
     await p.setInt(_seq, 0);
-    final site = worker.replaceFirst('dhadda-sync', 'dhadda-web');
-    return '$site/#v=${Uri.encodeComponent(_vaultId!)}'
+    return '$webBase/#v=${Uri.encodeComponent(_vaultId!)}'
         '&t=${Uri.encodeComponent(_tokenValue!)}'
         '&k=${Uri.encodeComponent(base64Url.encode(_keyBytes!))}';
   }

@@ -52,6 +52,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Release (and all non-debug variants) keep the production label.
+        manifestPlaceholders["appLabel"] = "Dhadda"
     }
 
     signingConfigs {
@@ -69,6 +71,13 @@ android {
     }
 
     buildTypes {
+        // Dev-only build: separate package + label so it can never overwrite
+        // or be confused with the installed production com.dhadda.expense.
+        // No signing, shrinker, applicationId or version changes elsewhere.
+        debug {
+            applicationIdSuffix = ".dev"
+            manifestPlaceholders["appLabel"] = "Dhadda Dev"
+        }
         release {
             if (hasReleaseKeys) {
                 signingConfig = signingConfigs.getByName("release")
