@@ -35,6 +35,24 @@ zero-dependency PC Node relay), "Show on PC" browser UI over LAN, mDNS,
 opt-in Nepali-bank-tuned SMS import, PIN + biometric lock, Material You
 theming. Distribution: **GitHub Releases + F-Droid only** (no Google Play).
 
+## 1b. Cloud sync + web access (branch `sync`, Prompt 2)
+
+- **Web app:** `webapp/` static PWA, deployed with `./scripts/deploy-web`
+  (needs `WORKER_URL=…`). URL: `https://dhadda-web.pages.dev` (name may be
+  taken; choose another at deploy time). Dev: `python -m http.server 8099 --directory web-v2`.
+- **Sync server:** `sync-server/` Worker + D1 `dhadda-vault`, deployed with
+  `./scripts/deploy-sync`. URL: `https://dhadda-sync.<your-subdomain>.workers.dev`.
+  Create D1 once with `npx wrangler d1 create dhadda-vault` and paste the id
+  into `sync-server/wrangler.toml`.
+- **Protocol:** `design/SYNC_PROTOCOL.md`, vectors `sync/test-vectors.json`.
+- **Phone:** Settings → Data → Web access → Create link. The link carries the
+  vault id, one-time token and 256-bit key in the URL fragment and is the
+  recovery key. Never log or commit it.
+- **Tests:** `node --test sync/test-web.mjs`, `flutter test test/cloud_sync_test.dart`,
+  `node scripts/sync-simulate` (needs `wrangler dev --local --port 8787`).
+- Known limits: receipts not synced, ~30 s web pull, link equals access,
+  outbox/ua state lives in app-private SharedPreferences (no DB migration).
+
 ## 2. Starting point (pre-roadmap, v1.3.1+2)
 
 A working beta with three structural weaknesses that drove the roadmap:

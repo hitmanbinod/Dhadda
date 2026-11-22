@@ -19,6 +19,20 @@ class CloudSync {
   final ExpenseStore store;
   final String worker;
 
+  /// Pure LWW rule from SYNC_PROTOCOL.md §5. Exposed for vector tests.
+  static Map<String, dynamic> resolveWinner(
+    Map<String, dynamic> incoming,
+    Map<String, dynamic>? current,
+  ) {
+    if (current == null) return incoming;
+    final a = (incoming['ua'] as num).toInt();
+    final b = (current['ua'] as num).toInt();
+    if (a != b) return a > b ? incoming : current;
+    final da = '${incoming['device_id'] ?? ''}';
+    final db = '${current['device_id'] ?? ''}';
+    return da.compareTo(db) > 0 ? incoming : current;
+  }
+
   static const _vault = 'expense_cloud_vault_v1';
   static const _token = 'expense_cloud_token_v1';
   static const _key = 'expense_cloud_key_v1';

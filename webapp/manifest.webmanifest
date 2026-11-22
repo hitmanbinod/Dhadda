@@ -1,0 +1,15 @@
+{
+  "name": "Dhadda — a quiet ledger",
+  "short_name": "Dhadda",
+  "description": "Offline-first expense tracker, synced with your phone.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F4F3EE",
+  "theme_color": "#006A60",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

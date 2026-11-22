@@ -1,5 +1,13 @@
 # Dhadda — agent rules
 
+> **Current branch `sync`:** Prompt 2 adds an end-to-end encrypted cloud sync
+> contract. The phone is the source of a random 256-bit vault key; the key and
+> bearer token travel only in the pairing-link fragment, never in requests.
+> The Cloudflare Worker/D1 stores `{t,id,ua,d,iv,ct,seq}` ciphertext rows only.
+> LWW is by `ua`, ties by larger `device_id`; server keeps tombstones 180 days.
+> Sync code: `lib/sync/cloud_sync.dart`, `webapp/sync.js`, `sync-server/`.
+> Never log tokens/keys or touch app data on a device. See `design/SYNC_PROTOCOL.md`.
+
 > **Current branch `web-v2`:** an experimental separate lightweight web app
 > lives in `web-v2/` (plain JS/CSS, generated `tokens.css`). It is a
 > presentation-only prototype: do not change Android, sync/packaging or the

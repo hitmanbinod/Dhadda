@@ -1,0 +1,106 @@
+#!/usr/bin/env node
+/* Two simulated devices exchange encrypted rows through wrangler dev.
+   Usage: node scripts/sync-simulate [workerUrl] */
+const crypto = require('crypto');
+const BASE = process.argv[2] || 'http://127.0.0.1:8787';
+
+const enc = new TextEncoder();
+const b64 = b => Buffer.from(b).toString('base64');
+const unb64 = s => Buffer.from(s, 'base64');
+
+async function api(path, opts = {}, token) {
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(BASE + path, { ...opts, headers });
+  if (!r.ok) throw new Error(path + ' -> ' + r.status);
+  return r.json();
+}
+
+function device(name, vault, token, key) {
+  const state = new Map();
+  let seq = 0;
+  return {
+    name, key, state,
+    async put(t, id, data, d = 0, ua = Date.now()) {
+      const nonce = crypto.randomBytes(12);
+      const cipher = crypto.createCipheriv('aes-256-gcm', key, nonce);
+      const ct = Buffer.concat([cipher.update(enc.encode(JSON.stringify({ t, id, data }))), cipher.final()]);
+      const tag = cipher.getAuthTag();
+      state.set(`${t}:${id}`, { t, id, ua, d, iv: b64(nonce), ct: b64(Buffer.concat([ct, tag])), device_id: name });
+    },
+    async push() {
+      const rows = [...state.values()];
+      await api('/v1/push', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ device_id:name, rows }) }, token);
+    },
+    async pull() {
+      let more = true;
+      while (more) {
+        const res = await api(`/v1/pull?since=${seq}&limit=500`, {}, token);
+        for (const w of res.rows) {
+          const nonce = unb64(w.iv);
+          const raw = unb64(w.ct);
+          const tag = raw.subarray(raw.length - 16);
+          const cipher = crypto.createDecipheriv('aes-256-gcm', key, nonce);
+          cipher.setAuthTag(tag);
+          const plain = Buffer.concat([cipher.update(raw.subarray(0, raw.length - 16)), cipher.final()]);
+          const env = JSON.parse(plain.toString());
+          const cur = state.get(`${env.t}:${env.id}`);
+          if (!cur || w.ua > cur.ua) state.set(`${env.t}:${env.id}`, { ...w, data: env.data });
+        }
+        seq = res.next; more = res.more;
+      }
+    },
+  };
+}
+
+(async () => {
+  const v = await api('/v1/vault', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+  const sharedKey = crypto.randomBytes(32); // one vault key, shared via pairing
+  const a = device('dev-a', v.vault_id, v.token, sharedKey);
+  const b = device('dev-b', v.vault_id, v.token, sharedKey);
+
+  await a.put('categories', 'c1', { name:'Food' });
+  await a.put('entries', 'e1', { amount:250, categoryId:'c1' });
+  await a.push();
+
+  // New browser pulls everything.
+  await b.pull();
+  console.log('B after first pull:', b.state.size, 'rows');
+
+  // B edits, A is offline.
+  await b.put('entries', 'e1', { amount:400, categoryId:'c1' }, 0, Date.now() + 1000);
+  await b.put('entries', 'e2', { amount:120, categoryId:'c1' });
+  await b.push();
+
+  // A adds a different row while offline, then reconnects.
+  await a.put('entries', 'e3', { amount:90, categoryId:'c1' }, 0, Date.now() + 2000);
+  await a.push();
+  await a.pull();
+  await b.pull();
+
+  const keys = [...a.state.keys()].sort().join(',');
+  const bkeys = [...b.state.keys()].sort().join(',');
+  console.log('A final:', keys);
+  console.log('B final:', bkeys);
+  if (keys !== bkeys) throw new Error('devices diverged');
+
+  // Delete on one side propagates.
+  await a.put('entries', 'e2', {}, 1, Date.now() + 5000);
+  await a.push();
+  await b.pull();
+  if (b.state.get('entries:e2')?.d !== 1) throw new Error('delete did not propagate');
+  console.log('delete propagated:', true);
+
+  // Rotate (Disconnect web) invalidates the old token.
+  const rotated = await api('/v1/rotate', { method:'POST' }, v.token);
+  let rejected = false;
+  try { await api('/v1/pull?since=0', {}, v.token); } catch { rejected = true; }
+  console.log('old token rejected after rotate:', rejected);
+  if (!rejected) throw new Error('rotate did not revoke token');
+
+  // Delete cloud copy (local data kept).
+  await api('/v1/vault', { method:'DELETE' }, rotated.token);
+  console.log('cloud copy deleted; local rows kept:', a.state.size > 0);
+  console.log('SIMULATION PASSED');
+})().catch(e => { console.error('SIMULATION FAILED:', e.message); process.exit(1); });

@@ -1,5 +1,14 @@
 # Android <-> Web design parity
 
+**Prompt 2 sync (branch `sync`):** the new PWA lives in `webapp/` (copy of
+web-v2 plus manifest/service worker), served from Cloudflare Pages
+`https://dhadda-web.pages.dev`; the sync Worker is
+`https://dhadda-sync.<subdomain>.workers.dev` with D1 `dhadda-vault`.
+`web-v2/` is now only the presentation source. Both sides use
+`design/SYNC_PROTOCOL.md`; the phone creates the vault/key in Settings →
+Web access. Existing LAN sync and the embedded Flutter-web bundle are unchanged.
+
+
 Last synced Android commit: `61d78b1` (2026-11-22)
 
 **`web-v2` experiment:** this branch adds a separate lightweight web app under

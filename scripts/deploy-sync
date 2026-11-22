@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Deploy the sync Worker. Run `npx wrangler login` and `npx wrangler d1 create dhadda-vault` once first.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+npx --yes wrangler@latest deploy --config sync-server/wrangler.toml
+echo "Worker deployed. Copy its URL into scripts/deploy-web and webapp/config.js."
