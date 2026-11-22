@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../sync/lan_host.dart';
 import '../sync/link_sync.dart';
 import '../theme/palette.dart';
 import '../theme/tokens.dart';
@@ -11,8 +12,13 @@ import 'menu_screen.dart';
 /// large title and a back button; its visual restyle comes later.
 class SettingsScreen extends StatelessWidget {
   final LinkEngine engine;
+  final LanHostController? host;
 
-  const SettingsScreen({super.key, required this.engine});
+  const SettingsScreen({
+    super.key,
+    required this.engine,
+    this.host,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +60,9 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
-            Expanded(child: MenuScreen(engine: engine)),
+            Expanded(
+              child: MenuScreen(engine: engine, host: host ?? lanHost),
+            ),
           ],
         ),
       ),

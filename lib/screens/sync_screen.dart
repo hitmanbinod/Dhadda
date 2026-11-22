@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models.dart';
 import '../store.dart';
@@ -14,9 +13,7 @@ import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
 import '../sync/link_sync.dart';
 import '../sync/link_store.dart';
-import '../sync/mdns.dart';
 import '../sync/permissions.dart';
-import '../sync/phone_host.dart';
 import '../sync/relay_client.dart';
 import '../sync/wifi_client.dart';
 import '../sync/wifi_host.dart';
@@ -54,14 +51,9 @@ class _SyncScreenState extends State<SyncScreen> {
   final _srvCtrl = TextEditingController();
   final _codeCtrl = TextEditingController();
   final _pinCtrl = TextEditingController();
-  PhoneHostSession? _serve;
-  String? _mdnsUrl;
-  bool _mdnsDone = false;
 
   @override
   void dispose() {
-    _serve?.close();
-    Mdns.unregister();
     _recvUrl.dispose();
     _recvPin.dispose();
     _quickCode.dispose();
@@ -81,10 +73,9 @@ class _SyncScreenState extends State<SyncScreen> {
   // ---------- Quick sync (LAN relay, scan & done) ----------
 
   /// Where the relay lives. Web knows its own origin; native reuses the
-  /// address learned from the last scanned code. New fallbacks so
-  /// "Show my code" works without a previous pairing: while this phone
-  /// hosts its own relay (Show on PC), that server is the best origin;
-  /// otherwise an address typed into the Server field below counts too.
+  /// address learned from the last scanned code, or an address typed into
+  /// the Server field below. The phone-hosted "Use on computer" flow no
+  /// longer serves this screen's relay.
   String get _relayOrigin {
     if (kIsWeb) return Uri.base.origin;
     return context.read<ExpenseStore>().relayOrigin;
@@ -92,13 +83,6 @@ class _SyncScreenState extends State<SyncScreen> {
 
   String _resolveRelayOrigin() {
     if (kIsWeb) return Uri.base.origin;
-    final serving = _serve?.url;
-    if (serving != null && serving.startsWith('http')) {
-      final u = Uri.tryParse(serving);
-      if (u != null && u.origin != 'null' && u.host.isNotEmpty) {
-        return u.origin;
-      }
-    }
     final typed = _srvCtrl.text.trim();
     if (typed.isNotEmpty) {
       final u = Uri.tryParse(
@@ -393,68 +377,6 @@ class _SyncScreenState extends State<SyncScreen> {
 
   // ---------- Option 1: file ----------
 
-  /// Phone-hosted mode: serve the app + sync API on your WiFi so any
-  /// same-network browser can open the tracker straight from this phone.
-  Future<void> _startServe() async {
-    try {
-      final s = await startPhoneHost();
-      try {
-        // Screen on = Android cannot suspend the server mid-transfer.
-        await WakelockPlus.enable();
-      } catch (_) {}
-      if (!mounted) {
-        await s.close();
-        return;
-      }
-      setState(() {
-        _serve = s;
-        _mdnsUrl = null;
-        _mdnsDone = false;
-      });
-      _registerMdns(s.url);
-    } on UnsupportedError catch (e) {
-      _say('$e');
-    } catch (e) {
-      _say('Could not start PC mode: ${friendlySyncError(e)}');
-    }
-  }
-
-  /// Best-effort mDNS: stable dhadda.local alongside the IP.
-  /// Never blocks serving; IP access always keeps working.
-  Future<void> _registerMdns(String url) async {
-    final port = Uri.tryParse(url)?.port ?? 0;
-    if (port <= 0) {
-      if (mounted) setState(() => _mdnsDone = true);
-      return;
-    }
-    // Two attempts: mDNS sometimes needs a moment after WiFi changes.
-    var r = await Mdns.register(name: 'dhadda', port: port);
-    if (!r.ok) {
-      await Future<void>.delayed(const Duration(seconds: 3));
-      if (!mounted) return;
-      r = await Mdns.register(name: 'dhadda', port: port);
-    }
-    if (!mounted) return;
-    setState(() {
-      _mdnsUrl = r.ok ? 'http://${r.name}.local:$port' : null;
-      _mdnsDone = true;
-    });
-  }
-
-  Future<void> _stopServe() async {
-    await _serve?.close();
-    await Mdns.unregister();
-    try {
-      await WakelockPlus.disable();
-    } catch (_) {}
-    if (mounted) {
-      setState(() {
-        _serve = null;
-        _mdnsUrl = null;
-        _mdnsDone = false;
-      });
-    }
-  }
 
   Future<void> _exportFile() async {
     final store = context.read<ExpenseStore>();
@@ -815,103 +737,6 @@ class _SyncScreenState extends State<SyncScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (!kIsWeb) ...[
-            Text('Show on PC', style: Theme.of(context).textTheme.titleMedium),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_serve == null) ...[
-                      const Text(
-                        'Serve this app on your WiFi - open it in any PC browser. Works while this app stays open.',
-                      ),
-                      const Text(
-                        'Use only a network you trust (home WiFi or personal hotspot) - never airport, hotel, or open WiFi.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      const SizedBox(height: 8),
-                      FilledButton.icon(
-                        onPressed: _startServe,
-                        icon: const Icon(Icons.dns),
-                        label: const Text('Show on PC'),
-                      ),
-                    ] else ...[
-                      const Text('Open this address in any same-WiFi browser:'),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(12),
-                          child: QrImageView(
-                            data: _serve!.url,
-                            version: QrVersions.auto,
-                            size: 200,
-                            padding: EdgeInsets.zero,
-                            backgroundColor: Colors.white,
-                            errorCorrectionLevel: QrErrorCorrectLevel.M,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: SelectableText(
-                          _serve!.url,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      if (_mdnsUrl != null) ...[
-                        const SizedBox(height: 8),
-                        Center(
-                          child: SelectableText(
-                            _mdnsUrl!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const Text(
-                          'Stable address - no need to check the IP.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ] else if (_mdnsDone) ...[
-                        const SizedBox(height: 8),
-                        const Text(
-                          'mDNS blocked on this network - the IP address above still works.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ],
-                      const SizedBox(height: 4),
-                      ValueListenableBuilder<int>(
-                        valueListenable: _serve!.hits,
-                        builder: (_, h, _) => Center(
-                          child: Text(
-                            h == 0
-                                ? 'Waiting for a PC browser… (keep this app open)'
-                                : 'Served $h request(s) — a PC is connected!',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: _stopServe,
-                        icon: const Icon(Icons.stop),
-                        label: const Text('Stop'),
-                      ),
-                      const Text(
-                        'Stop serving when done, especially on shared networks.',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
           Text('This device', style: Theme.of(context).textTheme.titleMedium),
           Card(
             child: ListTile(

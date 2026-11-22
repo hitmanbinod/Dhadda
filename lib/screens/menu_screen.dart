@@ -18,6 +18,7 @@ import '../widgets/page.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/settings_row.dart';
 import '../widgets/backup_password.dart';
+import '../sync/lan_host.dart';
 import '../sync/link_sync.dart';
 import '../sync/backup_crypto.dart';
 import '../sync/file_sync.dart';
@@ -25,18 +26,21 @@ import 'accounts_screen.dart';
 import 'category_rules_screen.dart';
 import 'edit_home_screen.dart';
 import 'sync_screen.dart';
+import 'use_on_computer_screen.dart';
 import 'web_access_screen.dart';
 
 /// Menu tab: sync entry, appearance, security, currency, data, about.
 class MenuScreen extends StatefulWidget {
   final LinkEngine engine;
-  const MenuScreen({super.key, required this.engine});
+  final LanHostController? host;
+  const MenuScreen({super.key, required this.engine, this.host});
 
   @override
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+  LanHostController get _lanHost => widget.host ?? lanHost;
   PinVault? _vault;
   bool _bioSupported = false;
   final _smsSender = TextEditingController();
@@ -383,6 +387,20 @@ class _MenuScreenState extends State<MenuScreen> {
           const SettingsSectionTitle('Data'),
           SettingsCard(
             children: [
+              SettingsRow(
+                icon: Icons.laptop_mac_outlined,
+                title: 'Use on computer',
+                subtitle: 'See your expenses on a bigger screen',
+                trailing: const SettingsChevron(),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => UseOnComputerScreen(
+                      host: _lanHost,
+                      engine: widget.engine,
+                    ),
+                  ),
+                ),
+              ),
               FutureBuilder(
                 future: ReceiptStore.create().then((s) => s.usage()),
                 builder: (context, snapshot) {

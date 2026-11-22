@@ -15,11 +15,12 @@ import 'screens/insights_screen.dart';
 import 'screens/lent_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/settings_screen.dart';
-import 'screens/sync_screen.dart';
+import 'screens/use_on_computer_screen.dart';
 import 'receipts.dart';
 import 'security.dart';
 import 'store.dart';
 import 'sync/cloud_sync.dart';
+import 'sync/lan_host.dart';
 import 'sync/link_sync.dart';
 import 'sync/reminders.dart';
 import 'sync/sms.dart';
@@ -87,6 +88,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   String? _quickAction;
   late final LinkEngine _link;
   late final CloudSync _cloud;
+  final LanHostController _lanHost = lanHost;
   final HistoryDayRequest _historyDay = HistoryDayRequest();
   final HistorySearchRequest _historySearch = HistorySearchRequest();
   final HomeMonthRequest _homeMonth = HomeMonthRequest();
@@ -370,13 +372,19 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   }
 
   void _openSync() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => SyncScreen(engine: _link)));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UseOnComputerScreen(host: _lanHost, engine: _link),
+      ),
+    );
   }
 
   void _openSettings() {
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => SettingsScreen(engine: _link)));
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(engine: _link, host: _lanHost),
+      ),
+    );
   }
 
   /// Desktop sidebar brand block: logo + name + quiet tagline.

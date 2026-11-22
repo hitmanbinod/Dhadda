@@ -9,7 +9,9 @@ import '../sync/wifi_client.dart';
 /// F-Droid compatible). Shows feedback for ANY detected code so a
 /// mis-aim is visible instead of mysterious.
 class ScanScreen extends StatefulWidget {
-  const ScanScreen({super.key});
+  /// Accept any QR string (used by the LAN pairing flow).
+  final bool acceptAny;
+  const ScanScreen({super.key, this.acceptAny = false});
 
   @override
   State<ScanScreen> createState() => _ScanScreenState();
@@ -40,7 +42,8 @@ class _ScanScreenState extends State<ScanScreen> {
 
   void _got(String? raw) {
     if (_done || raw == null || raw.isEmpty) return;
-    if (WifiClient.parseQrPayload(raw) != null ||
+    if (widget.acceptAny ||
+        WifiClient.parseQrPayload(raw) != null ||
         QrV2.parse(raw) != null) {
       _done = true;
       if (mounted) Navigator.of(context).pop(raw);
@@ -135,7 +138,8 @@ class _ScanScreenState extends State<ScanScreen> {
                   FilledButton(
                     onPressed: () {
                       final t = _manual.text.trim();
-                      if (WifiClient.parseQrPayload(t) == null &&
+                      if (!widget.acceptAny &&
+                          WifiClient.parseQrPayload(t) == null &&
                           QrV2.parse(t) == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

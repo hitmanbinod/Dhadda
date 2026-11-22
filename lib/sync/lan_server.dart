@@ -189,6 +189,12 @@ class LanServer {
       .where((p) => p.qr && !p.expired)
       .toList(growable: false);
 
+  /// Code-mode sessions whose typed proof passed and are awaiting Allow.
+  List<Map<String, dynamic>> get pendingApprovals => _pending.values
+      .where((p) => !p.qr && p.waiter != null && !p.approved)
+      .map((p) => {'sid': p.sid, 'name': p.name})
+      .toList(growable: false);
+
   /// Creates the code shown on the phone. One code at a time.
   String newCode() {
     final raw = List<int>.generate(
@@ -227,6 +233,14 @@ class LanServer {
     _activeCode = null;
     _codeExpires = null;
     _base = null;
+  }
+
+  /// Drops a live computer without revoking its trusted key.
+  void disconnect(String sid) {
+    final s = _sessions.remove(sid);
+    try {
+      s?.socket?.close();
+    } catch (_) {}
   }
 
   void forget(String deviceId) {
@@ -285,7 +299,9 @@ class LanServer {
     final out = <String>[];
     try {
       final ifs = await NetworkInterface.list(
-          includeLoopback: false, type: InternetAddressType.IPv4);
+        includeLoopback: false,
+        type: InternetAddressType.IPv4,
+      ).timeout(const Duration(seconds: 2));
       for (final pref in ['192.168.', '10.', '172.']) {
         for (final i in ifs) {
           for (final a in i.addresses) {
