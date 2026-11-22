@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Dhadda plain-JS web app; type=module lets Node run the LAN crypto interop checks against the same files the browser loads."
+}

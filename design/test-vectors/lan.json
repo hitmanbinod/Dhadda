@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "note": "Fixed test constants only. No real codes, keys or tokens.",
+  "constants": {
+    "codeAlphabet": "ABCDEFGHJKMNPQRSTUVWXYZ23456789",
+    "kdfIterations": 210000,
+    "pairingInfo": "dhadda-pair-v1",
+    "qrInfo": "dhadda-qr-v1",
+    "sessionInfo": "dhadda-session-v1",
+    "trustedInfo": "dhadda-trusted-session-v1",
+    "aeadContext": "dhadda-lan-v1",
+    "dirPcToPhone": 0,
+    "dirPhoneToPc": 1
+  },
+  "primitives": {
+    "sha256": {
+      "input": "616263",
+      "sha256": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    },
+    "hmacSha256": {
+      "key": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "message": "4869205468657265",
+      "mac": "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
+    },
+    "hkdfSha256": {
+      "ikm": "0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b",
+      "salt": "000102030405060708090a0b0c",
+      "info": "f0f1f2f3f4f5f6f7f8f9",
+      "okm": "0b8946386328c60d382f75d1b16a37cbe1d0bfa4fc0595901a93d86e9d38051f"
+    },
+    "pbkdf2Sha256": {
+      "password": "70617373776f7264",
+      "salt": "73616c74",
+      "iterations": 210000,
+      "dkLen": 32,
+      "dk": "9d5f68774306eaee6c79c5b4d3a263907f81c55d4daa1c50585e1e849065e090"
+    },
+    "x25519": {
+      "alicePrivate": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "alicePublic": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "bobPrivate": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+      "bobPublic": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+      "shared": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742"
+    },
+    "chacha20poly1305": {
+      "key": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "nonce": "000000000000004a00000000",
+      "aad": "50515253c0c1c2c3c4c5c6c7",
+      "plaintext": "446861646461204c414e2074657374206672616d65",
+      "sealed": "66273097247af9ad6e90071bdd1069cdea617eef580785a1eb988ad2a7d260290860ff21a0"
+    }
+  },
+  "handshakes": {
+    "code": {
+      "epcPrivate": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "epcPublic": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "ephonePrivate": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+      "ephonePublic": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+      "sid": "sid-code-0001",
+      "code": "ABCD-EFGH",
+      "name": "Chrome on Windows",
+      "trust": true,
+      "z": "4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742",
+      "transcript": "4321b3dcc2c939c2d0a9bf6249506deef6ae01547eabc63b272124398d79d69e",
+      "codeKey": "bc62584db551f8786ae8f6a27210442da393e22d19cb1e17a349419900ad52c8",
+      "proofPc": "3feef4d116a773455d3b6f4a667308568beebc0fea8f868834ff982ff1c9901c",
+      "proofPhone": "1bd614ceb1a9a4da09aa931b960a6e72754f29192975929495471308cd0bfd71",
+      "sessionKey": "422d2bcd0ddded2633d3afda9bdd2ef74a60a67da4ca46fa31b8d35aff4e9e6e",
+      "envelope": {
+        "direction": 0,
+        "counter": 1,
+        "nonce": "000000000000000000000001",
+        "aad": "6468616464612d6c616e2d76317369642d636f64652d30303031000000000000000001",
+        "plaintext": "7b2274223a22656e7472696573222c226964223a2274786e2d31222c2264223a307d",
+        "sealed": "46d685fd79c31d2c7a17f35bb5dad164ca44caf416e68ce47a931fba21a4b4cd8f25db3c19a6e52622461610c21ff1aebaf5"
+      }
+    },
+    "qr": {
+      "epcPrivate": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "epcPublic": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "ephonePrivate": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+      "ephonePublic": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+      "sid": "sid-qr-0002",
+      "s": "0102030405060708090a0b0c0d0e0f10",
+      "transcript": "5e82d7fe9d4204ef3b796ae93a0676d81921cc23a9523c43aad26df16a13c327",
+      "qrKey": "90c68c9ed342a9e4fb81a69496648bc4f44cf5955f4d8b68a4a683226e33b6f7",
+      "proofPhone": "a9412505c31bc3f62566bf435fc7f88eabad4a021c27870dec1ad54f9e2735c5",
+      "sessionKey": "117e183ca9841ad2acb73f9e709e611230a62ae74b4278424b7c8aec7fcf9176"
+    },
+    "trusted": {
+      "epcPrivate": "77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a",
+      "epcPublic": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "ephonePrivate": "5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27ff88e0eb",
+      "ephonePublic": "de9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f",
+      "deviceId": "dev-7f3a",
+      "deviceSecret": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+      "nonce": "aabbccddeeff00112233445566778899",
+      "sid": "dev-7f3a",
+      "transcript": "d9f98484d1da8da9be0f8838e300eeedd9195f6a5b39483f0972f0e035719b9c",
+      "proofPc": "14f8d64c0e09d1d5e8a49d8b55784581905c7c01cbb54e685a513ea7669fbd86",
+      "proofPhone": "73d6ed442f63ae27a1938e5a77442c8f1179a11cf5d7fb90481178c4f3c7e128",
+      "sessionKey": "e2106180e53f86a96062d810686a9c62c40999d336622ab6a34e8409650fa2bb"
+    }
+  },
+  "rejection": {
+    "note": "envelope counter 0 with the code-mode session key must fail to open",
+    "sessionKey": "422d2bcd0ddded2633d3afda9bdd2ef74a60a67da4ca46fa31b8d35aff4e9e6e",
+    "sid": "sid-code-0001",
+    "direction": 0,
+    "counter": 0,
+    "sealed": "46d685fd79c31d2c7a17f35bb5dad164ca44caf416e68ce47a931fba21a4b4cd8f25db3c19a6e52622461610c21ff1aebaf5"
+  }
+}
