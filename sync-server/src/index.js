@@ -9,7 +9,10 @@ const TOMBSTONE_DAYS = 180;
 const enc = new TextEncoder();
 
 function cors(env, request) {
-  const origin = env.ALLOWED_ORIGIN || '';
+  const configured = env.ALLOWED_ORIGIN || '';
+  const reqOrigin = request.headers.get('Origin') || '';
+  const local = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(reqOrigin);
+  const origin = local ? reqOrigin : (configured || reqOrigin);
   const h = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -20,10 +23,6 @@ function cors(env, request) {
     'Referrer-Policy': 'no-referrer',
     'Cache-Control': 'no-store',
   };
-  // Local wrangler dev has no Pages origin; allow same-origin there only.
-  if (new URL(request.url).hostname === '127.0.0.1' && !origin) {
-    h['Access-Control-Allow-Origin'] = '*';
-  }
   return h;
 }
 
@@ -84,15 +83,16 @@ function rateLimit(vaultId) {
   return true;
 }
 
-function validRow(r) {
-  return r && typeof r === 'object' &&
-    typeof r.t === 'string' && r.t.length > 0 && r.t.length <= 32 &&
-    typeof r.id === 'string' && r.id.length > 0 && r.id.length <= 128 &&
-    Number.isFinite(r.ua) && r.ua >= 0 &&
-    (r.d === 0 || r.d === 1) &&
-    typeof r.device_id === 'string' && r.device_id.length <= 64 &&
-    typeof r.iv === 'string' && r.iv.length <= 64 &&
-    typeof r.ct === 'string' && r.ct.length <= 2 * 1024 * 1024;
+function rowError(r) {
+  if (!r || typeof r !== 'object') return 'not an object';
+  if (typeof r.t !== 'string' || !r.t.length || r.t.length > 32) return 'bad t';
+  if (typeof r.id !== 'string' || !r.id.length || r.id.length > 128) return 'bad id';
+  if (!Number.isFinite(r.ua) || r.ua < 0) return 'bad ua';
+  if (r.d !== 0 && r.d !== 1) return 'bad d';
+  if (typeof r.device_id !== 'string' || r.device_id.length > 64) return 'bad device_id';
+  if (typeof r.iv !== 'string' || r.iv.length > 64) return 'bad iv';
+  if (typeof r.ct !== 'string' || r.ct.length > 2 * 1024 * 1024) return 'bad ct';
+  return null;
 }
 
 function incomingWins(incoming, current) {
@@ -127,7 +127,7 @@ export default {
         const b = await body(request);
         if (!b || !Array.isArray(b.rows)) return err(env, request, 'invalid body');
         if (b.rows.length > MAX_ROWS) return err(env, request, 'too many rows');
-        for (const r of b.rows) if (!validRow(r)) return err(env, request, 'invalid row');
+        for (const r of b.rows) { const why = rowError(r); if (why) return err(env, request, 'invalid row: ' + why); }
 
         let accepted = 0, seq = 0, lastSeq = 0;
         const vault = await env.DB.prepare('SELECT last_seq FROM vaults WHERE vault_id = ?').bind(vaultId).first();

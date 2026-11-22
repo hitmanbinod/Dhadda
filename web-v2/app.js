@@ -2,6 +2,7 @@
 (() => {
 'use strict';
 
+const SYNC = window.DhaddaSync;
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const ic = (n, cls = '') => `<svg class="${cls}" aria-hidden="true"><use href="icons.svg#i-${n}"/></svg>`;
@@ -44,7 +45,7 @@ function load() {
 let data = load();
 let saveTimer = null;
 function persist() {
-  if (DEMO) return;
+  if (DEMO || state.paired) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     write(K.cats, data.cats); write(K.txns, data.txns);
@@ -52,6 +53,21 @@ function persist() {
   }, 50);
 }
 const meta = () => data.meta;
+function persistRow(t, id, record, deleted = 0) {
+  if (state.paired && SYNC) SYNC.setLocal(t, id, record, deleted);
+  else persist();
+}
+function vaultData(g) {
+  const settings = {};
+  for (const s of (g.settings || [])) if (s && s.id) settings[s.id] = s.value;
+  return {
+    cats: g.categories?.length ? g.categories : data.cats,
+    txns: g.transactions?.length ? g.transactions : data.txns,
+    loans: g.loans?.length ? g.loans : data.loans,
+    projects: g.projects?.length ? g.projects : data.projects,
+    meta: {...DEFAULT_META, ...data.meta, ...settings},
+  };
+}
 
 /* ---------------- formatting ---------------- */
 const SYMBOLS = {NPR:'रू',INR:'₹',USD:'$',EUR:'€',GBP:'£',AUD:'A$',CAD:'C$',AED:'AED',JPY:'¥',CNY:'¥'};
@@ -111,6 +127,7 @@ const state = {
   histQuery:'', histType:'all', histCat:'all', histView:'entries', histSelected:new Set(), histPage:60,
   catSelected:null, lentDir:'lent', lentFilter:'pending',
   modal:null, drawer:false, palette:false, paletteQuery:'', toast:null,
+  booted:false, paired:false, backupAvailable:false, pairLink:'',
 };
 function go(screen) { state.screen = screen; state.modal = null; state.drawer = false; state.palette = false; render(); }
 
@@ -123,7 +140,7 @@ function shell() {
     <nav class="nav" aria-label="Main">${nav.map(([id,label,icon]) =>
       `<button class="nav-item" data-nav="${id}" ${state.screen===id?'aria-current="page"':''}>${ic(icon)}<span>${label}</span></button>`).join('')}</nav>
     <div class="sidebar-foot">
-      <div class="sync-line"><span class="dot"></span><span>Not connected</span></div>
+      <button class="sync-line" data-act="sync-now" title="Sync now" style="width:100%;text-align:left"><span class="dot ${state.paired ? 'live' : ''}"></span><span id="sync-status">${state.paired && SYNC ? SYNC.status() : 'Not connected'}</span></button>
       <button class="profile-row" data-act="settings"><span class="avatar">${esc((meta().userName||'B')[0].toUpperCase())}</span><span class="profile-name">${esc(meta().userName||'Set your name')}</span>${ic('settings')}</button>
     </div>
   </aside><main><div id="screen"></div></main>
@@ -381,8 +398,28 @@ function modalHtml() {
   return '';
 }
 
+/* ---------------- first run / pairing ---------------- */
+function firstRun() {
+  return `<div class="content" style="max-width:620px"><div class="page-head"><h1 class="page-title">Connect your phone</h1></div>
+    <div class="card"><p class="muted" style="margin-bottom:18px">One-time setup. Your data is encrypted on the phone; only ciphertext is stored in the cloud.</p>
+      <ol style="padding-left:20px;line-height:1.9"><li>Open <strong>Dhadda</strong> on your phone.</li>
+      <li>Go to <strong>Settings → Web access → Create link</strong>.</li>
+      <li>Copy the link and paste it below.</li></ol>
+      <label class="field-label" style="margin-top:20px">Pairing link</label>
+      <input id="pair-link" class="input" placeholder="https://…#v=…&t=…&k=…" autocomplete="off">
+      <div id="pair-msg" class="muted" style="margin-top:10px"></div>
+      <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
+        <button class="btn-primary" style="width:auto;padding:0 20px" data-act="connect">Connect</button>
+        ${state.backupAvailable?'<button class="chip" data-act="download-backup">Download backup of old web data</button>':''}
+      </div>
+      <p class="muted" style="margin-top:20px;font-size:12px">Anyone with this link can read your data. Do not post it. The link is also your recovery key.</p>
+    </div></div>`;
+}
+
 /* ---------------- render ---------------- */
 function render() {
+  if (!state.booted) return;
+  if (!state.paired) { $('#app').innerHTML = firstRun(); return; }
   $('#app').innerHTML = shell();
   const s = $('#screen');
   s.innerHTML = state.screen==='home' ? home() : state.screen==='history' ? history() :
@@ -394,7 +431,7 @@ function render() {
 function addTxn(values) {
   const t = {id:'txn-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), type:values.type, amount:values.amount,
     categoryId:values.categoryId, date:values.date, note:values.note||'', mode:values.mode||'cash', projectId:values.projectId||''};
-  data.txns.unshift(t); persist(); return t;
+  data.txns.unshift(t); persist(); persistRow('entries', t.id, t); return t;
 }
 function saveEntry() {
   const m = state.modal; if (!m) return;
@@ -402,14 +439,14 @@ function saveEntry() {
   if (!(amount > 0)) { toast('Enter a valid amount'); return; }
   const values = {type:m.typeValue, amount, categoryId:m.catId||data.cats[0].id,
     date:new Date($('#entry-date').value+'T12:00').getTime(), note:$('#entry-note').value.trim()};
-  if (m.txn) Object.assign(m.txn, values);
+  if (m.txn) { Object.assign(m.txn, values); persistRow('entries', m.txn.id, m.txn); }
   else addTxn(values);
   persist(); state.modal = null; render(); toast('Saved');
 }
 function deleteTxn(id) {
   const i = data.txns.findIndex(t=>t.id===id); if (i<0) return;
-  const [removed] = data.txns.splice(i,1); persist();
-  state.modal = null; render(); toast('Deleted', () => { data.txns.splice(i,0,removed); persist(); render(); });
+  const [removed] = data.txns.splice(i,1); persist(); persistRow('entries', id, {}, 1);
+  state.modal = null; render(); toast('Deleted', () => { data.txns.splice(i,0,removed); persist(); persistRow('entries', removed.id, removed); render(); });
 }
 function applyTheme() {
   const t = meta().themeMode;
@@ -436,6 +473,22 @@ document.addEventListener('click', (e) => {
   if (t.dataset.nav) { e.preventDefault(); go(t.dataset.nav); return; }
   if (t.dataset.act) {
     switch (t.dataset.act) {
+      case 'connect': {
+        const link = $('#pair-link')?.value.trim();
+        const msg = $('#pair-msg');
+        if (!link) { if (msg) msg.textContent = 'Paste the link first.'; return; }
+        if (msg) msg.textContent = 'Connecting and syncing…';
+        SYNC.connect(link).then(async () => {
+          state.paired = true;
+          const g = await SYNC.getAll();
+          data = vaultData(g);
+          render();
+          toast('Connected');
+        }).catch(() => { if (msg) msg.textContent = 'Invalid link or connection failed.'; });
+        return;
+      }
+      case 'download-backup': SYNC.downloadBackup(); return;
+      case 'sync-now': if (state.paired) { SYNC.pull(); toast('Syncing…'); } return;
       case 'new': case 'new-loan':
         if (t.dataset.act==='new-loan') { state.modal={type:'loan'}; }
         else state.modal={type:'entry',typeValue:'expense',catId:data.cats[0]?.id};
@@ -452,8 +505,8 @@ document.addEventListener('click', (e) => {
       case 'save-entry': saveEntry(); return;
       case 'duplicate-entry': { const m=state.modal; if(m?.txn){ addTxn({...m.txn}); state.modal=null; render(); toast('Duplicated'); } return; }
       case 'delete-entry': if (state.modal?.txn) deleteTxn(state.modal.txn.id); return;
-      case 'save-account': meta().userName=$('#acct-name').value.trim()||'Set your name'; persist(); state.modal=null; render(); toast('Saved'); return;
-      case 'save-loan': { const p=$('#loan-person').value.trim(), a=Number($('#loan-amount').value); if(!p||!(a>0)){toast('Enter a name and amount');return;} data.loans.unshift({id:'loan-'+Date.now(),person:p,lent:a,dateLent:Date.now(),dueDate:0,note:'',repayments:[],topups:[],kind:state.lentDir,remindAt:0}); persist(); state.modal=null; render(); toast('Saved'); return; }
+      case 'save-account': { const n=$('#acct-name').value.trim()||'Set your name'; meta().userName=n; persist(); persistRow('settings','userName',{value:n}); state.modal=null; render(); toast('Saved'); return; }
+      case 'save-loan': { const p=$('#loan-person').value.trim(), a=Number($('#loan-amount').value); if(!p||!(a>0)){toast('Enter a name and amount');return;} const loan={id:'loan-'+Date.now(),person:p,lent:a,dateLent:Date.now(),dueDate:0,note:'',repayments:[],topups:[],kind:state.lentDir,remindAt:0}; data.loans.unshift(loan); persist(); persistRow('people', loan.id, loan); state.modal=null; render(); toast('Saved'); return; }
       case 'hide': meta().hideBalance=!meta().hideBalance; persist(); render(); return;
       case 'delete-selected': { const ids=[...state.histSelected]; data.txns=data.txns.filter(t=>!ids.includes(t.id)); state.histSelected.clear(); persist(); render(); toast('Deleted',()=>{}); return; }
       case 'erase': if(confirm('Erase all data in this browser?')){ for(const k of Object.values(K)) localStorage.removeItem(k); data=load(); render(); toast('All data erased'); } return;
@@ -473,7 +526,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.dup) { const tx=data.txns.find(x=>x.id===t.dataset.dup); if(tx){addTxn({...tx});render();toast('Duplicated');} return; }
   if (t.dataset.del) { deleteTxn(t.dataset.del); return; }
   if (t.dataset.theme) { meta().themeMode=t.dataset.theme; persist(); applyTheme(); render(); return; }
-  if (t.dataset.cal) { meta().calendarSystem=t.dataset.cal; persist(); render(); return; }
+  if (t.dataset.cal) { meta().calendarSystem=t.dataset.cal; persist(); persistRow('settings','calendarSystem',{value:t.dataset.cal}); render(); return; }
   if (t.dataset.lentDir) { state.lentDir=t.dataset.lentDir; render(); return; }
   if (t.dataset.lentFilter) { state.lentFilter=t.dataset.lentFilter; render(); return; }
   if (t.dataset.section) { const s=(meta().homeLayout||[]).find(x=>x.id===t.dataset.section); if(s&&s.id!=='balance'){s.visible=!s.visible;persist();renderOverlay();render();} return; }
@@ -497,7 +550,7 @@ document.addEventListener('input', (e) => {
   if (e.target.id==='palette-q') { state.paletteQuery=e.target.value; renderOverlay(); }
 });
 document.addEventListener('change', (e) => {
-  if (e.target.dataset.act==='currency') { meta().currency=e.target.value; persist(); render(); }
+  if (e.target.dataset.act==='currency') { meta().currency=e.target.value; persist(); persistRow('settings','currency',{value:e.target.value}); render(); }
   if (e.target.dataset.sel) { const id=e.target.dataset.sel; e.target.checked?state.histSelected.add(id):state.histSelected.delete(id); render(); }
 });
 document.addEventListener('keydown', (e) => {
@@ -514,5 +567,27 @@ document.addEventListener('keydown', (e) => {
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (meta().themeMode==='system') applyTheme(); });
 
 /* ---------------- boot ---------------- */
-applyTheme(); render();
+async function boot() {
+  let ok = false;
+  try {
+    ok = await SYNC.init({
+      onData: () => {
+        if (!state.paired || !SYNC) return;
+        SYNC.getAll().then(g => { data = vaultData(g); render(); });
+      },
+      onStatus: (s) => { const el = document.getElementById('sync-status'); if (el) el.textContent = s; },
+      onBackupAvailable: () => { state.backupAvailable = true; },
+    });
+  } catch (e) { ok = false; }
+  state.booted = true;
+  // Demo mode stays presentation-only: no pairing, no vault, no network.
+  state.paired = DEMO || !!(ok && SYNC.isPaired());
+  if (state.paired) {
+    const g = await SYNC.getAll();
+    data = vaultData(g);
+  }
+  applyTheme();
+  render();
+}
+document.addEventListener('DOMContentLoaded', boot);
 })();
