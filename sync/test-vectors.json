@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "note": "Shared conformance vectors. Both web (node --test) and Android (unit tests) must produce the documented expect values. ua values are absolute except where now_ms is given; clamp_bound = now_ms + 86400000.",
+  "now_ms": 1732200000000,
+  "vectors": [
+    {
+      "id": "lww-higher-ua",
+      "name": "Higher updated_at wins",
+      "initial": [{"t":"categories","id":"c1","ua":1000,"d":0,"device_id":"dev-a","ct":"old"}],
+      "operations": [{"op":"merge","rows":[{"t":"categories","id":"c1","ua":2000,"d":0,"device_id":"dev-b","ct":"new"}]}],
+      "expect": {"state":[{"t":"categories","id":"c1","ua":2000,"d":0,"ct":"new"}]}
+    },
+    {
+      "id": "lww-tie-device-id",
+      "name": "Equal ua: lexicographically larger device_id wins",
+      "initial": [{"t":"categories","id":"c1","ua":1000,"d":0,"device_id":"aaa","ct":"from-aaa"}],
+      "operations": [{"op":"merge","rows":[{"t":"categories","id":"c1","ua":1000,"d":0,"device_id":"zzz","ct":"from-zzz"}]}],
+      "expect": {"state":[{"t":"categories","id":"c1","ua":1000,"d":0,"ct":"from-zzz"}]}
+    },
+    {
+      "id": "tombstone-newer-than-update",
+      "name": "Newer deletion beats older update",
+      "initial": [{"t":"entries","id":"e1","ua":1000,"d":0,"device_id":"dev-a","ct":"alive"}],
+      "operations": [{"op":"merge","rows":[{"t":"entries","id":"e1","ua":2000,"d":1,"device_id":"dev-a","ct":"deleted"}]}],
+      "expect": {"state":[{"t":"entries","id":"e1","ua":2000,"d":1,"ct":"deleted"}]}
+    },
+    {
+      "id": "update-newer-than-tombstone",
+      "name": "Newer update resurrects an older tombstone",
+      "initial": [{"t":"entries","id":"e1","ua":1000,"d":1,"device_id":"dev-a","ct":"deleted"}],
+      "operations": [{"op":"merge","rows":[{"t":"entries","id":"e1","ua":2000,"d":0,"device_id":"dev-a","ct":"revived"}]}],
+      "expect": {"state":[{"t":"entries","id":"e1","ua":2000,"d":0,"ct":"revived"}]}
+    },
+    {
+      "id": "duplicate-push",
+      "name": "Pushing the same row twice is a no-op with a stable seq",
+      "initial": [],
+      "operations": [
+        {"op":"push","rows":[{"t":"categories","id":"c1","ua":1000,"d":0,"device_id":"dev-a","ct":"x"}]},
+        {"op":"push","rows":[{"t":"categories","id":"c1","ua":1000,"d":0,"device_id":"dev-a","ct":"x"}]}
+      ],
+      "expect": {"state":[{"t":"categories","id":"c1","ua":1000,"d":0,"seq":1}],"accepted":[1,0],"server_seq":1}
+    },
+    {
+      "id": "out-of-order-delivery",
+      "name": "An older row arriving after a newer one cannot overwrite it",
+      "initial": [],
+      "operations": [
+        {"op":"merge","rows":[{"t":"entries","id":"e1","ua":3000,"d":0,"device_id":"dev-a","ct":"newest"}]},
+        {"op":"merge","rows":[{"t":"entries","id":"e1","ua":2000,"d":0,"device_id":"dev-z","ct":"older"}]}
+      ],
+      "expect": {"state":[{"t":"entries","id":"e1","ua":3000,"d":0,"ct":"newest"}]}
+    },
+    {
+      "id": "dependency-missing-parent",
+      "name": "Child with missing parent is parked, then applied after parent arrives",
+      "initial": [],
+      "operations": [
+        {"op":"apply","rows":[{"t":"entries","id":"e1","ua":1000,"d":0,"device_id":"dev-a","ct":"child","data":{"categoryId":"c1"}}]},
+        {"op":"apply","rows":[{"t":"categories","id":"c1","ua":1000,"d":0,"device_id":"dev-a","ct":"parent"}]}
+      ],
+      "expect": {"state_length":2,"pending_after_first":1,"pending_after_second":0,"order":["categories","entries"]}
+    },
+    {
+      "id": "future-clock-clamp",
+      "name": "A ua more than 24h in the future is clamped, then merged",
+      "initial": [],
+      "operations": [{"op":"merge","rows":[{"t":"categories","id":"c1","ua":1732440000000,"d":0,"device_id":"dev-a","ct":"future"}]}],
+      "expect": {"state":[{"t":"categories","id":"c1","ua":1732286400000,"d":0,"ct":"future"}],"clock_skew_logged":true}
+    },
+    {
+      "id": "large-batch-paging",
+      "name": "1200 rows page in 500/500/200 with monotonic seq",
+      "initial": [],
+      "operations": [
+        {"op":"push","count":500,"prefix":"a"},
+        {"op":"push","count":500,"prefix":"b"},
+        {"op":"push","count":200,"prefix":"c"},
+        {"op":"pull","since":0,"limit":500},
+        {"op":"pull","since":500,"limit":500},
+        {"op":"pull","since":1000,"limit":500}
+      ],
+      "expect": {"total":1200,"pages":[{"count":500,"next":500,"more":true},{"count":500,"next":1000,"more":true},{"count":200,"next":1200,"more":false}]}
+    },
+    {
+      "id": "first-sync-no-delete",
+      "name": "Empty server never deletes local rows",
+      "initial": [{"t":"entries","id":"e1","ua":1000,"d":0,"device_id":"dev-a","ct":"local"}],
+      "operations": [{"op":"pull","since":0,"limit":500}],
+      "expect": {"state_length":1,"deleted_local":0}
+    }
+  ]
+}
