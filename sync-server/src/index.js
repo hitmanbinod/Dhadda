@@ -8,11 +8,20 @@ const TOMBSTONE_DAYS = 180;
 
 const enc = new TextEncoder();
 
+function browserOrigin(request) {
+  return request.headers.get('Origin') || '';
+}
+function isLocalRequest(request) {
+  const o = browserOrigin(request);
+  return !!o && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(o);
+}
+
 function cors(env, request) {
-  const configured = env.ALLOWED_ORIGIN || '';
   const reqOrigin = request.headers.get('Origin') || '';
-  const local = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(reqOrigin);
-  const origin = local ? reqOrigin : (configured || reqOrigin);
+  const local = isLocalRequest(request);
+  // In production the Pages origin is mandatory. Never fall back to echoing
+  // the request origin - that would allow any website to call the vault.
+  const origin = local ? reqOrigin : (env.ALLOWED_ORIGIN || '');
   const h = {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -108,6 +117,13 @@ function wire(r) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    // Fail closed: a production Worker without a configured Pages origin must
+    // not serve any vault traffic. Local wrangler dev is exempt.
+    if (browserOrigin(request) && !isLocalRequest(request) && !env.ALLOWED_ORIGIN) {
+      return new Response(JSON.stringify({ error: 'worker origin not configured' }), {
+        status: 503, headers: { 'Content-Type': 'application/json' },
+      });
+    }
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors(env, request) });
     try {
       if (request.method === 'POST' && url.pathname === '/v1/vault') {

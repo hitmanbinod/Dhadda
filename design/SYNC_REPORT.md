@@ -74,7 +74,40 @@ hidden; no native code, Gradle, signing or applicationId changed.
   SharedPreferences. No new native plugin was added.
 - Fiscal-year start is a placeholder setting (Android has no such pref yet).
 
-## 7. Not verified
+## 7. Follow-up (this branch, same branch `sync`)
+
+No new dependencies, no DB migration.
+
+- **Triggers wired:** a repository-level hook in `ExpenseStore`
+  (`cloudChangeHook`) queues one cloud row per changed record on the success
+  path of every domain write; settings setters queue their own rows. The root
+  shell owns one `CloudSync`: debounced push **5 s** after the last change,
+  **push + pull on resume**, **pull every 60 s while foreground**, timers
+  cancelled on pause and hook detached on dispose. "Sync now" still works.
+- **Change capture proven:** `flutter test test/change_capture_test.dart`
+  mutates through entry add/edit/delete, kept-add, event add/edit/delete,
+  loan add/top-up/repayment/reminder/delete, category add/edit/budget/reorder/
+  delete, account add/edit/archive/delete and the four synced settings, then
+  asserts every `(table,id)` and its deleted flag is present in the outbox.
+  Full suite: **372/372**, analyzer clean.
+- **CORS fail-closed:** `ALLOWED_ORIGIN` was removed from `wrangler.toml`.
+  Production requests from a browser origin are rejected with **503** unless
+  the Pages origin was set via `wrangler deploy --var ALLOWED_ORIGIN:<url>`;
+  a configured but non-matching origin gets no matching `Access-Control-Allow-Origin`.
+  Local `wrangler dev` allows only `localhost`/`127.0.0.1`; requests with no
+  `Origin` (the Flutter app) are allowed. Verified against local dev:
+  local origin ACAO echoed, `https://evil.example` → 503, no-origin → 200.
+- **Deploy order:** `./scripts/deploy-sync` (Worker first) →
+  `WORKER_URL=… ./scripts/deploy-web` (Pages, then redeploy Worker with
+  `ALLOWED_ORIGIN=<pages-url>`). Documented in `PROJECT_GUIDE.md` §1b.
+- **Backup exclusion:** `android:dataExtractionRules` and
+  `android:fullBackupContent` now point at XML files excluding all seven
+  `expense_cloud_*` preferences. `android:allowBackup="false"` remains, so
+  nothing is uploaded today; the rules are explicit defence in depth.
+- **Sizes:** APK 98,981,785 → **98,999,297 bytes** (+17,512 for the follow-up,
+  +230,720 from the original baseline). Web gzip unchanged at 24,028 B.
+
+## 8. Not verified
 
 No real Cloudflare deployment (needs your login), no physical-device run, no
 formal contrast or long-duration battery measurement. Browser tests used

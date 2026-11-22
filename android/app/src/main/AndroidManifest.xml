@@ -28,6 +28,8 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:usesCleartextTraffic="true">
         <!-- usesCleartextTraffic: every sync transport speaks plain HTTP on
              the LAN by design (docs/SECURITY_LAN.md, trusted-home-network

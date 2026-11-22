@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pre-Android-12 counterpart of data_extraction_rules.xml. -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="expense_cloud_vault_v1.xml" />
+    <exclude domain="sharedpref" path="expense_cloud_token_v1.xml" />
+    <exclude domain="sharedpref" path="expense_cloud_key_v1.xml" />
+    <exclude domain="sharedpref" path="expense_cloud_outbox_v1.xml" />
+    <exclude domain="sharedpref" path="expense_cloud_ua_v1.xml" />
+    <exclude domain="sharedpref" path="expense_cloud_seq_v1.xml" />
+    <exclude domain="sharedpref" path="expense_cloud_prebackup_v1.xml" />
+</full-backup-content>

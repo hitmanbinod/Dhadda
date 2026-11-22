@@ -42,6 +42,15 @@ class ExpenseStore extends ChangeNotifier {
   static const _kSyncV2 = 'expense_sync_v2_v1';
   static const _uuid = Uuid();
 
+  /// Cloud change hook. Set by the sync client; called once per mutated
+  /// record after a successful domain write (or settings change). Never
+  /// called while applying remote rows, so sync never echoes itself.
+  Future<void> Function(String table, String id, Object data,
+      {bool deleted})? cloudChangeHook;
+
+  /// True while pulled cloud rows are being applied. Suppresses the hook.
+  bool cloudApplying = false;
+
   DomainStore? _domain;
   bool _ownsDomain = false;
 
@@ -508,6 +517,42 @@ class ExpenseStore extends ChangeNotifier {
   /// thrown into the UI and never only logged. Returns false when the
   /// operation failed and was reverted, true on success (or when no
   /// database backend exists).
+  /// Queues one cloud row per record whose JSON changed, plus tombstones for
+  /// removals. Called only on the success path of a domain write.
+  Future<void> _queueCloudDiff(DomainData before) async {
+    final hook = cloudChangeHook;
+    if (hook == null || cloudApplying) return;
+    Future<void> diff<T>(
+      String table,
+      List<T> oldList,
+      List<T> newList,
+      String Function(T) idOf,
+      Map<String, dynamic> Function(T) jsonOf,
+    ) async {
+      final oldById = {for (final x in oldList) idOf(x): x};
+      final newById = {for (final x in newList) idOf(x): x};
+      for (final id in newById.keys) {
+        final old = oldById[id];
+        final next = jsonOf(newById[id] as T);
+        if (old == null || _jsonOfT(old, jsonOf) != next) {
+          await hook(table, id, next);
+        }
+      }
+      for (final id in oldById.keys) {
+        if (!newById.containsKey(id)) await hook(table, id, {}, deleted: true);
+      }
+    }
+
+    await diff('categories', before.categories, categories, (x) => x.id, (x) => x.toJson());
+    await diff('accounts', before.accounts, accounts, (x) => x.id, (x) => x.toJson());
+    await diff('entries', before.transactions, transactions, (x) => x.id, (x) => x.toJson());
+    await diff('people', before.loans, loans, (x) => x.id, (x) => x.toJson());
+    await diff('events', before.projects, projects, (x) => x.id, (x) => x.toJson());
+  }
+
+  Map<String, dynamic> _jsonOfT<T>(T value, Map<String, dynamic> Function(T) jsonOf) =>
+      jsonOf(value);
+
   Future<bool> _persistDomain(
     DomainData before,
     String prevUpdatedAt,
@@ -531,6 +576,7 @@ class ExpenseStore extends ChangeNotifier {
         }
       });
       lastPersistError = null;
+      await _queueCloudDiff(before);
       return true;
     } catch (e) {
       _restoreDomain(before, prevUpdatedAt);
@@ -782,6 +828,7 @@ class ExpenseStore extends ChangeNotifier {
     currency = v;
     setDisplaySymbol(currencySymbol);
     _saveAll();
+    await cloudChangeHook?.call('settings', 'currency', {'value': v});
     notifyListeners();
   }
 
@@ -841,6 +888,7 @@ class ExpenseStore extends ChangeNotifier {
   Future<void> setUserName(String v) async {
     userName = v.trim();
     _saveAll();
+    await cloudChangeHook?.call('settings', 'userName', {'value': userName});
     notifyListeners();
   }
 
@@ -878,6 +926,7 @@ class ExpenseStore extends ChangeNotifier {
     calendarSystem = value;
     setAppCalendar(value);
     _saveAll();
+    await cloudChangeHook?.call('settings', 'calendarSystem', {'value': value});
     notifyListeners();
   }
 
@@ -948,6 +997,7 @@ class ExpenseStore extends ChangeNotifier {
     final next = normalizeHomeLayout(layout);
     homeLayout = next;
     _saveAll();
+    await cloudChangeHook?.call('settings', 'homeLayout', {'value': encodeHomeLayout(next)});
     notifyListeners();
   }
 
@@ -2021,6 +2071,8 @@ class ExpenseStore extends ChangeNotifier {
   /// LWW-resolved by CloudSync using the shared vector rules. Never clears a
   /// collection: unknown ids are inserted, known ids are replaced.
   Future<void> applyCloudRows(List<Map<String, dynamic>> rows) async {
+    cloudApplying = true;
+    try {
     for (final r in rows) {
       final t = '${r['t'] ?? ''}';
       final id = '${r['id'] ?? ''}';
@@ -2086,6 +2138,9 @@ class ExpenseStore extends ChangeNotifier {
     );
     _touch();
     notifyListeners();
+    } finally {
+      cloudApplying = false;
+    }
   }
 
   String exportJson() => toSnapshot().encode();

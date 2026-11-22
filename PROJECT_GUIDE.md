@@ -37,11 +37,17 @@ theming. Distribution: **GitHub Releases + F-Droid only** (no Google Play).
 
 ## 1b. Cloud sync + web access (branch `sync`, Prompt 2)
 
-- **Web app:** `webapp/` static PWA, deployed with `./scripts/deploy-web`
-  (needs `WORKER_URL=…`). URL: `https://dhadda-web.pages.dev` (name may be
-  taken; choose another at deploy time). Dev: `python -m http.server 8099 --directory web-v2`.
-- **Sync server:** `sync-server/` Worker + D1 `dhadda-vault`, deployed with
-  `./scripts/deploy-sync`. URL: `https://dhadda-sync.<your-subdomain>.workers.dev`.
+- **Web app:** `webapp/` static PWA. URL: `https://dhadda-web.pages.dev`
+  (name may be taken; choose another at deploy time via `PAGES_PROJECT`).
+  Dev: `python -m http.server 8099 --directory web-v2`.
+- **Sync server:** `sync-server/` Worker + D1 `dhadda-vault`. URL:
+  `https://dhadda-sync.<your-subdomain>.workers.dev`.
+- **Deploy order (important):** first `./scripts/deploy-sync` (Worker, no
+  browser origin yet), then
+  `WORKER_URL=<worker-url> ./scripts/deploy-web` (deploys Pages, then
+  redeploys the Worker with `ALLOWED_ORIGIN=<pages-url>`). Production Workers
+  reject browser-origin requests with 503 until that origin is set; requests
+  without an `Origin` (the Flutter app) are allowed.
   Create D1 once with `npx wrangler d1 create dhadda-vault` and paste the id
   into `sync-server/wrangler.toml`.
 - **Protocol:** `design/SYNC_PROTOCOL.md`, vectors `sync/test-vectors.json`.

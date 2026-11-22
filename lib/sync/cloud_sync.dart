@@ -2,6 +2,7 @@
 // Presentation/state only: no schema change. The outbox and per-record ua map
 // live in app-private SharedPreferences; domain collections are untouched
 // except for an explicit additive merge method on ExpenseStore.
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
@@ -42,6 +43,68 @@ class CloudSync {
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
   final _aes = AesGcm.with256bits();
+
+  Timer? _pushTimer;
+  Timer? _pullTimer;
+  bool _foreground = false;
+
+  /// Registers the repository-level change hook. Safe to call repeatedly.
+  void attach() => store.cloudChangeHook = queue;
+
+  /// Debounced push: 5 s after the last local change.
+  void _schedulePush() {
+    if (!isPaired) return;
+    _pushTimer?.cancel();
+    _pushTimer = Timer(const Duration(seconds: 5), () async {
+      try { await push(); await pull(); } catch (_) {}
+    });
+  }
+
+  /// Call from the app's foreground/resume lifecycle: push then pull.
+  Future<void> onResume() async {
+    if (!isPaired) return;
+    _foreground = true;
+    await push();
+    await pull();
+    _startPeriodicPull();
+  }
+
+  /// Pull every 60 s while foreground. Network failures simply set the
+  /// offline status; no wake lock, no background polling loop.
+  void startForeground() {
+    _foreground = true;
+    attach();
+    _startPeriodicPull();
+  }
+
+  void _startPeriodicPull() {
+    _pullTimer?.cancel();
+    _pullTimer = Timer.periodic(const Duration(seconds: 60), (_) async {
+      if (!_foreground || !isPaired) return;
+      try { await pull(); } catch (_) {}
+    });
+  }
+
+  void stopForeground() {
+    _foreground = false;
+    _pullTimer?.cancel();
+    _pullTimer = null;
+    _pushTimer?.cancel();
+    _pushTimer = null;
+  }
+
+  void dispose() {
+    stopForeground();
+    if (identical(store.cloudChangeHook, queue)) store.cloudChangeHook = null;
+  }
+
+  /// Explicit "Sync now" from the Web access screen.
+  Future<int> syncNow() async {
+    await pushAll();
+    final n = await push();
+    await pull();
+    return n;
+  }
 
   String? get vaultId => _vaultId;
   String? _vaultId;
@@ -145,6 +208,7 @@ class CloudSync {
     list.add(row);
     await p.setString(_outbox, jsonEncode(list));
     await _saveUas();
+    _schedulePush();
   }
 
   List<Map<String, dynamic>> _decodeList(String? raw) {

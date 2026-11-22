@@ -17,6 +17,7 @@ import 'screens/sync_screen.dart';
 import 'receipts.dart';
 import 'security.dart';
 import 'store.dart';
+import 'sync/cloud_sync.dart';
 import 'sync/link_sync.dart';
 import 'sync/reminders.dart';
 import 'sync/sms.dart';
@@ -83,6 +84,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   int _index = 0;
   String? _quickAction;
   late final LinkEngine _link;
+  late final CloudSync _cloud;
   final HistoryDayRequest _historyDay = HistoryDayRequest();
   final HistorySearchRequest _historySearch = HistorySearchRequest();
   final HomeMonthRequest _homeMonth = HomeMonthRequest();
@@ -122,6 +124,10 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     final store = context.read<ExpenseStore>();
     _link = LinkEngine(store);
     _link.start();
+    _cloud = CloudSync(store);
+    _cloud.load().then((_) {
+      if (mounted) _cloud.startForeground();
+    }).catchError((_) {});
     store.onLoansChanged = () => Reminders.refresh(store);
     Reminders.refresh(store);
     store.addListener(_maybeAutoSms);
@@ -255,6 +261,7 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _link.stop();
+    _cloud.dispose();
     _historyDay.dispose();
     _historySearch.dispose();
     _homeMonth.dispose();
@@ -270,11 +277,13 @@ class _RootShellState extends State<RootShell> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       WidgetBridge.refresh();
       _link.syncNow();
+      _cloud.onResume().catchError((_) {});
       final store = context.read<ExpenseStore>();
       Reminders.refresh(store);
       _autoSms(store);
     } else if (state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused) {
+      _cloud.stopForeground();
       // Re-lock when the app leaves the foreground. Without this, the
       // lock only guarded process death: background -> recents -> return
       // skipped the PIN/biometric entirely. Any lock screen showing a

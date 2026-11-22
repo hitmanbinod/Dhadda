@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
-# Deploy the sync Worker. Run `npx wrangler login` and `npx wrangler d1 create dhadda-vault` once first.
+# Deploy the sync Worker. Run `npx wrangler login` and
+# `npx wrangler d1 create dhadda-vault` once first.
+#
+# Usage:
+#   ./scripts/deploy-sync                       # first deploy (no browser origin yet)
+#   PAGES_URL=https://<project>.pages.dev ./scripts/deploy-sync
+#                                               # redeploy with production CORS locked
 set -euo pipefail
 cd "$(dirname "$0")/.."
-npx --yes wrangler@latest deploy --config sync-server/wrangler.toml
-echo "Worker deployed. Copy its URL into scripts/deploy-web and webapp/config.js."
+ARGS="--config sync-server/wrangler.toml"
+if [ -n "${PAGES_URL:-}" ]; then
+  ARGS="$ARGS --var ALLOWED_ORIGIN:$PAGES_URL"
+fi
+# shellcheck disable=SC2086
+npx --yes wrangler@latest deploy $ARGS
+echo "Worker deployed${PAGES_URL:+ with ALLOWED_ORIGIN=$PAGES_URL}."

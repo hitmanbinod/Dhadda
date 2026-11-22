@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ (API 31+). allowBackup=false already disables cloud backup;
+     these rules make the exclusion explicit if that flag is ever revisited. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="expense_cloud_vault_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_token_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_key_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_outbox_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_ua_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_seq_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_prebackup_v1.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="expense_cloud_vault_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_token_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_key_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_outbox_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_ua_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_seq_v1.xml" />
+        <exclude domain="sharedpref" path="expense_cloud_prebackup_v1.xml" />
+    </device-transfer>
+</data-extraction-rules>
