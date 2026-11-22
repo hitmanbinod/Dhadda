@@ -11,6 +11,10 @@ Web access. Existing LAN sync and the embedded Flutter-web bundle are unchanged.
 
 Last synced Android commit: `61d78b1` (2026-11-22)
 
+**Prompt 3 (branch `lan-sync`, in progress):** the cloud path is being replaced
+by a phone-hosted LAN mode. Phases 3–4 landed the matching "Use on computer"
+screens on both sides. No new design tokens were introduced.
+
 **`web-v2` experiment:** this branch adds a separate lightweight web app under
 `web-v2/` (plain JS/CSS, no framework, ~17 KB gzip including demo data). It
 does **not** change Android or the existing Flutter-web build. The legacy rows
@@ -34,6 +38,7 @@ often the same file; that is expected and listed under Intentional differences.
 | Add / Edit sheet | `lib/screens/add_screen.dart`, `lib/widgets/entry_actions.dart`, `receipt_field.dart` | same | ✅ synced |
 | Toasts / sheets | `lib/widgets/app_snack_bar.dart`, theme | same | ✅ synced |
 | Embedded bundle | `lib/sync/phone_host_io.dart` | `assets/webapp/` (rebuild with `dart tool/build_embedded_web.dart`) | ✅ synced 1.5.0+4 |
+| Use on computer (phone-hosted LAN) | `lib/screens/use_on_computer_screen.dart`, `lib/sync/lan_host.dart` | `webapp/index.html`, `app.js` (pairing page), `lan-sync.js` (remote store), `lan-crypto.js` | ✅ synced — Phase 4: same three-step flow, code/QR pairing, trust checkbox and troubleshooting; no new tokens |
 
 Latest UI changes (both platforms share the same Flutter files): Home's By
 category card dropped its duplicated featured header for a proportional,

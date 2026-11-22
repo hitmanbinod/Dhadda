@@ -12,6 +12,7 @@ libraries are vendored instead. No CDN and no npm at runtime.
 | `LICENSE-curves.txt` | MIT licence, `@noble/curves` |
 | `LICENSE-hashes.txt` | MIT licence, `@noble/hashes` |
 | `LICENSE-ciphers.txt` | MIT licence, `@noble/ciphers` |
+| `qrcode-min.js` | MIT `qrcode-generator` 2.0.4, tree-shaken ESM build (20,887 bytes raw, 7,621 gzip). Renders the computer's pairing QR. |
 
 Versions and upstream tarball SHA-256 (npm registry, fetched 2026-11-22):
 
@@ -22,6 +23,10 @@ Versions and upstream tarball SHA-256 (npm registry, fetched 2026-11-22):
 | `@noble/ciphers` | 1.3.0 | `e02e7c03c26b8dd88ab0bd5e46f2996689e33f252bacb551a1cf504bc912501f` |
 
 Bundle SHA-256: `3e34841dd0fbd9375481796313c10f91e0b304739a20d914c83b86261690dd7d`.
+
+`qrcode-generator` 2.0.4 tarball SHA-256:
+`02e2e18a99a90b02dad940851f59b7c3c5fd1ab79cbdece8595cb06328878159`;
+bundle SHA-256: `ae8ab65ebf38e38464c9b4b3287cb246c59796ab3191468772066afbdb446f25`.
 
 ## Why a bundle instead of the raw ESM files
 

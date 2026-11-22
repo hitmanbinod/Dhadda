@@ -1,3 +1,5 @@
+import qrcode from './vendor/qrcode-min.js';
+
 /* Dhadda web-v2 - presentation only. No framework, no CDN, no data-layer changes. */
 (() => {
 'use strict';
@@ -128,6 +130,7 @@ const state = {
   catSelected:null, lentDir:'lent', lentFilter:'pending',
   modal:null, drawer:false, palette:false, paletteQuery:'', toast:null,
   booted:false, paired:false, backupAvailable:false, pairLink:'',
+  pairTab:'code', pairQr:null, pairMsg:'', pairTrust:false,
 };
 function go(screen) { state.screen = screen; state.modal = null; state.drawer = false; state.palette = false; render(); }
 
@@ -341,6 +344,10 @@ function settings() {
         ${row('Accounts',`<button class="chip" data-act="accounts">Manage</button>`)}
         ${row('Auto-category rules',`<button class="chip" data-act="rules">Manage</button>`)}
         ${row('Receipts',`<span class="muted">${DEMO?'Demo store':'On this device'}</span>`)}</div>
+      <div class="card"><div class="card-title" style="margin-bottom:10px">Connection</div>
+        ${row('Phone',`<span class="muted">${esc(SYNC.status ? SYNC.status() : '')}</span>`,'Your data stays on the phone')}
+        ${row('Disconnect',`<button class="chip" data-act="disconnect">Disconnect</button>`)}
+        ${row('Forget this computer',`<button class="chip" data-act="forget">Forget</button>`,'You will need the code next time')}</div>
       <div class="card"><div class="card-title" style="margin-bottom:10px">Account</div>
         ${row('Profile',`<button class="chip" data-act="account">${esc(m.userName||'Set name')}</button>`,'Name and avatar style')}</div>
       <div class="card"><div class="card-title" style="margin-bottom:10px">About</div>
@@ -399,20 +406,55 @@ function modalHtml() {
 }
 
 /* ---------------- first run / pairing ---------------- */
+function friendlyPairError(e) {
+  const m = String(e?.message || e);
+  if (m.includes('expired')) return 'That code expired. Ask your phone for a new one.';
+  if (m.includes('attempts')) return 'Too many wrong attempts. Ask your phone for a new code.';
+  if (m.includes('denied')) return 'The phone said no. Try again.';
+  if (m.includes('Failed to fetch') || m.includes('NetworkError'))
+    return 'Can’t reach your phone. Same Wi-Fi? Phone awake and Dhadda open?';
+  return m;
+}
 function firstRun() {
-  return `<div class="content" style="max-width:620px"><div class="page-head"><h1 class="page-title">Connect your phone</h1></div>
-    <div class="card"><p class="muted" style="margin-bottom:18px">One-time setup. Your data is encrypted on the phone; only ciphertext is stored in the cloud.</p>
-      <ol style="padding-left:20px;line-height:1.9"><li>Open <strong>Dhadda</strong> on your phone.</li>
-      <li>Go to <strong>Settings → Web access → Create link</strong>.</li>
-      <li>Copy the link and paste it below.</li></ol>
-      <label class="field-label" style="margin-top:20px">Pairing link</label>
-      <input id="pair-link" class="input" placeholder="https://…#v=…&t=…&k=…" autocomplete="off">
-      <div id="pair-msg" class="muted" style="margin-top:10px"></div>
+  const codeTab = state.pairTab === 'code';
+  let qrHtml = '';
+  if (state.pairQr) {
+    const q = qrcode(0, 'M'); q.addData(state.pairQr.qr); q.make();
+    qrHtml = `<div style="background:#fff;padding:12px;display:inline-block;border-radius:12px">${q.createSvgTag({cellSize:4,margin:2})}</div>
+      <p class="muted" style="font-size:12px">${esc(state.pairQr.text)}</p>`;
+  }
+  return `<div class="content" style="max-width:620px"><div class="page-head"><h1 class="page-title">Dhadda on your computer</h1></div>
+    <div class="card"><p class="muted" style="margin-bottom:18px">Your data stays on your phone. Nothing is uploaded.</p>
+      <ol style="padding-left:20px;line-height:1.9">
+        <li>On your phone, open <strong>Use on computer</strong> and tap <strong>Start</strong>.</li>
+        <li>Make sure your phone and this computer are on the same Wi-Fi.</li>
+        <li>Pair once with the code or the QR below.</li>
+      </ol>
+      <div style="display:flex;gap:8px;margin:18px 0">
+        <button class="chip" data-act="pair-tab" data-tab="code" ${codeTab?'aria-current="true"':''}>Enter code</button>
+        <button class="chip" data-act="pair-tab" data-tab="qr" ${!codeTab?'aria-current="true"':''}>Scan with phone</button>
+      </div>
+      ${codeTab ? `
+        <label class="field-label">Eight-character code</label>
+        <input id="pair-code" class="input" maxlength="9" placeholder="ABCD-EFGH" autocomplete="off" autocapitalize="characters">
+      ` : `
+        <button class="btn-primary" style="width:auto;padding:0 20px" data-act="start-qr">Show pairing QR</button>
+        <div style="margin-top:16px">${qrHtml}</div>
+      `}
+      <label style="display:flex;gap:10px;align-items:center;margin-top:18px;color:var(--text-secondary,#666)">
+        <input type="checkbox" id="pair-trust" ${state.pairTrust?'checked':''}> Trust this computer for 30 days
+      </label>
+      <div id="pair-msg" class="muted" style="margin-top:10px">${esc(state.pairMsg)}</div>
       <div style="display:flex;gap:12px;margin-top:18px;flex-wrap:wrap">
         <button class="btn-primary" style="width:auto;padding:0 20px" data-act="connect">Connect</button>
+        <button class="chip" data-act="troubleshoot">Can’t reach your phone?</button>
         ${state.backupAvailable?'<button class="chip" data-act="download-backup">Download backup of old web data</button>':''}
       </div>
-      <p class="muted" style="margin-top:20px;font-size:12px">Anyone with this link can read your data. Do not post it. The link is also your recovery key.</p>
+      <div id="troubleshoot" class="muted" style="margin-top:14px;font-size:12px;display:none">
+        Same Wi-Fi? Phone awake with Dhadda open? Guest networks can block devices from seeing each other.
+        Try the exact address shown on your phone.
+      </div>
+      <p class="muted" style="margin-top:20px;font-size:12px">Use only a network you trust. Never public or hotel Wi-Fi.</p>
     </div></div>`;
 }
 
@@ -473,20 +515,62 @@ document.addEventListener('click', (e) => {
   if (t.dataset.nav) { e.preventDefault(); go(t.dataset.nav); return; }
   if (t.dataset.act) {
     switch (t.dataset.act) {
-      case 'connect': {
-        const link = $('#pair-link')?.value.trim();
+      case 'pair-tab': {
+        state.pairTab = t.dataset.tab;
+        state.pairMsg = '';
+        render();
+        return;
+      }
+      case 'start-qr': {
         const msg = $('#pair-msg');
-        if (!link) { if (msg) msg.textContent = 'Paste the link first.'; return; }
-        if (msg) msg.textContent = 'Connecting and syncing…';
-        SYNC.connect(link).then(async () => {
+        SYNC.beginQr($('#pair-trust')?.checked, 'Chrome on this computer')
+          .then(q => { state.pairQr = q; render(); })
+          .catch(() => { if (msg) msg.textContent = 'Can’t reach your phone.'; });
+        return;
+      }
+      case 'troubleshoot': {
+        const box = $('#troubleshoot');
+        if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        return;
+      }
+      case 'connect': {
+        const msg = $('#pair-msg');
+        const trust = $('#pair-trust')?.checked || false;
+        const done = async () => {
           state.paired = true;
           const g = await SYNC.getAll();
           data = vaultData(g);
           render();
           toast('Connected');
-        }).catch(() => { if (msg) msg.textContent = 'Invalid link or connection failed.'; });
+        };
+        if (state.pairTab === 'qr') {
+          if (!state.pairQr) { if (msg) msg.textContent = 'Show the pairing QR first.'; return; }
+          if (msg) msg.textContent = 'Waiting for the phone…';
+          SYNC.pollQr().then(async ok => {
+            if (!ok) { setTimeout(async () => {
+              const again = await SYNC.pollQr().catch(() => false);
+              if (again) await done(); else if (msg) msg.textContent = 'Still waiting for the phone…';
+            }, 1200); return; }
+            await done();
+          }).catch(e => { if (msg) msg.textContent = e.message; });
+          return;
+        }
+        const code = $('#pair-code')?.value.trim();
+        if (!code) { if (msg) msg.textContent = 'Enter the code shown on your phone.'; return; }
+        if (msg) msg.textContent = 'Connecting and waiting for approval on the phone…';
+        SYNC.connectCode(code, trust, 'Chrome on this computer')
+          .then(done)
+          .catch(e => { if (msg) msg.textContent = friendlyPairError(e); });
         return;
       }
+      case 'disconnect':
+        if (SYNC.endSession) SYNC.endSession('Disconnected');
+        state.paired = false; render(); toast('Disconnected'); return;
+      case 'forget':
+        if (confirm('Forget this computer? You will need the code next time.')) {
+          SYNC.forget(); state.paired = false; render(); toast('Forgotten');
+        }
+        return;
       case 'download-backup': SYNC.downloadBackup(); return;
       case 'sync-now': if (state.paired) { SYNC.pull(); toast('Syncing…'); } return;
       case 'new': case 'new-loan':

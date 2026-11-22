@@ -18,24 +18,7 @@
 <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"><use href="icons.svg#i-home"/></svg>
 <div id="app"></div>
 <script>if(new URLSearchParams(location.search).has('demo'))document.write('<scr'+'ipt src="demo-data.js"><\/scr'+'ipt>');</script>
-<script src="config.js"></script>
-<script src="sync.js"></script>
-<script src="app.js"></script>
-<script>
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').then(reg => {
-  reg.addEventListener('updatefound', () => {
-    const w = reg.installing;
-    if (!w) return;
-    w.addEventListener('statechange', () => {
-      if (w.state === 'installed' && navigator.serviceWorker.controller) {
-        const t = document.createElement('div');
-        t.className = 'toast';
-        t.innerHTML = '<span>Update ready, reload</span><button onclick="location.reload()">Reload</button>';
-        document.body.appendChild(t);
-      }
-    });
-  });
-}).catch(() => {});
-</script>
+<script type="module" src="lan-sync.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
