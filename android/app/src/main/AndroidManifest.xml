@@ -16,6 +16,13 @@
          policy trouble; SCHEDULE_EXACT_ALARM is user-revocable. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
+    <!-- Prompt 3: keep the phone-hosted server alive while the screen is off.
+         dataSync is the correct foreground-service type at target SDK 36 for a
+         local network data-transfer service; API 34+ requires the matching
+         permission. WAKE_LOCK is not contributed by wakelock_plus. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Optional expense import: user taps "Import from SMS", nothing auto-read. -->
     <uses-permission android:name="android.permission.READ_SMS" />
     <!-- Privacy: Dhadda financial data is plaintext JSON. Do NOT let
@@ -36,6 +43,10 @@
              only). Without this flag Android 9+ silently blocks all
              outbound sync calls from the phone while hosting (Show on PC)
              keeps working, which made pairing look completely broken. -->
+        <service
+            android:name=".DhaddaHostService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -7,7 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../store.dart';
+import 'lan_foreground.dart';
 import 'lan_persistence.dart';
+import 'permissions.dart';
 import 'lan_server.dart';
 import 'lan_store_adapter.dart';
 
@@ -23,6 +25,8 @@ class LanHostController extends ChangeNotifier {
   bool _starting = false;
   String _networkName = '';
   bool _hasAddress = false;
+  Timer? _connectionTimer;
+  bool _foregroundStarted = false;
 
   bool get running => _server != null;
   bool get starting => _starting;
@@ -101,6 +105,17 @@ class LanHostController extends ChangeNotifier {
       await _refreshNetwork();
       // Phone edits reach the computer within a second.
       store.addListener(_onStoreChanged);
+      // Phase 7: keep the process alive while serving. Never required for the
+      // app-open version; failures simply leave the foreground server running.
+      if (port != 0) {
+        await Permissions.ensureNotifications();
+        LanForeground.onStopRequested(() => stop());
+        _foregroundStarted = await LanForeground.start();
+        _connectionTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+          LanForeground.updateConnected(sessions.isNotEmpty);
+        });
+        await LanForeground.updateConnected(false);
+      }
     } finally {
       _starting = false;
       notifyListeners();
@@ -114,6 +129,12 @@ class LanHostController extends ChangeNotifier {
   }
 
   Future<void> stop() async {
+    _connectionTimer?.cancel();
+    _connectionTimer = null;
+    if (_foregroundStarted) {
+      _foregroundStarted = false;
+      await LanForeground.stop();
+    }
     final store = _store;
     if (store != null) {
       try {

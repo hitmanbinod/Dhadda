@@ -18,6 +18,7 @@ class MainActivity : FlutterFragmentActivity() {
 
     companion object {
         const val PERM_CODE = 0x5E56
+        const val PERM_NOTIF_CODE = 0x5E57
         /** Set by a widget tap, consumed by Dart on the next unlock/frame. */
         var pendingQuickAction: String? = null
         var actionChannel: MethodChannel? = null
@@ -66,6 +67,30 @@ class MainActivity : FlutterFragmentActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             "expense/widget_actions",
         )
+        val hostChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "expense/host_service",
+        )
+        DhaddaHostService.channel = hostChannel
+        hostChannel.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "start" -> {
+                    startService(Intent(this, DhaddaHostService::class.java))
+                    result.success(true)
+                }
+                "stop" -> {
+                    stopService(Intent(this, DhaddaHostService::class.java))
+                    result.success(true)
+                }
+                "updateConnected" -> {
+                    if (call.argument<Boolean>("connected") == true) {
+                        DhaddaHostService.lastConnected = System.currentTimeMillis()
+                    }
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "expense/mdns",
@@ -117,25 +142,22 @@ class MainActivity : FlutterFragmentActivity() {
             "expense/perm",
         ).setMethodCallHandler { call, result ->
             if (call.method == "ensure") {
-                // Only the camera permission is ever granted here.
-                if (call.argument<String>("name") !=
-                    Manifest.permission.CAMERA
-                ) {
+                val name = call.argument<String>("name")
+                val notification = name == Manifest.permission.POST_NOTIFICATIONS
+                if (name != Manifest.permission.CAMERA && !notification) {
                     result.success(false)
                     return@setMethodCallHandler
                 }
-                if (ContextCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.CAMERA,
-                    ) == PackageManager.PERMISSION_GRANTED
+                if (ContextCompat.checkSelfPermission(this, name!!) ==
+                    PackageManager.PERMISSION_GRANTED
                 ) {
                     result.success(true)
                 } else {
                     permResult = result
                     ActivityCompat.requestPermissions(
                         this,
-                        arrayOf(Manifest.permission.CAMERA),
-                        PERM_CODE,
+                        arrayOf(name),
+                        if (notification) PERM_NOTIF_CODE else PERM_CODE,
                     )
                 }
             } else {
@@ -160,7 +182,7 @@ class MainActivity : FlutterFragmentActivity() {
         ) {
             return
         }
-        if (requestCode == PERM_CODE) {
+        if (requestCode == PERM_CODE || requestCode == PERM_NOTIF_CODE) {
             val ok = grantResults.isNotEmpty() &&
                 grantResults[0] == PackageManager.PERMISSION_GRANTED
             permResult?.success(ok)

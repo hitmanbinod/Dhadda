@@ -40,8 +40,12 @@ limit.
 **Measured after Phase 5:** release APK **83,245,858 bytes** — **15,522,719
 bytes smaller** than the 98,768,577 pre-cloud baseline, and 15,753,439 bytes
 smaller than the cloud build. Web assets including vendored noble crypto and
-the QR encoder: **57,937 bytes / 56.6 KB gzip** (budget 60 KB). Phase 7's
-foreground service will be measured separately against this APK.
+the QR encoder: **57,937 bytes / 56.6 KB gzip** (budget 60 KB).
+
+**Measured after Phase 7:** release APK **83,245,998 bytes** — the foreground
+service (Kotlin `Service`, three permissions, notification channel, wake/Wi-Fi
+locks, Dart bridge) added **140 bytes** after R8. Still 15,522,579 bytes below
+the pre-cloud baseline and 15.5 MB inside the +450 KB budget.
 
 ---
 

@@ -14,4 +14,16 @@ class Permissions {
       return false;
     }
   }
+
+  /// Android 13+ notification permission for the hosting foreground service.
+  /// Returns false when denied; foreground serving still works without it.
+  static Future<bool> ensureNotifications() async {
+    try {
+      return await _ch.invokeMethod<bool>(
+              'ensure', {'name': 'android.permission.POST_NOTIFICATIONS'}) ??
+          false;
+    } catch (_) {
+      return false;
+    }
+  }
 }
