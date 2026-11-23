@@ -426,7 +426,7 @@ function firstRun() {
   let qrHtml = '';
   if (state.pairQr) {
     const q = qrcode(0, 'M'); q.addData(state.pairQr.qr); q.make();
-    qrHtml = `<div style="background:#fff;padding:12px;display:inline-block;border-radius:12px">${q.createSvgTag({cellSize:4,margin:2})}</div>
+    qrHtml = `<div class="qr-code">${q.createSvgTag({cellSize:6,margin:2})}</div>
       <p class="muted" style="font-size:12px">${esc(state.pairQr.text)}</p>`;
   }
   return `<div class="content" style="max-width:620px"><div class="page-head"><h1 class="page-title">Dhadda on your computer</h1></div>
@@ -505,7 +505,7 @@ function applyTheme() {
 
 /* ---------------- events (delegated) ---------------- */
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-nav],[data-act],[data-close],[data-period],[data-type],[data-view],[data-cat],[data-cat-row],[data-txn],[data-edit],[data-dup],[data-del],[data-sel],[data-theme],[data-cal],[data-lent-dir],[data-lent-filter],[data-section],[data-entry-type],[data-entry-cat],[data-pal],[data-lent-dir]');
+  const t = e.target.closest('[data-nav],[data-act],[data-close],[data-period],[data-type],[data-view],[data-cat],[data-cat-row],[data-txn],[data-edit],[data-dup],[data-del],[data-sel],button[data-theme],[data-cal],[data-lent-dir],[data-lent-filter],[data-section],[data-entry-type],[data-entry-cat],[data-pal]');
   if (!t) {
     if (e.target.closest('[data-close]')) return;
     return;
