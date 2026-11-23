@@ -78,6 +78,8 @@ class LanHostController extends ChangeNotifier {
 
   Future<void> refreshNetwork() async {
     await _refreshNetwork();
+    final server = _server;
+    if (server != null) await server.refreshAddresses();
     notifyListeners();
   }
 
@@ -102,7 +104,7 @@ class LanHostController extends ChangeNotifier {
       _server = server;
       _code = server.newCode();
       _codeAt = DateTime.now();
-      await _refreshNetwork();
+      await refreshNetwork();
       // Phone edits reach the computer within a second.
       store.addListener(_onStoreChanged);
       // Phase 7: keep the process alive while serving. Never required for the
