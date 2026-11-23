@@ -12,6 +12,12 @@ class ExpenseLanDataStore implements LanDataStore {
   final ExpenseStore store;
   ExpenseLanDataStore(this.store);
 
+  // Settings come from plain fields, not v2 records, so they need their own
+  // revision. It must be stable across reads or every snapshot looks changed
+  // and the web client pulls forever.
+  int _settingsUa = 0;
+  String _settingsFingerprint = '';
+
   @override
   List<Map<String, dynamic>> rows() {
     final decoded = jsonDecode(store.exportSnapshotV2());
@@ -34,17 +40,22 @@ class ExpenseLanDataStore implements LanDataStore {
       if (parent.isNotEmpty) row['parent'] = parent;
       out.add(row);
     }
-    final now = DateTime.now().millisecondsSinceEpoch;
-    for (final entry in {
+    final values = {
       'userName': store.userName,
       'currency': store.currency,
       'calendarSystem': store.calendarSystem,
       'homeLayout': encodeHomeLayout(store.homeLayout),
-    }.entries) {
+    };
+    final fingerprint = values.toString();
+    if (fingerprint != _settingsFingerprint) {
+      _settingsFingerprint = fingerprint;
+      _settingsUa = DateTime.now().millisecondsSinceEpoch;
+    }
+    for (final entry in values.entries) {
       out.add({
         't': 'settings',
         'id': entry.key,
-        'ua': now,
+        'ua': _settingsUa,
         'device_id': store.deviceId,
         'd': 0,
         'data': {'value': entry.value},

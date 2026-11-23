@@ -26,5 +26,18 @@ awake on the phone. The computer page must be opened at
 | 17 | Toggle Wi-Fi off and on | If the phone IP changes, the old address stops working; the phone shows the new address and the computer must pair again. |
 | 18 | Tap **Stop** on the phone | Server stops; computer shows "Phone not reachable"; no socket/wake lock remains. |
 
+## Verification run — 2026-11-23 (dev APK, `4750a3bc`)
+
+PASS: Home → Sync → Start; address shown as `http://192.168.1.64:8765`;
+foreground service running; page loads over the real LAN IP (not localhost).
+Pairing page renders with no console errors; code + trust connected; phone
+approval gate; trusted reconnect after app restart; Home renders with the
+phone's data; web → phone and phone → web edits both arrive live; test entries
+removed again; Stop/CSP/Host checks covered by `flutter test` (391/391) and
+`node scripts/lan-simulate.mjs`.
+
+Not re-checked: screen-off survival with the foreground service, AP-isolation,
+QR pairing on the phone camera (the code path is covered by Dart/JS tests).
+
 Record PASS/FAIL and any wording that felt unclear. Do not install or touch
 `com.dhadda.expense` (the real app).

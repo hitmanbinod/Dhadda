@@ -2,6 +2,7 @@
 import 'package:expense/screens/use_on_computer_screen.dart';
 import 'package:expense/store.dart';
 import 'package:expense/sync/lan_host.dart';
+import 'package:expense/sync/lan_store_adapter.dart';
 import 'package:expense/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -49,8 +50,19 @@ void main() {
     expect(find.text('More ways to sync'), findsOneWidget);
   });
 
-  test('controller starts, issues a code and stops cleanly', () async {
+  test('settings rows keep a stable revision across reads', () async {
     final store = await readyStore();
+    final adapter = ExpenseLanDataStore(store);
+    final first = adapter.rows().where((r) => r['t'] == 'settings').toList();
+    final second = adapter.rows().where((r) => r['t'] == 'settings').toList();
+    expect(first, isNotEmpty);
+    for (var i = 0; i < first.length; i++) {
+      expect(second[i]['ua'], first[i]['ua'],
+          reason: '${first[i]['id']} changed ua without a setting change');
+    }
+  });
+
+  test('controller starts, issues a code and stops cleanly', () async {    final store = await readyStore();
     final host = LanHostController();
     await host.start(store, port: 0);
     try {

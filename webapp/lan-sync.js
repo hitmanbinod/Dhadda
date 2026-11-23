@@ -279,7 +279,7 @@ async function trustedReconnect() {
     throw new Error('This computer was removed, pair again');
   }
   const epc = C.randomBytes(32);
-  const h = await post('/session/hello', { device_id: saved.id, epc: C.hex(epc) });
+  const h = await post('/session/hello', C.trustedHello(saved.id, epc));
   const ephone = C.unhex(h.ephone);
   const nonce = C.unhex(h.nonce);
   const epcPub = C.x25519Public(epc);
@@ -367,7 +367,8 @@ async function pollQr() {
 }
 
 async function getAll() {
-  if (session) await pull();
+  // Local cache only. Pulling here would make ingest() -> onData() -> getAll()
+  // -> pull() -> ingest() a feedback loop.
   return buildOutput();
 }
 async function setLocal(t, id, data, deleted = 0) {

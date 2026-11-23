@@ -371,8 +371,13 @@ class LanServer {
   }
 
   void _headers(HttpResponse res, {bool noStore = false}) {
-    res.headers.set('Content-Security-Policy',
-        "default-src 'self'; connect-src 'self' ws:; img-src 'self' data:");
+    // script-src stays strict ('self', no inline). Styles must allow inline
+    // attributes because app.js composes its views with style="...".
+    res.headers.set(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self' ws:; img-src 'self' data:");
     res.headers.set('X-Content-Type-Options', 'nosniff');
     res.headers.set('Referrer-Policy', 'no-referrer');
     if (noStore) res.headers.set('Cache-Control', 'no-store');
