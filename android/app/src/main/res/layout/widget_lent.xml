@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_card"
     android:orientation="vertical"
-    android:padding="12dp">
+    android:padding="10dp">
 
     <!-- Header -->
     <LinearLayout
@@ -35,7 +35,7 @@
                 android:layout_height="wrap_content"
                 android:text="⇄"
                 android:textColor="@color/widget_tint_mint_fg"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
@@ -44,11 +44,12 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="8dp"
         android:layout_weight="1"
         android:background="@drawable/widget_mini_mint"
+        android:gravity="center_vertical"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="8dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -67,7 +68,7 @@
                 android:layout_marginStart="5dp"
                 android:text="@string/widget_to_receive"
                 android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <TextView
@@ -75,6 +76,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
+            android:ellipsize="end"
             android:maxLines="1"
             android:singleLine="true"
             android:text="—"
@@ -90,8 +92,9 @@
         android:layout_marginTop="6dp"
         android:layout_weight="1"
         android:background="@drawable/widget_mini_coral"
+        android:gravity="center_vertical"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:padding="8dp">
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -110,7 +113,7 @@
                 android:layout_marginStart="5dp"
                 android:text="@string/widget_to_return"
                 android:textColor="@color/widget_muted"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
         </LinearLayout>
 
         <TextView
@@ -118,6 +121,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
+            android:ellipsize="end"
             android:maxLines="1"
             android:singleLine="true"
             android:text="—"
