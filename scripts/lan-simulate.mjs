@@ -112,8 +112,9 @@ try {
 
   const epc2 = L.randomBytes(32);
   const epcPub2 = L.x25519Public(epc2);
-  const rehello = await call('POST', '/session/hello',
-    { device_id: deviceId, epc: L.hex(epcPub2) });
+  const hello2 = L.trustedHello(deviceId, epc2);
+  assert.equal(hello2.epc, L.hex(epcPub2), 'hello must carry the public key');
+  const rehello = await call('POST', '/session/hello', hello2);
   assert.equal(rehello.status, 200);
   const ephone2 = L.unhex(rehello.body.ephone);
   const nonce = L.unhex(rehello.body.nonce);

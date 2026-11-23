@@ -62,6 +62,12 @@ function persistRow(t, id, record, deleted = 0) {
 function vaultData(g) {
   const settings = {};
   for (const s of (g.settings || [])) if (s && s.id) settings[s.id] = s.value;
+  // The phone sends homeLayout as a JSON string (encodeHomeLayout); the web
+  // view expects the array of {id, visible} rows.
+  if (typeof settings.homeLayout === 'string') {
+    try { settings.homeLayout = JSON.parse(settings.homeLayout); } catch { /* fall back to default */ }
+  }
+  if (!Array.isArray(settings.homeLayout)) delete settings.homeLayout;
   return {
     cats: g.categories?.length ? g.categories : data.cats,
     txns: g.transactions?.length ? g.transactions : data.txns,

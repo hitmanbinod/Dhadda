@@ -61,6 +61,14 @@ export function normalizeCode(input) {
 export const codeKey = (code, t) => pbkdf2Sha256(utf8(normalizeCode(code)), t);
 export const transcript = (epc, ephone, sid) => sha256Bytes(concat(epc, ephone, utf8(sid)));
 export const trustedTranscript = (epc, ephone, nonce) => sha256Bytes(concat(epc, ephone, nonce));
+
+/// Body of /session/hello for a trusted reconnect. The server hashes the
+/// received `epc` into the transcript, so it MUST be the public key, not the
+/// private scalar used to derive the shared secret.
+export const trustedHello = (deviceId, seed) => ({
+  device_id: deviceId,
+  epc: hex(x25519Public(seed)),
+});
 export const proof = (key, label, t, suffix) =>
   hmacSha256(key, concat(utf8(label), t, suffix || new Uint8Array(0)));
 export const qrKey = (s, t) => hkdfSha256(s, t, utf8(QR_INFO));
