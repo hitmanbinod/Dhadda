@@ -35,6 +35,7 @@ class UseOnComputerScreen extends StatefulWidget {
 
 class _UseOnComputerScreenState extends State<UseOnComputerScreen> {
   Timer? _tick;
+  int _ticks = 0;
   final Set<String> _shownApprovals = {};
 
   @override
@@ -46,6 +47,15 @@ class _UseOnComputerScreenState extends State<UseOnComputerScreen> {
       if (!mounted) return;
       setState(() {});
       _maybeShowApproval();
+      _ticks++;
+      // If the interface list was empty when the server started, keep trying
+      // so the shown address becomes the real Wi-Fi one.
+      final url = widget.host.url;
+      if (widget.host.running &&
+          (url == null || url.contains('127.0.0.1')) &&
+          _ticks % 5 == 0) {
+        unawaited(widget.host.refreshNetwork());
+      }
     });
   }
 

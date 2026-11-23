@@ -217,6 +217,16 @@ class LanServer {
     _idleTimer = Timer.periodic(const Duration(minutes: 1), (_) => _sweep());
   }
 
+  /// Re-reads the phone's Wi-Fi address so the shown URL stays correct after
+  /// a network change.
+  Future<void> refreshAddresses() async {
+    if (_server == null) return;
+    _privateIps = await _privateAddresses();
+    if (_privateIps.isNotEmpty && !options.allowLoopback) {
+      _base = 'http://${_privateIps.first}:${_server!.port}';
+    }
+  }
+
   Future<void> stop() async {
     _idleTimer?.cancel();
     _idleTimer = null;
@@ -302,12 +312,23 @@ class LanServer {
         includeLoopback: false,
         type: InternetAddressType.IPv4,
       );
-      for (final pref in ['192.168.', '10.', '172.']) {
-        for (final i in ifs) {
-          for (final a in i.addresses) {
-            if (a.address.startsWith(pref) && !out.contains(a.address)) {
-              out.add(a.address);
-            }
+      // Wi-Fi first: with mobile data on, a 10.x cellular address would
+      // otherwise become the pairing URL shown on the phone.
+      bool wifi(NetworkInterface i) {
+        final n = i.name.toLowerCase();
+        return n.contains('wlan') || n.contains('wifi');
+      }
+
+      final ordered = [
+        ...ifs.where(wifi),
+        ...ifs.where((i) => !wifi(i)),
+      ];
+      for (final i in ordered) {
+        for (final a in i.addresses) {
+          if (_privateHost.hasMatch(a.address) &&
+              !a.address.startsWith('169.254.') &&
+              !out.contains(a.address)) {
+            out.add(a.address);
           }
         }
       }
@@ -315,20 +336,38 @@ class LanServer {
     return out;
   }
 
+  /// Private IPv4 literals. Accepting these directly (instead of only the
+  /// cached interface list) keeps the server usable when the phone's Wi-Fi
+  /// address changes or the interface list came back empty at startup.
+  /// DNS-rebinding is still blocked because arbitrary hostnames are refused.
+  static final RegExp _privateHost = RegExp(
+    r'^(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}'
+    r'|192\.168\.\d{1,3}\.\d{1,3}'
+    r'|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}'
+    r'|169\.254\.\d{1,3}\.\d{1,3})$',
+  );
+
   bool _hostOk(HttpRequest req) {
-    final host = req.headers.host;
+    final raw = req.headers.host;
+    if (raw == null || raw.isEmpty) return false;
+    var host = raw.toLowerCase();
     final port = _server?.port ?? options.port;
-    if (options.allowLoopback &&
-        (host == '127.0.0.1' ||
-            host == 'localhost' ||
-            host == '127.0.0.1:$port' ||
-            host == 'localhost:$port')) {
-      return true;
+    if (host.startsWith('[')) {
+      // IPv6 literal, e.g. [fe80::1]:8765 - only loopback is ever allowed.
+      final end = host.indexOf(']');
+      if (end < 0) return false;
+      return options.allowLoopback && host.substring(1, end) == '::1';
     }
-    if (host == 'dhadda.local:$port' || host == 'dhadda.local') {
-      return true;
+    final colon = host.lastIndexOf(':');
+    if (colon >= 0) {
+      if (host.substring(colon + 1) != '$port') return false;
+      host = host.substring(0, colon);
     }
-    return _privateIps.any((ip) => host == '$ip:$port');
+    if (host == 'dhadda.local') return true;
+    if (host == '127.0.0.1' || host == 'localhost') {
+      return options.allowLoopback;
+    }
+    return _privateHost.hasMatch(host);
   }
 
   void _headers(HttpResponse res, {bool noStore = false}) {

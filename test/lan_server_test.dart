@@ -175,6 +175,14 @@ void main() {
     expect(r.headers['referrer-policy'], 'no-referrer');
     final bad = await client.get('/', host: 'evil.example');
     expect(bad.status, 400);
+    // The real LAN address must work even if the interface list is stale.
+    final port = Uri.parse(server.baseUrl!).port;
+    expect((await client.get('/', host: '192.168.1.64:$port')).status, 200);
+    expect((await client.get('/', host: '10.0.0.7:$port')).status, 200);
+    expect((await client.get('/', host: '172.20.1.2:$port')).status, 200);
+    expect((await client.get('/', host: 'dhadda.local:$port')).status, 200);
+    expect((await client.get('/', host: '8.8.8.8:$port')).status, 400);
+    expect((await client.get('/', host: '192.168.1.64:1')).status, 400);
   });
 
   test('code mode: proof, Allow gate, snapshot, push, WS event, replay',
