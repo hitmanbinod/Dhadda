@@ -79,7 +79,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <View
+                <FrameLayout
                     android:layout_width="6dp"
                     android:layout_height="6dp"
                     android:background="@drawable/widget_dot_coral" />
@@ -105,7 +105,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <View
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
@@ -134,7 +134,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <View
+                <FrameLayout
                     android:layout_width="6dp"
                     android:layout_height="6dp"
                     android:background="@drawable/widget_dot_mint" />
@@ -160,7 +160,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <View
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
@@ -189,7 +189,7 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <View
+                <FrameLayout
                     android:layout_width="6dp"
                     android:layout_height="6dp"
                     android:background="@drawable/widget_dot_balance" />
@@ -215,7 +215,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <View
+            <FrameLayout
                 android:layout_width="0dp"
                 android:layout_height="0dp"
                 android:layout_weight="1" />

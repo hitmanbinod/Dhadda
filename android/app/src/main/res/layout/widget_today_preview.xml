@@ -17,10 +17,10 @@
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Spent today" android:textColor="@color/widget_muted" android:textSize="11sp" />
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:singleLine="true" android:text="रू 2,000" android:textColor="@color/widget_text" android:textSize="26sp" android:textStyle="bold" />
 
-    <View android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+    <FrameLayout android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@drawable/widget_cta" android:gravity="center_vertical" android:orientation="horizontal" android:padding="8dp">
-        <View android:layout_width="6dp" android:layout_height="6dp" android:background="@drawable/widget_dot_coral" />
+        <FrameLayout android:layout_width="6dp" android:layout_height="6dp" android:background="@drawable/widget_dot_coral" />
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:singleLine="true" android:text="Add expense  ›" android:textColor="@color/widget_tint_coral_fg" android:textSize="11sp" android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
