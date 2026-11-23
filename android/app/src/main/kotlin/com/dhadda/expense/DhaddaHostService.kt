@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import io.flutter.plugin.common.MethodChannel
 
 /**
@@ -58,7 +59,12 @@ class DhaddaHostService : Service() {
     override fun onCreate() {
         super.onCreate()
         createChannel()
-        registerReceiver(stopReceiver, IntentFilter(ACTION_STOP))
+        ContextCompat.registerReceiver(
+            this,
+            stopReceiver,
+            IntentFilter(ACTION_STOP),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         startForeground(NOTIFICATION_ID, notification())
         acquireLocks()
         handler.post(idleCheck)
